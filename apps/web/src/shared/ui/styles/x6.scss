@@ -52,10 +52,10 @@
             }
 
             &.value-true {
-                stroke: var(--color-true) !important;
+                stroke: var(--color-signal-high) !important;
             }
             &.value-false {
-                stroke: var(--color-false) !important;
+                stroke: var(--color-signal-low) !important;
             }
             &.value-x {
                 stroke: var(--color-x) !important;
@@ -82,11 +82,11 @@
         }
 
         &.value-false > circle.x6-edge-tool-vertex {
-            fill: var(--color-false) !important;
+            fill: var(--color-signal-low) !important;
         }
 
         &.value-true > circle.x6-edge-tool-vertex {
-            fill: var(--color-true) !important;
+            fill: var(--color-signal-high) !important;
         }
 
         &.value-hiz > circle.x6-edge-tool-vertex {

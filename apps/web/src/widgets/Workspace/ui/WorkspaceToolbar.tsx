@@ -1,6 +1,9 @@
 import { ArduinoHardwarePanel } from "@gately/features/arduino-hardware";
 import { useAddLogicNode } from "@gately/features/nodes/useAddBaseLogic";
-import type { AppConfigurationController } from "@gately/app/providers/AppConfigurationProvider";
+import type {
+    AppConfigurationController,
+    SignalPathColorConfig,
+} from "@gately/app/providers/AppConfigurationProvider";
 import type { OptimizedCircuitRoutingConfig } from "@gately/features/boolean-analysis/model/optimizedCircuitLayout";
 import { useUIEngine } from "@gately/shared/infrastructure";
 import type { WorkspaceSimulationMode } from "@gately/shared/types";
@@ -40,6 +43,14 @@ const ROUTING_SETTINGS: Array<{
     { key: "outputSinkBottomClearance", label: "Sink lane", min: 16, max: 192, step: 4 },
 ];
 
+const SIGNAL_PATH_COLOR_SETTINGS: Array<{
+    key: keyof SignalPathColorConfig;
+    label: string;
+}> = [
+    { key: "high", label: "High path" },
+    { key: "low", label: "Low path" },
+];
+
 type WorkspaceToolbarProps = Pick<
     WorkspaceController,
     | "autoLayout"
@@ -77,6 +88,9 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
         props.persistence.isBusy;
     const setRoutingDistance = (key: keyof OptimizedCircuitRoutingConfig, value: string) => {
         props.configuration.setRoutingConfig({ [key]: Number(value) });
+    };
+    const setSignalPathColor = (key: keyof SignalPathColorConfig, value: string) => {
+        props.configuration.setSignalPathColors({ [key]: value });
     };
     const selectedCustomHash = () => props.customComponents.selectedHash();
     const builtInButtons = [
@@ -260,6 +274,40 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                             onClick={props.configuration.resetRoutingConfig}
                         >
                             Reset Routing
+                        </Pusher>
+                    </div>
+                </details>
+                <details class="rounded-md bg-gray-2 px-2 py-1 text-gray-12">
+                    <summary class="cursor-pointer select-none">Signals</summary>
+                    <div class="mt-2 grid gap-2">
+                        <For each={SIGNAL_PATH_COLOR_SETTINGS}>
+                            {(setting) => (
+                                <label class="flex items-center gap-2 text-xs text-gray-11">
+                                    <span class="min-w-16">{setting.label}</span>
+                                    <input
+                                        class="h-7 w-10 rounded border border-gray-5 bg-gray-1 p-0.5"
+                                        type="color"
+                                        value={
+                                            props.configuration.signalPathColors()[setting.key]
+                                        }
+                                        onInput={(e) =>
+                                            setSignalPathColor(
+                                                setting.key,
+                                                e.currentTarget.value,
+                                            )
+                                        }
+                                    />
+                                    <span class="font-mono text-[11px] text-gray-10">
+                                        {props.configuration.signalPathColors()[setting.key]}
+                                    </span>
+                                </label>
+                            )}
+                        </For>
+                        <Pusher
+                            class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4"
+                            onClick={props.configuration.resetSignalPathColors}
+                        >
+                            Reset Signals
                         </Pusher>
                     </div>
                 </details>

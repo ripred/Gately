@@ -16,23 +16,38 @@ const CONFIG_VERSION = 1;
 const UI_SCALE_MIN = 0.75;
 const UI_SCALE_MAX = 1.5;
 const UI_SCALE_STEP = 0.1;
+const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+
+export type SignalPathColorConfig = {
+    high: string;
+    low: string;
+};
+
+export const DEFAULT_SIGNAL_PATH_COLOR_CONFIG: SignalPathColorConfig = {
+    high: "#14f2b3",
+    low: "#a4b7d2",
+};
 
 type StoredAppConfiguration = {
     version: typeof CONFIG_VERSION;
     uiScale: number;
     routingConfig?: Partial<OptimizedCircuitRoutingConfig>;
+    signalPathColors?: Partial<SignalPathColorConfig>;
 };
 
 export type AppConfigurationController = {
     uiScale: () => number;
     uiScalePercent: () => number;
     routingConfig: () => OptimizedCircuitRoutingConfig;
+    signalPathColors: () => SignalPathColorConfig;
     setUiScale: (scale: number) => void;
     setRoutingConfig: (config: Partial<OptimizedCircuitRoutingConfig>) => void;
+    setSignalPathColors: (config: Partial<SignalPathColorConfig>) => void;
     uiZoomIn: () => void;
     uiZoomOut: () => void;
     resetUiZoom: () => void;
     resetRoutingConfig: () => void;
+    resetSignalPathColors: () => void;
 };
 
 const AppConfigurationContext = createContext<AppConfigurationController>();
@@ -44,6 +59,19 @@ const normalizeUiScale = (scale: number): number => {
     if (!Number.isFinite(scale)) return 1;
     return Number(clampUiScale(scale).toFixed(2));
 };
+
+const normalizeHexColor = (color: unknown, fallback: string): string => {
+    if (typeof color !== "string") return fallback;
+    const trimmed = color.trim();
+    return HEX_COLOR_PATTERN.test(trimmed) ? trimmed.toLowerCase() : fallback;
+};
+
+export const normalizeSignalPathColorConfig = (
+    config?: Partial<SignalPathColorConfig>,
+): SignalPathColorConfig => ({
+    high: normalizeHexColor(config?.high, DEFAULT_SIGNAL_PATH_COLOR_CONFIG.high),
+    low: normalizeHexColor(config?.low, DEFAULT_SIGNAL_PATH_COLOR_CONFIG.low),
+});
 
 const readStoredConfiguration = (): StoredAppConfiguration | undefined => {
     let raw: string | null;
@@ -61,6 +89,7 @@ const readStoredConfiguration = (): StoredAppConfiguration | undefined => {
             version: CONFIG_VERSION,
             uiScale: normalizeUiScale(parsed.uiScale),
             routingConfig: normalizeOptimizedCircuitRoutingConfig(parsed.routingConfig),
+            signalPathColors: normalizeSignalPathColorConfig(parsed.signalPathColors),
         };
     } catch {
         return;
@@ -74,6 +103,10 @@ const createAppConfiguration = (): AppConfigurationController => {
         createSignal<OptimizedCircuitRoutingConfig>(
             normalizeOptimizedCircuitRoutingConfig(stored?.routingConfig),
         );
+    const [signalPathColors, setSignalPathColorsSignal] =
+        createSignal<SignalPathColorConfig>(
+            normalizeSignalPathColorConfig(stored?.signalPathColors),
+        );
 
     const setUiScale = (scale: number) => {
         setUiScaleSignal(normalizeUiScale(scale));
@@ -86,12 +119,21 @@ const createAppConfiguration = (): AppConfigurationController => {
             }),
         );
     };
+    const setSignalPathColors = (config: Partial<SignalPathColorConfig>) => {
+        setSignalPathColorsSignal((current) =>
+            normalizeSignalPathColorConfig({
+                ...current,
+                ...config,
+            }),
+        );
+    };
 
     createEffect(() => {
         const snapshot: StoredAppConfiguration = {
             version: CONFIG_VERSION,
             uiScale: uiScale(),
             routingConfig: routingConfig(),
+            signalPathColors: signalPathColors(),
         };
         try {
             window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
@@ -104,13 +146,17 @@ const createAppConfiguration = (): AppConfigurationController => {
         uiScale,
         uiScalePercent: () => Math.round(uiScale() * 100),
         routingConfig,
+        signalPathColors,
         setUiScale,
         setRoutingConfig,
+        setSignalPathColors,
         uiZoomIn: () => setUiScale(uiScale() + UI_SCALE_STEP),
         uiZoomOut: () => setUiScale(uiScale() - UI_SCALE_STEP),
         resetUiZoom: () => setUiScale(1),
         resetRoutingConfig: () =>
             setRoutingConfigSignal(DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG),
+        resetSignalPathColors: () =>
+            setSignalPathColorsSignal(DEFAULT_SIGNAL_PATH_COLOR_CONFIG),
     };
 };
 
