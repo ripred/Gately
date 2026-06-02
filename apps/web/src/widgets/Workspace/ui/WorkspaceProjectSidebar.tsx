@@ -6,8 +6,13 @@ import {
 import { useUIEngine, type UIEngineScope } from "@gately/shared/infrastructure";
 import { Pusher } from "@gately/shared/ui";
 import type { WorkspaceController } from "../lib/types";
+import {
+    buildProjectExplorerTree,
+    type ProjectExplorerNode,
+    type ProjectExplorerNodeKind,
+} from "./projectExplorerTree";
 import type { WorkspaceViewMode } from "./workbenchTypes";
-import { Component, createSignal, For, JSX, onCleanup, Show } from "solid-js";
+import { Component, createMemo, createSignal, For, JSX, onCleanup, Show } from "solid-js";
 
 type WorkspaceProjectSidebarProps = Pick<
     WorkspaceController,
@@ -23,8 +28,80 @@ type WorkspaceProjectSidebarProps = Pick<
 const treeLabelButtonClass =
     "flex min-w-0 flex-1 items-center gap-2 py-1.5 pr-2 text-left text-xs";
 
+const projectTreeLabelButtonClass =
+    "flex min-w-0 flex-1 items-center gap-2 py-1.5 pr-2 text-left text-xs";
+
 const miniButtonClass =
     "rounded border border-gray-5 bg-gray-3 px-2 py-1 text-[11px] text-gray-12 hover:bg-gray-4 data-disabled:text-gray-8 data-disabled:hover:bg-gray-3";
+
+const TreeChevron: Component<{ expanded?: boolean; visible: boolean }> = (props) => (
+    <svg
+        aria-hidden="true"
+        class={[
+            "h-3 w-3 text-gray-9 transition-transform",
+            props.visible ? "" : "opacity-0",
+            props.expanded ? "rotate-90" : "",
+        ].join(" ")}
+        viewBox="0 0 16 16"
+    >
+        <path
+            d="M6 4l4 4-4 4"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.8"
+        />
+    </svg>
+);
+
+const TreeNodeIcon: Component<{ kind: ProjectExplorerNodeKind; expanded?: boolean }> = (props) => {
+    const filePath = () => {
+        switch (props.kind) {
+            case "component":
+                return "M5 3h5l3 3v7H5z M10 3v3h3";
+            case "settings":
+                return "M8 4.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z M8 2.5v2 M8 11.5v2 M2.5 8h2 M11.5 8h2 M3.75 3.75l1.4 1.4 M10.85 10.85l1.4 1.4 M12.25 3.75l-1.4 1.4 M5.15 10.85l-1.4 1.4";
+            case "status":
+                return "M4 3h8v10H4z M6 6h4 M6 9h3";
+            default:
+                return "M5 3h5l3 3v7H5z M10 3v3h3";
+        }
+    };
+
+    return (
+        <Show
+            when={props.kind === "folder"}
+            fallback={
+                <svg
+                    aria-hidden="true"
+                    class="h-3.5 w-3.5 shrink-0 text-gray-9"
+                    viewBox="0 0 16 16"
+                >
+                    <path
+                        d={filePath()}
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.35"
+                    />
+                </svg>
+            }
+        >
+            <svg aria-hidden="true" class="h-3.5 w-3.5 shrink-0 text-gray-9" viewBox="0 0 16 16">
+                <path
+                    d={props.expanded ? "M2 6h12l-1 6H3z M2 5h4l1 1h7" : "M2 5h4l1 1h7v6H2z"}
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.35"
+                />
+            </svg>
+        </Show>
+    );
+};
 
 const ExplorerTreeSection: Component<{
     children?: JSX.Element;
@@ -63,6 +140,9 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
     const [collapsedScopeIds, setCollapsedScopeIds] = createSignal<Record<string, boolean>>(
         {},
     );
+    const [collapsedProjectNodeIds, setCollapsedProjectNodeIds] = createSignal<
+        Record<string, boolean>
+    >({});
     const [resizePreviewWidth, setResizePreviewWidth] = createSignal<number>();
     let resizeStartX = 0;
     let resizeStartWidth = 0;
@@ -74,6 +154,15 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
     };
     const customComponents = () => props.customComponents.components();
     const scopeChildren = (scopeId: string) => uiEngine.state.getScopeChildrenById(scopeId);
+    const projectTree = createMemo(() =>
+        buildProjectExplorerTree({
+            components: customComponents(),
+            getScopeById: uiEngine.state.getScopeById,
+            getScopeChildrenById: uiEngine.state.getScopeChildrenById,
+            hasSavedWorkspace: props.persistence.hasSavedWorkspace(),
+            tabs: uiEngine.state.tabs(),
+        }),
+    );
     const canCloseCircuit = (tabId: string) => uiEngine.commands.canCloseTab(tabId);
     const sidebarWidth = () =>
         resizePreviewWidth() ?? props.configuration.workbenchConfig().explorerWidth;
@@ -84,10 +173,18 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         );
     const scopeExpanded = (scope: UIEngineScope) =>
         scope.childrenIds.length > 0 && !collapsedScopeIds()[scope.id];
+    const projectNodeExpanded = (node: ProjectExplorerNode) =>
+        Boolean(node.children?.length) && !collapsedProjectNodeIds()[node.id];
     const toggleScopeExpanded = (scopeId: string) => {
         setCollapsedScopeIds((current) => ({
             ...current,
             [scopeId]: !current[scopeId],
+        }));
+    };
+    const toggleProjectNodeExpanded = (nodeId: string) => {
+        setCollapsedProjectNodeIds((current) => ({
+            ...current,
+            [nodeId]: !current[nodeId],
         }));
     };
     const openCircuit = (tabId: string) => {
@@ -171,6 +268,35 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
 
         openScope(scope.id, tabId);
     };
+    const activateProjectNode = (node: ProjectExplorerNode) => {
+        if (node.scopeId) {
+            if (node.scopeId === node.tabId) {
+                openCircuit(node.tabId);
+            } else {
+                openScope(node.scopeId, node.tabId);
+            }
+            return;
+        }
+
+        if (node.kind === "settings") {
+            props.setMode("settings");
+            return;
+        }
+
+        if (node.kind === "component" && node.hash) {
+            void props.customComponents.addComponent(node.hash);
+            return;
+        }
+
+        if (node.children?.length) {
+            toggleProjectNodeExpanded(node.id);
+        }
+    };
+    const projectNodeIsActive = (node: ProjectExplorerNode) => {
+        if (node.kind === "settings") return props.mode === "settings";
+        if (!node.scopeId) return false;
+        return props.mode === "circuit" && node.scopeId === activeScopeId();
+    };
 
     const ScopeTreeNode: Component<{
         depth: number;
@@ -199,22 +325,18 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                     style={{ "padding-left": `${10 + nodeProps.depth * 14}px` }}
                 >
                     <button
-                        class="flex h-7 w-5 shrink-0 items-center justify-center rounded text-[11px] text-gray-9 hover:bg-gray-4 hover:text-gray-12 disabled:hover:bg-transparent"
+                        class="flex h-7 w-5 shrink-0 items-center justify-center rounded text-gray-9 hover:bg-gray-4 hover:text-gray-12 disabled:hover:bg-transparent"
                         disabled={!hasChildren()}
                         onClick={() => toggleScopeExpanded(nodeProps.scope.id)}
                         title={hasChildren() ? "Expand or collapse" : undefined}
                     >
-                        <Show when={hasChildren()} fallback=" ">
-                            {expanded() ? "v" : ">"}
-                        </Show>
+                        <TreeChevron visible={hasChildren()} expanded={expanded()} />
                     </button>
                     <button
                         class={treeLabelButtonClass}
                         onClick={() => openTreeScope(nodeProps.scope, nodeProps.tabId)}
                     >
-                        <span class="w-8 shrink-0 rounded border border-gray-5 bg-gray-1 px-1 py-0.5 text-center text-[9px] font-semibold text-gray-9">
-                            {isDirectory() ? "DIR" : "CKT"}
-                        </span>
+                        <TreeNodeIcon kind={isDirectory() ? "folder" : "circuit"} expanded={expanded()} />
                         <span class="truncate">{nodeProps.scope.name}</span>
                     </button>
                     <Show when={nodeProps.withClose}>
@@ -245,6 +367,81 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                                     tabId={nodeProps.tabId ?? nodeProps.scope.id}
                                 />
                             )}
+                        </For>
+                    </div>
+                </Show>
+            </div>
+        );
+    };
+
+    const ProjectTreeNode: Component<{
+        depth: number;
+        node: ProjectExplorerNode;
+    }> = (nodeProps) => {
+        const children = () => nodeProps.node.children ?? [];
+        const hasChildren = () => children().length > 0;
+        const expanded = () => projectNodeExpanded(nodeProps.node);
+        const rowIsActive = () => projectNodeIsActive(nodeProps.node);
+        const isClosableTab = () =>
+            Boolean(nodeProps.node.scopeId && nodeProps.node.scopeId === nodeProps.node.tabId);
+        const closeTabId = () => nodeProps.node.tabId;
+
+        return (
+            <div>
+                <div
+                    role="treeitem"
+                    aria-expanded={hasChildren() ? expanded() : undefined}
+                    aria-selected={rowIsActive()}
+                    class={[
+                        "group flex min-w-0 items-center hover:bg-gray-3",
+                        rowIsActive() ? "bg-primary-3 text-primary-11" : "text-gray-11",
+                    ].join(" ")}
+                    style={{ "padding-left": `${10 + nodeProps.depth * 14}px` }}
+                >
+                    <button
+                        class="flex h-7 w-5 shrink-0 items-center justify-center rounded text-gray-9 hover:bg-gray-4 hover:text-gray-12 disabled:hover:bg-transparent"
+                        disabled={!hasChildren()}
+                        onClick={() => toggleProjectNodeExpanded(nodeProps.node.id)}
+                        title={hasChildren() ? "Expand or collapse" : undefined}
+                    >
+                        <TreeChevron visible={hasChildren()} expanded={expanded()} />
+                    </button>
+                    <button
+                        class={projectTreeLabelButtonClass}
+                        disabled={nodeProps.node.kind === "status"}
+                        onClick={() => activateProjectNode(nodeProps.node)}
+                        title={nodeProps.node.detail}
+                    >
+                        <TreeNodeIcon kind={nodeProps.node.kind} expanded={expanded()} />
+                        <span class="min-w-0 flex-1 truncate">{nodeProps.node.label}</span>
+                        <Show when={nodeProps.node.detail}>
+                            <span class="shrink-0 truncate text-[10px] text-gray-8">
+                                {nodeProps.node.detail}
+                            </span>
+                        </Show>
+                    </button>
+                    <Show when={isClosableTab()}>
+                        <button
+                            class="mx-1 rounded px-1.5 py-0.5 text-[11px] text-gray-9 hover:bg-gray-4 hover:text-gray-12 disabled:cursor-not-allowed disabled:text-gray-7 disabled:hover:bg-transparent"
+                            disabled={!canCloseCircuit(closeTabId()!)}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                void closeCircuit(closeTabId()!);
+                            }}
+                            title={
+                                canCloseCircuit(closeTabId()!)
+                                    ? "Close circuit"
+                                    : "Keep at least one circuit open"
+                            }
+                        >
+                            X
+                        </button>
+                    </Show>
+                </div>
+                <Show when={hasChildren() && expanded()}>
+                    <div role="group">
+                        <For each={children()}>
+                            {(child) => <ProjectTreeNode depth={nodeProps.depth + 1} node={child} />}
                         </For>
                     </div>
                 </Show>
@@ -326,23 +523,8 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                         sectionKey="project"
                         title="Project"
                     >
-                        <button
-                            class={[
-                                "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-3",
-                                props.mode === "circuit" ? "bg-primary-3 text-primary-11" : "",
-                            ].join(" ")}
-                            onClick={() => props.setMode("circuit")}
-                        >
-                            <span class="text-gray-9">v</span>
-                            <span class="truncate">Gately Workspace</span>
-                        </button>
-                        <div class="px-3 py-2 text-xs leading-5 text-gray-9">
-                            <div>Storage: browser local workspace</div>
-                            <div>
-                                Saved workspace:{" "}
-                                {props.persistence.hasSavedWorkspace() ? "yes" : "no"}
-                            </div>
-                            <div>Open circuits: {uiEngine.state.tabs().length}</div>
+                        <div role="tree" aria-label="Project workspace tree">
+                            <ProjectTreeNode depth={0} node={projectTree()} />
                         </div>
                         <div class="flex flex-wrap gap-1 px-3 pb-2">
                             <Pusher
