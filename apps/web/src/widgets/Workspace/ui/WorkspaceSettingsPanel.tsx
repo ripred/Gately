@@ -4,7 +4,7 @@ import {
 } from "@gately/app/providers/AppConfigurationProvider";
 import type { WorkspaceSimulationMode } from "@gately/shared/types";
 import type { WorkspaceSimulationController } from "../lib/types";
-import { Component, For } from "solid-js";
+import { Component, createMemo, createSignal, For, JSX, Show } from "solid-js";
 import {
     EXPLORER_SECTION_SETTINGS,
     ROUTING_SETTINGS,
@@ -23,53 +23,70 @@ type WorkspaceSettingsPanelProps = {
     simulation: WorkspaceSimulationController;
 };
 
-export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (props) => (
-    <div class="h-full overflow-auto bg-gray-1 text-gray-12">
-        <div class="mx-auto flex max-w-6xl flex-col gap-6 px-8 py-7">
-            <header class="border-b border-gray-4 pb-4">
-                <p class="text-xs font-bold uppercase tracking-wide text-gray-10">
-                    Gately Preferences
-                </p>
-                <h1 class="mt-1 text-2xl font-semibold text-gray-12">Settings</h1>
-            </header>
+type SettingsCategoryId =
+    | "accessibility"
+    | "workbench"
+    | "simulation"
+    | "routing"
+    | "signals";
 
-            <section class="grid grid-cols-[14rem_minmax(0,1fr)] gap-8 border-b border-gray-4 pb-6">
-                <div>
-                    <h2 class="text-sm font-semibold text-gray-12">Accessibility</h2>
-                    <p class="mt-2 text-xs leading-5 text-gray-10">
-                        Controls the application chrome scale. Circuit canvas zoom remains separate.
-                    </p>
-                </div>
+type SettingsCategory = {
+    description: string;
+    id: SettingsCategoryId;
+    keywords: string[];
+    label: string;
+    render: () => JSX.Element;
+};
+
+const buttonClass =
+    "rounded border border-gray-5 bg-gray-2 px-3 py-1.5 text-sm text-gray-12 hover:bg-gray-3";
+
+const inputClass =
+    "rounded border border-gray-5 bg-gray-2 px-2 py-1.5 text-sm text-gray-12";
+
+const normalizeSearch = (value: string): string => value.trim().toLowerCase();
+
+export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (props) => {
+    const [activeCategoryId, setActiveCategoryId] =
+        createSignal<SettingsCategoryId>("accessibility");
+    const [searchQuery, setSearchQuery] = createSignal("");
+
+    const categories: SettingsCategory[] = [
+        {
+            description: "Application chrome scale.",
+            id: "accessibility",
+            keywords: ["accessibility", "ui", "scale", "zoom", "chrome"],
+            label: "Accessibility",
+            render: () => (
                 <div class="flex flex-wrap items-center gap-2">
-                    <button
-                        class="rounded border border-gray-5 bg-gray-2 px-3 py-1.5 text-sm text-gray-12 hover:bg-gray-3"
-                        onClick={props.configuration.uiZoomOut}
-                    >
+                    <button class={buttonClass} onClick={props.configuration.uiZoomOut}>
                         UI -
                     </button>
-                    <button
-                        class="rounded border border-gray-5 bg-gray-2 px-3 py-1.5 text-sm text-gray-12 hover:bg-gray-3"
-                        onClick={props.configuration.resetUiZoom}
-                    >
+                    <button class={buttonClass} onClick={props.configuration.resetUiZoom}>
                         UI {props.configuration.uiScalePercent()}%
                     </button>
-                    <button
-                        class="rounded border border-gray-5 bg-gray-2 px-3 py-1.5 text-sm text-gray-12 hover:bg-gray-3"
-                        onClick={props.configuration.uiZoomIn}
-                    >
+                    <button class={buttonClass} onClick={props.configuration.uiZoomIn}>
                         UI +
                     </button>
                 </div>
-            </section>
-
-            <section class="grid grid-cols-[14rem_minmax(0,1fr)] gap-8 border-b border-gray-4 pb-6">
-                <div>
-                    <h2 class="text-sm font-semibold text-gray-12">Workbench</h2>
-                    <p class="mt-2 text-xs leading-5 text-gray-10">
-                        Controls the IDE chrome around the familiar circuit canvas.
-                    </p>
-                </div>
-                <div class="grid gap-4">
+            ),
+        },
+        {
+            description: "Explorer and toolbar preferences.",
+            id: "workbench",
+            keywords: [
+                "workbench",
+                "explorer",
+                "project",
+                "sidebar",
+                "toolbar",
+                "sections",
+                ...EXPLORER_SECTION_SETTINGS.map((setting) => setting.label),
+                ...TOOLBAR_GROUP_SETTINGS.map((setting) => setting.label),
+            ],
+            label: "Workbench",
+            render: () => (
+                <div class="grid gap-5">
                     <label class="flex items-start gap-3 text-sm text-gray-12">
                         <input
                             class="mt-1"
@@ -84,14 +101,14 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                         <span>
                             <span class="block font-medium">Collapse explorer sidebar</span>
                             <span class="block text-xs leading-5 text-gray-9">
-                                Keep the project explorer minimized by default.
+                                Default project explorer state.
                             </span>
                         </span>
                     </label>
                     <label class="grid max-w-xs gap-1 text-xs text-gray-10">
                         <span class="font-medium text-gray-11">Explorer width</span>
                         <input
-                            class="rounded border border-gray-5 bg-gray-2 px-2 py-1.5 text-sm text-gray-12"
+                            class={inputClass}
                             type="number"
                             min={WORKBENCH_EXPLORER_WIDTH_LIMITS.min}
                             max={WORKBENCH_EXPLORER_WIDTH_LIMITS.max}
@@ -104,9 +121,7 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                                 )
                             }
                         />
-                        <span class="leading-4 text-gray-9">
-                            Width in pixels when the explorer is expanded.
-                        </span>
+                        <span class="leading-4 text-gray-9">Expanded explorer width.</span>
                     </label>
                     <div>
                         <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-9">
@@ -143,7 +158,7 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                         <div class="grid grid-cols-[repeat(auto-fit,minmax(17rem,1fr))] gap-3">
                             <For each={TOOLBAR_GROUP_SETTINGS}>
                                 {(setting) => (
-                                    <label class="flex items-start gap-3 rounded border border-gray-4 bg-gray-2 px-3 py-2 text-sm text-gray-12">
+                                    <label class="flex items-start gap-3 border border-gray-4 bg-gray-2 px-3 py-2 text-sm text-gray-12">
                                         <input
                                             class="mt-1"
                                             type="checkbox"
@@ -160,9 +175,7 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                                             }
                                         />
                                         <span>
-                                            <span class="block font-medium">
-                                                {setting.label}
-                                            </span>
+                                            <span class="block font-medium">{setting.label}</span>
                                             <span class="block text-xs leading-5 text-gray-9">
                                                 {setting.description}
                                             </span>
@@ -174,26 +187,25 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                     </div>
                     <div>
                         <button
-                            class="rounded border border-gray-5 bg-gray-2 px-3 py-1.5 text-sm text-gray-12 hover:bg-gray-3"
+                            class={buttonClass}
                             onClick={props.configuration.resetWorkbenchConfig}
                         >
                             Reset Workbench
                         </button>
                     </div>
                 </div>
-            </section>
-
-            <section class="grid grid-cols-[14rem_minmax(0,1fr)] gap-8 border-b border-gray-4 pb-6">
-                <div>
-                    <h2 class="text-sm font-semibold text-gray-12">Simulation</h2>
-                    <p class="mt-2 text-xs leading-5 text-gray-10">
-                        Sets the default simulation cadence for the active workspace.
-                    </p>
-                </div>
+            ),
+        },
+        {
+            description: "Simulation tick cadence.",
+            id: "simulation",
+            keywords: ["simulation", "tick", "rate", "cadence", "instant", "pause", "step"],
+            label: "Simulation",
+            render: () => (
                 <label class="flex max-w-xs flex-col gap-1 text-xs text-gray-10">
                     Tick rate
                     <select
-                        class="rounded border border-gray-5 bg-gray-2 px-2 py-1.5 text-sm text-gray-12"
+                        class={inputClass}
                         value={props.simulation.mode}
                         disabled={props.simulation.isDisabled || props.simulation.isBusy}
                         onChange={(event) =>
@@ -206,57 +218,69 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                         ))}
                     </select>
                 </label>
-            </section>
-
-            <section class="grid grid-cols-[14rem_minmax(0,1fr)] gap-8 border-b border-gray-4 pb-6">
-                <div>
-                    <h2 class="text-sm font-semibold text-gray-12">Routing</h2>
-                    <p class="mt-2 text-xs leading-5 text-gray-10">
-                        Deterministic geometry constraints for auto-layout and optimized circuits.
-                    </p>
+            ),
+        },
+        {
+            description: "Deterministic wire routing geometry.",
+            id: "routing",
+            keywords: [
+                "routing",
+                "auto layout",
+                "wire",
+                "clearance",
+                "padding",
+                ...ROUTING_SETTINGS.flatMap((setting) => [
+                    setting.label,
+                    setting.description,
+                ]),
+            ],
+            label: "Routing",
+            render: () => (
+                <div class="grid gap-5">
+                    <div class="grid grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-4">
+                        <For each={ROUTING_SETTINGS}>
+                            {(setting) => (
+                                <label class="grid gap-1 text-xs text-gray-10">
+                                    <span class="font-medium text-gray-11">{setting.label}</span>
+                                    <input
+                                        class={inputClass}
+                                        type="number"
+                                        min={setting.min}
+                                        max={setting.max}
+                                        step={setting.step}
+                                        value={props.configuration.routingConfig()[setting.key]}
+                                        onInput={(event) =>
+                                            setRoutingDistance(
+                                                props.configuration,
+                                                setting.key,
+                                                event.currentTarget.value,
+                                            )
+                                        }
+                                    />
+                                    <span class="leading-4 text-gray-9">
+                                        {setting.description}
+                                    </span>
+                                </label>
+                            )}
+                        </For>
+                    </div>
+                    <div>
+                        <button
+                            class={buttonClass}
+                            onClick={props.configuration.resetRoutingConfig}
+                        >
+                            Reset Routing
+                        </button>
+                    </div>
                 </div>
-                <div class="grid grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-4">
-                    <For each={ROUTING_SETTINGS}>
-                        {(setting) => (
-                            <label class="grid gap-1 text-xs text-gray-10">
-                                <span class="font-medium text-gray-11">{setting.label}</span>
-                                <input
-                                    class="rounded border border-gray-5 bg-gray-2 px-2 py-1.5 text-sm text-gray-12"
-                                    type="number"
-                                    min={setting.min}
-                                    max={setting.max}
-                                    step={setting.step}
-                                    value={props.configuration.routingConfig()[setting.key]}
-                                    onInput={(event) =>
-                                        setRoutingDistance(
-                                            props.configuration,
-                                            setting.key,
-                                            event.currentTarget.value,
-                                        )
-                                    }
-                                />
-                                <span class="leading-4 text-gray-9">{setting.description}</span>
-                            </label>
-                        )}
-                    </For>
-                </div>
-                <div class="col-start-2">
-                    <button
-                        class="rounded border border-gray-5 bg-gray-2 px-3 py-1.5 text-sm text-gray-12 hover:bg-gray-3"
-                        onClick={props.configuration.resetRoutingConfig}
-                    >
-                        Reset Routing
-                    </button>
-                </div>
-            </section>
-
-            <section class="grid grid-cols-[14rem_minmax(0,1fr)] gap-8 pb-8">
-                <div>
-                    <h2 class="text-sm font-semibold text-gray-12">Signal Colors</h2>
-                    <p class="mt-2 text-xs leading-5 text-gray-10">
-                        Visual signal state colors used on rendered paths.
-                    </p>
-                </div>
+            ),
+        },
+        {
+            description: "Rendered signal state colors.",
+            id: "signals",
+            keywords: ["signal", "signals", "colors", "high", "low", "paths"],
+            label: "Signal Colors",
+            render: () => (
                 <div class="flex flex-wrap gap-4">
                     <For each={SIGNAL_PATH_COLOR_SETTINGS}>
                         {(setting) => (
@@ -281,13 +305,122 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                         )}
                     </For>
                     <button
-                        class="rounded border border-gray-5 bg-gray-2 px-3 py-1.5 text-sm text-gray-12 hover:bg-gray-3"
+                        class={buttonClass}
                         onClick={props.configuration.resetSignalPathColors}
                     >
                         Reset Signals
                     </button>
                 </div>
-            </section>
+            ),
+        },
+    ];
+
+    const visibleCategories = createMemo(() => {
+        const query = normalizeSearch(searchQuery());
+        if (!query) return categories;
+
+        return categories.filter((category) =>
+            normalizeSearch(
+                [category.label, category.description, ...category.keywords].join(" "),
+            ).includes(query),
+        );
+    });
+    const activeCategory = createMemo(() => {
+        const visible = visibleCategories();
+        return (
+            visible.find((category) => category.id === activeCategoryId()) ??
+            visible[0]
+        );
+    });
+
+    return (
+        <div class="h-full overflow-hidden bg-gray-1 text-gray-12">
+            <div class="flex h-full min-h-0 flex-col">
+                <header class="shrink-0 border-b border-gray-4 px-6 py-4">
+                    <p class="text-xs font-bold uppercase tracking-wide text-gray-10">
+                        Gately Preferences
+                    </p>
+                    <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
+                        <h1 class="text-2xl font-semibold text-gray-12">Settings</h1>
+                        <label class="min-w-[16rem] flex-1 max-w-sm">
+                            <span class="sr-only">Search settings</span>
+                            <input
+                                class="w-full rounded border border-gray-5 bg-gray-2 px-3 py-2 text-sm text-gray-12"
+                                placeholder="Search settings"
+                                type="search"
+                                value={searchQuery()}
+                                onInput={(event) => setSearchQuery(event.currentTarget.value)}
+                            />
+                        </label>
+                    </div>
+                </header>
+
+                <div class="grid min-h-0 flex-1 grid-cols-[16rem_minmax(0,1fr)]">
+                    <nav
+                        aria-label="Settings categories"
+                        class="min-h-0 overflow-auto border-r border-gray-4 bg-gray-2 py-2"
+                        role="tablist"
+                    >
+                        <For each={visibleCategories()}>
+                            {(category) => (
+                                <button
+                                    aria-controls={`settings-panel-${category.id}`}
+                                    aria-selected={activeCategory()?.id === category.id}
+                                    class={[
+                                        "flex w-full flex-col gap-1 px-4 py-2 text-left hover:bg-gray-3",
+                                        activeCategory()?.id === category.id
+                                            ? "bg-primary-3 text-primary-11"
+                                            : "text-gray-11",
+                                    ].join(" ")}
+                                    id={`settings-tab-${category.id}`}
+                                    role="tab"
+                                    onClick={() => setActiveCategoryId(category.id)}
+                                >
+                                    <span class="text-sm font-medium">{category.label}</span>
+                                    <span class="text-xs leading-4 text-gray-9">
+                                        {category.description}
+                                    </span>
+                                </button>
+                            )}
+                        </For>
+                    </nav>
+
+                    <main class="min-h-0 overflow-auto px-8 py-7">
+                        <Show
+                            when={activeCategory()}
+                            fallback={
+                                <div class="max-w-3xl border border-gray-4 bg-gray-2 p-5">
+                                    <h2 class="text-lg font-semibold text-gray-12">
+                                        No settings found
+                                    </h2>
+                                    <p class="mt-2 text-sm text-gray-9">
+                                        No categories match the current search.
+                                    </p>
+                                </div>
+                            }
+                        >
+                            {(category) => (
+                                <section
+                                    aria-labelledby={`settings-tab-${category().id}`}
+                                    class="max-w-5xl"
+                                    id={`settings-panel-${category().id}`}
+                                    role="tabpanel"
+                                >
+                                    <header class="border-b border-gray-4 pb-4">
+                                        <h2 class="text-xl font-semibold text-gray-12">
+                                            {category().label}
+                                        </h2>
+                                        <p class="mt-1 text-sm text-gray-9">
+                                            {category().description}
+                                        </p>
+                                    </header>
+                                    <div class="pt-6">{category().render()}</div>
+                                </section>
+                            )}
+                        </Show>
+                    </main>
+                </div>
+            </div>
         </div>
-    </div>
-);
+    );
+};
