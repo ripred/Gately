@@ -1,4 +1,7 @@
-import type { AppConfigurationController } from "@gately/app/providers/AppConfigurationProvider";
+import {
+    WORKBENCH_EXPLORER_WIDTH_LIMITS,
+    type AppConfigurationController,
+} from "@gately/app/providers/AppConfigurationProvider";
 import type { WorkspaceSimulationMode } from "@gately/shared/types";
 import type { WorkspaceSimulationController } from "../lib/types";
 import { Component, For } from "solid-js";
@@ -9,6 +12,7 @@ import {
     SIMULATION_MODE_OPTIONS,
     TOOLBAR_GROUP_SETTINGS,
     setExplorerSectionExpanded,
+    setExplorerWidth,
     setRoutingDistance,
     setSignalPathColor,
     setToolbarGroupVisible,
@@ -82,6 +86,26 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                             <span class="block text-xs leading-5 text-gray-9">
                                 Keep the project explorer minimized by default.
                             </span>
+                        </span>
+                    </label>
+                    <label class="grid max-w-xs gap-1 text-xs text-gray-10">
+                        <span class="font-medium text-gray-11">Explorer width</span>
+                        <input
+                            class="rounded border border-gray-5 bg-gray-2 px-2 py-1.5 text-sm text-gray-12"
+                            type="number"
+                            min={WORKBENCH_EXPLORER_WIDTH_LIMITS.min}
+                            max={WORKBENCH_EXPLORER_WIDTH_LIMITS.max}
+                            step={8}
+                            value={props.configuration.workbenchConfig().explorerWidth}
+                            onInput={(event) =>
+                                setExplorerWidth(
+                                    props.configuration,
+                                    event.currentTarget.value,
+                                )
+                            }
+                        />
+                        <span class="leading-4 text-gray-9">
+                            Width in pixels when the explorer is expanded.
                         </span>
                     </label>
                     <div>

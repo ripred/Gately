@@ -17,6 +17,14 @@ const UI_SCALE_MIN = 0.75;
 const UI_SCALE_MAX = 1.5;
 const UI_SCALE_STEP = 0.1;
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+const EXPLORER_WIDTH_MIN = 220;
+const EXPLORER_WIDTH_MAX = 520;
+const EXPLORER_WIDTH_DEFAULT = 288;
+
+export const WORKBENCH_EXPLORER_WIDTH_LIMITS = {
+    min: EXPLORER_WIDTH_MIN,
+    max: EXPLORER_WIDTH_MAX,
+} as const;
 
 export type SignalPathColorConfig = {
     high: string;
@@ -45,18 +53,21 @@ export type WorkbenchExplorerSectionKey =
 
 export type WorkbenchConfig = {
     explorerCollapsed: boolean;
+    explorerWidth: number;
     expandedExplorerSections: Record<WorkbenchExplorerSectionKey, boolean>;
     visibleToolbarGroups: Record<WorkbenchToolbarGroupKey, boolean>;
 };
 
 export type WorkbenchConfigPatch = {
     explorerCollapsed?: boolean;
+    explorerWidth?: number;
     expandedExplorerSections?: Partial<Record<WorkbenchExplorerSectionKey, boolean>>;
     visibleToolbarGroups?: Partial<Record<WorkbenchToolbarGroupKey, boolean>>;
 };
 
 export const DEFAULT_WORKBENCH_CONFIG: WorkbenchConfig = {
     explorerCollapsed: false,
+    explorerWidth: EXPLORER_WIDTH_DEFAULT,
     expandedExplorerSections: {
         project: true,
         circuits: true,
@@ -126,6 +137,16 @@ export const normalizeSignalPathColorConfig = (
 const normalizeBoolean = (value: unknown, fallback: boolean): boolean =>
     typeof value === "boolean" ? value : fallback;
 
+const normalizeExplorerWidth = (width: unknown): number => {
+    if (typeof width !== "number" || !Number.isFinite(width)) {
+        return DEFAULT_WORKBENCH_CONFIG.explorerWidth;
+    }
+
+    return Math.round(
+        Math.min(EXPLORER_WIDTH_MAX, Math.max(EXPLORER_WIDTH_MIN, width)),
+    );
+};
+
 export const normalizeWorkbenchConfig = (
     config?: WorkbenchConfigPatch,
 ): WorkbenchConfig => ({
@@ -133,6 +154,7 @@ export const normalizeWorkbenchConfig = (
         config?.explorerCollapsed,
         DEFAULT_WORKBENCH_CONFIG.explorerCollapsed,
     ),
+    explorerWidth: normalizeExplorerWidth(config?.explorerWidth),
     expandedExplorerSections: {
         project: normalizeBoolean(
             config?.expandedExplorerSections?.project,

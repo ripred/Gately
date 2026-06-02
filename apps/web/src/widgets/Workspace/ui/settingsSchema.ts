@@ -133,6 +133,15 @@ export const setExplorerSectionExpanded = (
     });
 };
 
+export const setExplorerWidth = (
+    configuration: AppConfigurationController,
+    value: string,
+): void => {
+    configuration.setWorkbenchConfig({
+        explorerWidth: Number(value),
+    });
+};
+
 export const setToolbarGroupVisible = (
     configuration: AppConfigurationController,
     key: WorkbenchToolbarGroupKey,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     DEFAULT_SIGNAL_PATH_COLOR_CONFIG,
     DEFAULT_WORKBENCH_CONFIG,
+    WORKBENCH_EXPLORER_WIDTH_LIMITS,
     normalizeSignalPathColorConfig,
     normalizeWorkbenchConfig,
 } from "./AppConfigurationProvider";
@@ -34,6 +35,7 @@ describe("normalizeWorkbenchConfig", () => {
         expect(
             normalizeWorkbenchConfig({
                 explorerCollapsed: true,
+                explorerWidth: 360,
                 expandedExplorerSections: {
                     ...DEFAULT_WORKBENCH_CONFIG.expandedExplorerSections,
                     components: false,
@@ -47,6 +49,7 @@ describe("normalizeWorkbenchConfig", () => {
             }),
         ).toEqual({
             explorerCollapsed: true,
+            explorerWidth: 360,
             expandedExplorerSections: {
                 ...DEFAULT_WORKBENCH_CONFIG.expandedExplorerSections,
                 components: false,
@@ -64,6 +67,7 @@ describe("normalizeWorkbenchConfig", () => {
         expect(
             normalizeWorkbenchConfig({
                 explorerCollapsed: "yes" as unknown as boolean,
+                explorerWidth: Number.NaN,
                 expandedExplorerSections: {
                     project: "open" as unknown as boolean,
                     circuits: undefined as unknown as boolean,
@@ -82,6 +86,7 @@ describe("normalizeWorkbenchConfig", () => {
             }),
         ).toEqual({
             explorerCollapsed: DEFAULT_WORKBENCH_CONFIG.explorerCollapsed,
+            explorerWidth: DEFAULT_WORKBENCH_CONFIG.explorerWidth,
             expandedExplorerSections: {
                 ...DEFAULT_WORKBENCH_CONFIG.expandedExplorerSections,
                 navigation: true,
@@ -96,5 +101,19 @@ describe("normalizeWorkbenchConfig", () => {
                 customParts: false,
             },
         });
+    });
+
+    it("clamps explorer width preferences to supported bounds", () => {
+        expect(
+            normalizeWorkbenchConfig({
+                explorerWidth: WORKBENCH_EXPLORER_WIDTH_LIMITS.min - 100,
+            }).explorerWidth,
+        ).toBe(WORKBENCH_EXPLORER_WIDTH_LIMITS.min);
+
+        expect(
+            normalizeWorkbenchConfig({
+                explorerWidth: WORKBENCH_EXPLORER_WIDTH_LIMITS.max + 100,
+            }).explorerWidth,
+        ).toBe(WORKBENCH_EXPLORER_WIDTH_LIMITS.max);
     });
 });

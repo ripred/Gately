@@ -1,12 +1,13 @@
-import type {
-    AppConfigurationController,
-    WorkbenchExplorerSectionKey,
+import {
+    WORKBENCH_EXPLORER_WIDTH_LIMITS,
+    type AppConfigurationController,
+    type WorkbenchExplorerSectionKey,
 } from "@gately/app/providers/AppConfigurationProvider";
 import { useUIEngine, type UIEngineScope } from "@gately/shared/infrastructure";
 import { Pusher } from "@gately/shared/ui";
 import type { WorkspaceController } from "../lib/types";
 import type { WorkspaceViewMode } from "./workbenchTypes";
-import { Component, createSignal, For, JSX, Show } from "solid-js";
+import { Component, createSignal, For, JSX, onCleanup, Show } from "solid-js";
 
 type WorkspaceProjectSidebarProps = Pick<
     WorkspaceController,
@@ -62,6 +63,9 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
     const [collapsedScopeIds, setCollapsedScopeIds] = createSignal<Record<string, boolean>>(
         {},
     );
+    const [resizePreviewWidth, setResizePreviewWidth] = createSignal<number>();
+    let resizeStartX = 0;
+    let resizeStartWidth = 0;
     const activeScopeId = () => uiEngine.state.activeScopeId();
     const activeTabId = () => uiEngine.state.activeTabId();
     const activeRootScope = () => {
@@ -71,6 +75,13 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
     const customComponents = () => props.customComponents.components();
     const scopeChildren = (scopeId: string) => uiEngine.state.getScopeChildrenById(scopeId);
     const canCloseCircuit = (tabId: string) => uiEngine.commands.canCloseTab(tabId);
+    const sidebarWidth = () =>
+        resizePreviewWidth() ?? props.configuration.workbenchConfig().explorerWidth;
+    const clampExplorerWidth = (width: number) =>
+        Math.min(
+            WORKBENCH_EXPLORER_WIDTH_LIMITS.max,
+            Math.max(WORKBENCH_EXPLORER_WIDTH_LIMITS.min, width),
+        );
     const scopeExpanded = (scope: UIEngineScope) =>
         scope.childrenIds.length > 0 && !collapsedScopeIds()[scope.id];
     const toggleScopeExpanded = (scopeId: string) => {
@@ -93,6 +104,63 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
             props.setMode("circuit");
         } catch (error) {
             window.alert(error instanceof Error ? error.message : "Unable to close circuit.");
+        }
+    };
+    const handleSidebarResizeMove = (event: PointerEvent) => {
+        const scaledDelta = (event.clientX - resizeStartX) / props.configuration.uiScale();
+        const nextWidth = Math.round(resizeStartWidth + scaledDelta);
+        setResizePreviewWidth(clampExplorerWidth(nextWidth));
+    };
+    const stopSidebarResize = (commit: boolean) => {
+        window.removeEventListener("pointermove", handleSidebarResizeMove);
+        window.removeEventListener("pointerup", handleSidebarResizeUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+
+        if (commit) {
+            props.configuration.setWorkbenchConfig({ explorerWidth: sidebarWidth() });
+        }
+        setResizePreviewWidth(undefined);
+    };
+    const handleSidebarResizeUp = () => stopSidebarResize(true);
+    const startSidebarResize = (event: PointerEvent) => {
+        if (props.collapsed) return;
+
+        event.preventDefault();
+        resizeStartX = event.clientX;
+        resizeStartWidth = sidebarWidth();
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+        window.addEventListener("pointermove", handleSidebarResizeMove);
+        window.addEventListener("pointerup", handleSidebarResizeUp);
+    };
+    const resizeSidebarBy = (delta: number) => {
+        props.configuration.setWorkbenchConfig({
+            explorerWidth: clampExplorerWidth(sidebarWidth() + delta),
+        });
+    };
+    const handleSidebarResizeKeyDown = (event: KeyboardEvent) => {
+        switch (event.key) {
+            case "ArrowLeft":
+                event.preventDefault();
+                resizeSidebarBy(-24);
+                break;
+            case "ArrowRight":
+                event.preventDefault();
+                resizeSidebarBy(24);
+                break;
+            case "Home":
+                event.preventDefault();
+                props.configuration.setWorkbenchConfig({
+                    explorerWidth: WORKBENCH_EXPLORER_WIDTH_LIMITS.min,
+                });
+                break;
+            case "End":
+                event.preventDefault();
+                props.configuration.setWorkbenchConfig({
+                    explorerWidth: WORKBENCH_EXPLORER_WIDTH_LIMITS.max,
+                });
+                break;
         }
     };
     const openTreeScope = (scope: UIEngineScope, tabId?: string) => {
@@ -184,14 +252,31 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         );
     };
 
+    onCleanup(() => stopSidebarResize(false));
+
     return (
         <aside
             class={[
-                "flex min-h-0 shrink-0 flex-col border-r border-gray-4 bg-gray-2 text-gray-12 transition-[width] duration-150",
-                props.collapsed ? "w-12" : "w-72",
+                "relative flex min-h-0 shrink-0 flex-col border-r border-gray-4 bg-gray-2 text-gray-12 transition-[width] duration-150",
+                props.collapsed ? "w-12" : "",
             ].join(" ")}
+            style={props.collapsed ? undefined : { width: `${sidebarWidth()}px` }}
             aria-label="Project explorer"
         >
+            <Show when={!props.collapsed}>
+                <button
+                    aria-label="Resize project explorer"
+                    aria-orientation="vertical"
+                    aria-valuemax={WORKBENCH_EXPLORER_WIDTH_LIMITS.max}
+                    aria-valuemin={WORKBENCH_EXPLORER_WIDTH_LIMITS.min}
+                    aria-valuenow={sidebarWidth()}
+                    class="absolute inset-y-0 right-[-3px] z-10 w-1.5 cursor-col-resize bg-transparent hover:bg-primary-6"
+                    role="separator"
+                    onKeyDown={handleSidebarResizeKeyDown}
+                    onPointerDown={startSidebarResize}
+                    title="Resize explorer"
+                />
+            </Show>
             <div class="flex h-9 items-center justify-between border-b border-gray-4 px-2">
                 <Show when={!props.collapsed}>
                     <span class="text-xs font-semibold uppercase tracking-wide text-gray-10">
