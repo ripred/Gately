@@ -15,7 +15,9 @@ export const InnerWorkspace: Component = () => {
     const logicEngine = useLogicEngine();
     const configuration = useAppConfiguration();
     const [viewMode, setViewMode] = createSignal<WorkspaceViewMode>("circuit");
-    const [projectSidebarCollapsed, setProjectSidebarCollapsed] = createSignal(false);
+    const projectSidebarCollapsed = () => configuration.workbenchConfig().explorerCollapsed;
+    const toggleProjectSidebar = () =>
+        configuration.setWorkbenchConfig({ explorerCollapsed: !projectSidebarCollapsed() });
     const controller = useWorkspaceController({
         uiEngine,
         logicEngine,
@@ -39,11 +41,10 @@ export const InnerWorkspace: Component = () => {
                         mode={viewMode()}
                         persistence={controller.persistence}
                         projectSidebarCollapsed={projectSidebarCollapsed()}
+                        configuration={configuration}
                         setMode={setViewMode}
                         simulation={controller.simulation}
-                        toggleProjectSidebar={() =>
-                            setProjectSidebarCollapsed((collapsed) => !collapsed)
-                        }
+                        toggleProjectSidebar={toggleProjectSidebar}
                     />
                 </div>
             </div>
@@ -66,9 +67,7 @@ export const InnerWorkspace: Component = () => {
                         mode={viewMode()}
                         persistence={controller.persistence}
                         setMode={setViewMode}
-                        toggleCollapsed={() =>
-                            setProjectSidebarCollapsed((collapsed) => !collapsed)
-                        }
+                        toggleCollapsed={toggleProjectSidebar}
                     />
                 </div>
                 <div class="relative min-h-0 flex-1">

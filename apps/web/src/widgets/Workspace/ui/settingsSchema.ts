@@ -1,6 +1,7 @@
 import type {
     AppConfigurationController,
     SignalPathColorConfig,
+    WorkbenchToolbarGroupKey,
 } from "@gately/app/providers/AppConfigurationProvider";
 import type { OptimizedCircuitRoutingConfig } from "@gately/features/boolean-analysis/model/optimizedCircuitLayout";
 import type { WorkspaceSimulationMode } from "@gately/shared/types";
@@ -51,6 +52,45 @@ export const SIGNAL_PATH_COLOR_SETTINGS: SignalPathColorSetting[] = [
     { key: "low", label: "Low signal" },
 ];
 
+export type ToolbarGroupSetting = {
+    key: WorkbenchToolbarGroupKey;
+    label: string;
+    description: string;
+};
+
+export const TOOLBAR_GROUP_SETTINGS: ToolbarGroupSetting[] = [
+    {
+        key: "simulation",
+        label: "Simulation controls",
+        description: "Pause, step, tick-rate, and runtime state.",
+    },
+    {
+        key: "hardware",
+        label: "Hardware and analysis",
+        description: "Arduino hardware access and Boolean optimization entry point.",
+    },
+    {
+        key: "workspace",
+        label: "Workspace commands",
+        description: "New circuit, save, and load commands.",
+    },
+    {
+        key: "canvas",
+        label: "Canvas controls",
+        description: "Canvas zoom and auto-layout commands.",
+    },
+    {
+        key: "parts",
+        label: "Parts palette",
+        description: "Built-in component creation buttons.",
+    },
+    {
+        key: "customParts",
+        label: "Custom parts",
+        description: "Save, rename, delete, and select custom components.",
+    },
+];
+
 export const setRoutingDistance = (
     configuration: AppConfigurationController,
     key: keyof OptimizedCircuitRoutingConfig,
@@ -65,4 +105,16 @@ export const setSignalPathColor = (
     value: string,
 ): void => {
     configuration.setSignalPathColors({ [key]: value });
+};
+
+export const setToolbarGroupVisible = (
+    configuration: AppConfigurationController,
+    key: WorkbenchToolbarGroupKey,
+    visible: boolean,
+): void => {
+    configuration.setWorkbenchConfig({
+        visibleToolbarGroups: {
+            [key]: visible,
+        },
+    });
 };

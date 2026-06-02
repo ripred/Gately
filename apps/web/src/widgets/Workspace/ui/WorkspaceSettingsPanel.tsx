@@ -6,8 +6,10 @@ import {
     ROUTING_SETTINGS,
     SIGNAL_PATH_COLOR_SETTINGS,
     SIMULATION_MODE_OPTIONS,
+    TOOLBAR_GROUP_SETTINGS,
     setRoutingDistance,
     setSignalPathColor,
+    setToolbarGroupVisible,
 } from "./settingsSchema";
 
 type WorkspaceSettingsPanelProps = {
@@ -51,6 +53,72 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                     >
                         UI +
                     </button>
+                </div>
+            </section>
+
+            <section class="grid grid-cols-[14rem_minmax(0,1fr)] gap-8 border-b border-gray-4 pb-6">
+                <div>
+                    <h2 class="text-sm font-semibold text-gray-12">Workbench</h2>
+                    <p class="mt-2 text-xs leading-5 text-gray-10">
+                        Controls the IDE chrome around the familiar circuit canvas.
+                    </p>
+                </div>
+                <div class="grid gap-4">
+                    <label class="flex items-start gap-3 text-sm text-gray-12">
+                        <input
+                            class="mt-1"
+                            type="checkbox"
+                            checked={props.configuration.workbenchConfig().explorerCollapsed}
+                            onChange={(event) =>
+                                props.configuration.setWorkbenchConfig({
+                                    explorerCollapsed: event.currentTarget.checked,
+                                })
+                            }
+                        />
+                        <span>
+                            <span class="block font-medium">Collapse explorer sidebar</span>
+                            <span class="block text-xs leading-5 text-gray-9">
+                                Keep the project explorer minimized by default.
+                            </span>
+                        </span>
+                    </label>
+                    <div class="grid grid-cols-[repeat(auto-fit,minmax(17rem,1fr))] gap-3">
+                        <For each={TOOLBAR_GROUP_SETTINGS}>
+                            {(setting) => (
+                                <label class="flex items-start gap-3 rounded border border-gray-4 bg-gray-2 px-3 py-2 text-sm text-gray-12">
+                                    <input
+                                        class="mt-1"
+                                        type="checkbox"
+                                        checked={
+                                            props.configuration.workbenchConfig()
+                                                .visibleToolbarGroups[setting.key]
+                                        }
+                                        onChange={(event) =>
+                                            setToolbarGroupVisible(
+                                                props.configuration,
+                                                setting.key,
+                                                event.currentTarget.checked,
+                                            )
+                                        }
+                                    />
+                                    <span>
+                                        <span class="block font-medium">{setting.label}</span>
+                                        <span class="block text-xs leading-5 text-gray-9">
+                                            {setting.description}
+                                        </span>
+                                    </span>
+                                </label>
+                            )}
+                        </For>
+                    </div>
+                    <div>
+                        <button
+                            class="rounded border border-gray-5 bg-gray-2 px-3 py-1.5 text-sm text-gray-12 hover:bg-gray-3"
+                            onClick={props.configuration.resetWorkbenchConfig}
+                        >
+                            Reset Workbench
+                        </button>
+                    </div>
                 </div>
             </section>
 
