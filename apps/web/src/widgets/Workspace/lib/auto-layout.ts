@@ -1,9 +1,15 @@
 import type { Cell, Edge, Graph, Node } from "@antv/x6";
 import {
+    GRID_SIZE,
+    NODE_INSET,
+} from "@gately/shared/infrastructure/ui-engine/model";
+import {
     buildOptimizedEdgeRoutes,
+    buildRouteSetJunctionDots,
     findRouteSetComponentCrossings,
     findRouteSetNonOrthogonalSegments,
     findRouteSetTargetApproachViolations,
+    findRouteSetWireClearanceViolations,
     findUnnecessaryRouteWireCrossings,
     type OptimizedCircuitPoint,
     type OptimizedCircuitRect,
@@ -12,12 +18,14 @@ import {
     type RoutableCircuitNetlist,
     type RoutableCircuitNode,
 } from "@gately/features/boolean-analysis/model/optimizedCircuitLayout";
+import { setRouteJunctionDotLabels } from "@gately/features/boolean-analysis/model/routeJunctionLabels";
 import { portIdToPinRef } from "@gately/shared/infrastructure/ui-engine/lib";
 import type { NodeHashes } from "@gately/shared/infrastructure/ui-engine/model";
 import type { WorkspaceUIEngine } from "./types";
 
 const COLUMN_GAP = 168;
 const ROW_GAP = 96;
+const PORT_OFFSET_Y = GRID_SIZE + NODE_INSET;
 
 export type WorkspaceAutoLayoutController = {
     applySelection: () => void;
@@ -120,7 +128,11 @@ const computeLayers = (nodes: Node[], edges: Edge[]): Map<string, number> => {
     return layers;
 };
 
-const planNodePositions = (nodes: Node[], edges: Edge[]): PlannedNode[] => {
+const planNodePositions = (
+    nodes: Node[],
+    edges: Edge[],
+    routingConfig: OptimizedCircuitRoutingConfig,
+): PlannedNode[] => {
     const layers = computeLayers(nodes, edges);
     const minX = Math.min(...nodes.map((node) => node.getBBox().x));
     const minY = Math.min(...nodes.map((node) => node.getBBox().y));
@@ -151,6 +163,34 @@ const planNodePositions = (nodes: Node[], edges: Edge[]): PlannedNode[] => {
                     });
                 });
         });
+
+    const plannedById = new Map(planned.map((node) => [node.node.id, node]));
+    const incomingByTargetId = new Map<string, string[]>();
+    edges.forEach((edge) => {
+        const sourceId = sourceNodeId(edge);
+        const targetId = targetNodeId(edge);
+        if (!sourceId || !targetId) return;
+        incomingByTargetId.set(targetId, [
+            ...(incomingByTargetId.get(targetId) ?? []),
+            sourceId,
+        ]);
+    });
+
+    planned.forEach((plannedNode) => {
+        if (getNodeHash(plannedNode.node) !== "LAMP") return;
+        const sourceIds = incomingByTargetId.get(plannedNode.node.id) ?? [];
+        if (sourceIds.length !== 1) return;
+        const source = plannedById.get(sourceIds[0]);
+        if (!source) return;
+
+        plannedNode.nextRect.y = Math.round(
+            source.nextRect.y +
+                PORT_OFFSET_Y -
+                routingConfig.outputSinkPreferredRise -
+                plannedNode.nextRect.height +
+                NODE_INSET,
+        );
+    });
 
     return planned;
 };
@@ -199,6 +239,10 @@ const assertRouteSetIsClean = (routeSet: {
     if (targetApproachViolations.length > 0) {
         throw new Error(`Routing crowded target component edges: ${targetApproachViolations.join(", ")}`);
     }
+    const wireClearanceViolations = findRouteSetWireClearanceViolations(routeSet);
+    if (wireClearanceViolations.length > 0) {
+        throw new Error(`Routing placed parallel wires too close together: ${wireClearanceViolations.join(", ")}`);
+    }
     if (unnecessaryCrossings.length > 0) {
         throw new Error(`Routing left avoidable wire crossings: ${unnecessaryCrossings.join(", ")}`);
     }
@@ -206,12 +250,20 @@ const assertRouteSetIsClean = (routeSet: {
 
 const applyEdgeRoutes = (
     edgeLinks: Array<{ edge: Edge; link: RoutableCircuitLink }>,
-    routesByLinkIndex: Map<number, OptimizedCircuitPoint[]>,
+    routeSet: {
+        linkPlans: Array<{ link: RoutableCircuitLink; targetPin: string; index: number }>;
+        netlist: RoutableCircuitNetlist;
+        rectsBySynthId: Map<string, OptimizedCircuitRect>;
+        routesByLinkIndex: Map<number, OptimizedCircuitPoint[]>;
+    },
 ): void => {
+    const junctionDotsByLinkIndex = buildRouteSetJunctionDots(routeSet);
+
     edgeLinks.forEach(({ edge }, index) => {
         edge.setRouter("normal");
         edge.setConnector("normal");
-        edge.setVertices(routesByLinkIndex.get(index) ?? ([] as OptimizedCircuitPoint[]));
+        edge.setVertices(routeSet.routesByLinkIndex.get(index) ?? ([] as OptimizedCircuitPoint[]));
+        setRouteJunctionDotLabels(edge, junctionDotsByLinkIndex.get(index));
     });
 };
 
@@ -249,7 +301,7 @@ export const rerouteWorkspaceEdges = (
     const routeSet = { linkPlans, netlist, rectsBySynthId, routesByLinkIndex, routingConfig };
 
     assertRouteSetIsClean(routeSet);
-    applyEdgeRoutes(edgeLinks, routesByLinkIndex);
+    applyEdgeRoutes(edgeLinks, routeSet);
 };
 
 const applyLayout = (
@@ -257,7 +309,7 @@ const applyLayout = (
     edges: Edge[],
     routingConfig: OptimizedCircuitRoutingConfig,
 ): void => {
-    const plannedNodes = planNodePositions(nodes, edges);
+    const plannedNodes = planNodePositions(nodes, edges, routingConfig);
     const rectsBySynthId = new Map<string, OptimizedCircuitRect>(
         plannedNodes.map((planned) => [planned.node.id, planned.nextRect]),
     );
@@ -289,7 +341,7 @@ const applyLayout = (
         planned.node.position(planned.nextRect.x, planned.nextRect.y);
     });
 
-    applyEdgeRoutes(edgeLinks, routesByLinkIndex);
+    applyEdgeRoutes(edgeLinks, routeSet);
 };
 
 export const createWorkspaceAutoLayout = (

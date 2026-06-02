@@ -64,6 +64,10 @@
                 stroke: var(--color-hiz) !important;
             }
         }
+
+        .wire-junction-dot {
+            pointer-events: none;
+        }
     }
 
     .x6-edge-tool-vertices {

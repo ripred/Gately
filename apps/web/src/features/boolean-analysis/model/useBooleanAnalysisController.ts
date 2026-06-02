@@ -8,14 +8,17 @@ import { encodePortId, mkEdge } from "@gately/shared/infrastructure/ui-engine/li
 import {
     buildOptimizedCircuitLayout,
     buildOptimizedEdgeRoutes,
+    buildRouteSetJunctionDots,
     estimateOptimizedNodeSize,
     findRouteSetNonOrthogonalSegments,
     findRouteSetComponentCrossings,
     findRouteSetTargetApproachViolations,
+    findRouteSetWireClearanceViolations,
     findUnnecessaryRouteWireCrossings,
     getOptimizedIncomingCounts,
     type OptimizedCircuitRect,
 } from "./optimizedCircuitLayout";
+import { setRouteJunctionDotLabels } from "./routeJunctionLabels";
 import type { BooleanAnalysisController, BooleanAnalysisControllerDeps } from "./types";
 
 type NodeHash = Parameters<BooleanAnalysisControllerDeps["uiEngine"]["commands"]["addNode"]>[0]["hash"];
@@ -79,6 +82,13 @@ const assertOptimizedRouteSetIsClean = (routeSet: OptimizedRouteSet): void => {
     if (targetApproachViolations.length > 0) {
         throw new Error(
             `Optimized circuit routing crowded target component edges: ${targetApproachViolations.join(", ")}`,
+        );
+    }
+
+    const wireClearanceViolations = findRouteSetWireClearanceViolations(routeSet);
+    if (wireClearanceViolations.length > 0) {
+        throw new Error(
+            `Optimized circuit routing placed parallel wires too close together: ${wireClearanceViolations.join(", ")}`,
         );
     }
 
@@ -154,7 +164,11 @@ export const useBooleanAnalysisController = (
             const baseX = options.inNewTab ? 120 : maxX + 160;
             const baseY = OPTIMIZED_CIRCUIT_BASE_Y;
             const routingConfig = deps.getRoutingConfig();
-            const layout = buildOptimizedCircuitLayout(analysis.optimizedNetlist, { baseX, baseY });
+            const layout = buildOptimizedCircuitLayout(analysis.optimizedNetlist, {
+                baseX,
+                baseY,
+                routingConfig,
+            });
             const estimatedRectsBySynthId = new Map<string, OptimizedCircuitRect>();
 
             for (const node of analysis.optimizedNetlist.nodes) {
@@ -220,6 +234,12 @@ export const useBooleanAnalysisController = (
                 routesByLinkIndex: edgeRoutesByLinkIndex,
                 routingConfig,
             });
+            const junctionDotsByLinkIndex = buildRouteSetJunctionDots({
+                linkPlans: layout.linkPlans,
+                netlist: analysis.optimizedNetlist,
+                rectsBySynthId,
+                routesByLinkIndex: edgeRoutesByLinkIndex,
+            });
 
             for (const linkPlan of layout.linkPlans) {
                 const fromItemId = nodesBySynthId.get(linkPlan.link.from);
@@ -249,6 +269,7 @@ export const useBooleanAnalysisController = (
                 edge.setRouter("normal");
                 edge.setConnector("normal");
                 edge.setVertices(edgeRoutesByLinkIndex.get(linkPlan.index) ?? []);
+                setRouteJunctionDotLabels(edge, junctionDotsByLinkIndex.get(linkPlan.index));
                 edge.setData({ linkId: res.linkId });
 
                 const graphWithSilent = graph as unknown as { __bridgeSilent?: boolean };

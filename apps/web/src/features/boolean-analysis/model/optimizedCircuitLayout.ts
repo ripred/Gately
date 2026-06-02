@@ -52,6 +52,11 @@ export type OptimizedCircuitLinkPlan = {
     sourceLaneY?: number;
 };
 
+export type RouteJunctionDot = {
+    point: OptimizedCircuitPoint;
+    distance: number;
+};
+
 type OutputGroup = {
     outputId: string;
     sourceId?: string;
@@ -62,6 +67,7 @@ type OutputGroup = {
 type BuildLayoutOptions = {
     baseX: number;
     baseY: number;
+    routingConfig?: Partial<OptimizedCircuitRoutingConfig>;
 };
 
 type BuildRouteOptions = {
@@ -124,6 +130,7 @@ export type OptimizedCircuitRoutingConfig = {
     searchMarginStep: number;
     outputSinkTargetClearance: number;
     outputSinkBottomClearance: number;
+    outputSinkPreferredRise: number;
 };
 
 const PORT_OFFSET_Y = GRID_SIZE + NODE_INSET;
@@ -154,6 +161,7 @@ export const DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG: OptimizedCircuitRoutingCo
     searchMarginStep: 16,
     outputSinkTargetClearance: 48,
     outputSinkBottomClearance: 32,
+    outputSinkPreferredRise: 32,
 };
 
 const clampRoutingDistance = (
@@ -266,7 +274,15 @@ export const normalizeOptimizedCircuitRoutingConfig = (
         DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.outputSinkBottomClearance,
         GRID_SIZE,
     ),
+    outputSinkPreferredRise: clampRoutingDistance(
+        config?.outputSinkPreferredRise,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.outputSinkPreferredRise,
+        0,
+    ),
 });
+
+const effectiveParallelRouteSpacing = (routingConfig: OptimizedCircuitRoutingConfig): number =>
+    Math.max(routingConfig.parallelRouteSpacing, routingConfig.wireClearance);
 
 const COLUMN_OFFSET_BY_KIND: Record<BooleanSynthNodeKind, number> = {
     INPUT: 0,
@@ -460,6 +476,54 @@ const routeLength = (
     return length;
 };
 
+const pointOnSegment = (point: OptimizedCircuitPoint, segment: RouteSegment): boolean => {
+    if (isHorizontal(segment)) {
+        return point.y === segment.from.y && betweenInclusive(point.x, segment.from.x, segment.to.x);
+    }
+    if (isVertical(segment)) {
+        return point.x === segment.from.x && betweenInclusive(point.y, segment.from.y, segment.to.y);
+    }
+    return false;
+};
+
+const pointOnSegmentInterior = (
+    point: OptimizedCircuitPoint,
+    segment: RouteSegment,
+): boolean =>
+    pointOnSegment(point, segment) &&
+    !(
+        (point.x === segment.from.x && point.y === segment.from.y) ||
+        (point.x === segment.to.x && point.y === segment.to.y)
+    );
+
+const distanceAlongRouteToPoint = (
+    source: OptimizedCircuitPoint,
+    vertices: OptimizedCircuitPoint[],
+    target: OptimizedCircuitPoint,
+    point: OptimizedCircuitPoint,
+): number | undefined => {
+    const points = routePoints(source, vertices, target);
+    let distance = 0;
+
+    for (let index = 0; index < points.length - 1; index += 1) {
+        const from = points[index];
+        const to = points[index + 1];
+        const segment: RouteSegment = {
+            from,
+            to,
+            linkIndex: -1,
+            sourceSynthId: "",
+            targetSynthId: "",
+        };
+        if (pointOnSegment(point, segment)) {
+            return distance + Math.abs(point.x - from.x) + Math.abs(point.y - from.y);
+        }
+        distance += Math.abs(from.x - to.x) + Math.abs(from.y - to.y);
+    }
+
+    return undefined;
+};
+
 const routeBendCount = (vertices: OptimizedCircuitPoint[]): number => vertices.length;
 
 const routeUsesUpperDetour = (
@@ -475,8 +539,8 @@ const compareRouteSearchResults = (args: {
     minPreferredY: number;
 }): ((a: RouteSearchResult, b: RouteSearchResult) => number) => {
     const routeScore = (route: RouteSearchResult): number =>
+        route.crossingCount * 100_000_000 +
         routeBendCount(route.vertices) * 1_000_000 +
-        route.crossingCount * 4_000_000 +
         (routeUsesUpperDetour(
             args.sourcePoint,
             route.vertices,
@@ -545,6 +609,49 @@ const segmentsOverlap = (a: RouteSegment, b: RouteSegment): boolean => {
     }
     return false;
 };
+
+const rangesOverlapWithLength = (a1: number, a2: number, b1: number, b2: number): boolean =>
+    Math.max(Math.min(a1, a2), Math.min(b1, b2)) <
+    Math.min(Math.max(a1, a2), Math.max(b1, b2));
+
+const segmentsTooClose = (
+    a: RouteSegment,
+    b: RouteSegment,
+    wireClearance: number,
+): boolean => {
+    if (wireClearance <= 0) return false;
+    if (a.linkIndex === b.linkIndex) return false;
+    if (segmentsShareCircuitEndpoint(a, b)) return false;
+
+    if (isHorizontal(a) && isHorizontal(b)) {
+        const delta = Math.abs(a.from.y - b.from.y);
+        return (
+            delta > 0 &&
+            delta < wireClearance &&
+            rangesOverlapWithLength(a.from.x, a.to.x, b.from.x, b.to.x)
+        );
+    }
+
+    if (isVertical(a) && isVertical(b)) {
+        const delta = Math.abs(a.from.x - b.from.x);
+        return (
+            delta > 0 &&
+            delta < wireClearance &&
+            rangesOverlapWithLength(a.from.y, a.to.y, b.from.y, b.to.y)
+        );
+    }
+
+    return false;
+};
+
+const segmentsConflict = (
+    a: RouteSegment,
+    b: RouteSegment,
+    wireClearance: number,
+): boolean =>
+    segmentsCross(a, b) ||
+    segmentsOverlap(a, b) ||
+    segmentsTooClose(a, b, wireClearance);
 
 const segmentIntersectsRect = (
     from: OptimizedCircuitPoint,
@@ -711,7 +818,7 @@ const routeTargetApproachViolationsForVertices = (args: {
     });
 };
 
-const findRouteWireCrossings = (args: {
+const findRouteWireConflicts = (args: {
     sourceSynthId: string;
     targetSynthId: string;
     sourcePoint: OptimizedCircuitPoint;
@@ -719,6 +826,7 @@ const findRouteWireCrossings = (args: {
     vertices: OptimizedCircuitPoint[];
     linkIndex: number;
     routedSegments: RouteSegment[];
+    routingConfig: OptimizedCircuitRoutingConfig;
 }): RouteSegment[] => {
     const candidateSegments = routeSegments(
         args.sourcePoint,
@@ -728,17 +836,17 @@ const findRouteWireCrossings = (args: {
         args.sourceSynthId,
         args.targetSynthId,
     );
-    const crossings: RouteSegment[] = [];
+    const conflicts: RouteSegment[] = [];
 
     candidateSegments.forEach((candidate) => {
         args.routedSegments.forEach((existing) => {
-            if (segmentsCross(candidate, existing) || segmentsOverlap(candidate, existing)) {
-                crossings.push(existing);
+            if (segmentsConflict(candidate, existing, args.routingConfig.wireClearance)) {
+                conflicts.push(existing);
             }
         });
     });
 
-    return crossings;
+    return conflicts;
 };
 
 const pointKey = (point: OptimizedCircuitPoint): string => `${point.x},${point.y}`;
@@ -788,9 +896,10 @@ const isSegmentBlocked = (args: {
 const countWireCrossings = (
     segment: RouteSegment,
     routedSegments: RouteSegment[],
+    routingConfig: OptimizedCircuitRoutingConfig,
 ): number =>
     routedSegments.filter(
-        (existing) => segmentsCross(segment, existing) || segmentsOverlap(segment, existing),
+        (existing) => segmentsConflict(segment, existing, routingConfig.wireClearance),
     ).length;
 
 type QueueItem = {
@@ -1009,7 +1118,11 @@ const buildDeterministicGridRoute = (args: {
                 });
                 if (componentBlocked) return [];
 
-                const crossingCount = countWireCrossings(segment, args.routedSegments);
+                const crossingCount = countWireCrossings(
+                    segment,
+                    args.routedSegments,
+                    routingConfig,
+                );
                 if (!args.allowWireCrossings && crossingCount > 0) return [];
 
                 return [
@@ -1078,7 +1191,8 @@ const buildDeterministicGridRoute = (args: {
     return {
         vertices,
         crossingCount: fullRouteSegments.reduce(
-            (count, segment) => count + countWireCrossings(segment, args.routedSegments),
+            (count, segment) =>
+                count + countWireCrossings(segment, args.routedSegments, routingConfig),
             0,
         ),
     };
@@ -1173,6 +1287,7 @@ export const buildOptimizedCircuitLayout = (
     netlist: BooleanSynthNetlist,
     options: BuildLayoutOptions,
 ): OptimizedCircuitLayout => {
+    const routingConfig = normalizeOptimizedCircuitRoutingConfig(options.routingConfig);
     const nodesById = new Map(netlist.nodes.map((node) => [node.id, node]));
     const incomingCounts = computeIncomingCounts(netlist.links);
     const linksByTarget = groupLinksByTarget(netlist.links);
@@ -1316,10 +1431,13 @@ export const buildOptimizedCircuitLayout = (
         const outputHeight = outputNode
             ? estimateOptimizedNodeSize(outputNode, incomingCounts.get(outputNode.id) ?? 0).height
             : 52;
+        const outputTargetPortY = Math.round(
+            outputPortY - routingConfig.outputSinkPreferredRise,
+        );
 
         positionsBySynthId.set(group.outputId, {
             x: options.baseX + COLUMN_OFFSET_BY_KIND.OUTPUT,
-            y: Math.round(outputPortY - outputHeight + NODE_INSET),
+            y: Math.round(outputTargetPortY - outputHeight + NODE_INSET),
         });
     });
 
@@ -1357,21 +1475,44 @@ const buildRouteCandidates = (args: {
     routingConfig: OptimizedCircuitRoutingConfig;
 }): RouteCandidate[] => {
     const routingConfig = args.routingConfig;
+    const parallelRouteSpacing = effectiveParallelRouteSpacing(routingConfig);
     if (isOutputSinkNode(args.targetNode)) {
-        const preTargetX = Math.max(
-            args.sourcePoint.x + routingConfig.minClearance,
-            args.targetRect.x - routingConfig.outputSinkTargetClearance,
-        );
+        const minimumSinkEntryX = args.sourcePoint.x + routingConfig.minClearance;
+        const maximumSinkEntryX = args.targetRect.x - routingConfig.minClearance;
+        const preferredSinkEntryX = args.targetRect.x - routingConfig.outputSinkTargetClearance;
+        const sinkEntryX =
+            maximumSinkEntryX >= minimumSinkEntryX
+                ? Math.min(
+                      maximumSinkEntryX,
+                      Math.max(minimumSinkEntryX, preferredSinkEntryX),
+                  )
+                : minimumSinkEntryX;
+        const sourceExitX = args.sourcePoint.x + routingConfig.sourceExitClearance;
+        const bottomEntryX = Math.max(minimumSinkEntryX, preferredSinkEntryX);
         const belowTargetY =
             rectBottom(args.targetRect) +
             routingConfig.outputSinkBottomClearance +
-            args.linkIndex * routingConfig.parallelRouteSpacing;
+            args.linkIndex * parallelRouteSpacing;
         return [
+            {
+                name: "sink-direct-dogleg",
+                vertices: normalizeVertices([
+                    { x: sinkEntryX, y: args.sourcePoint.y },
+                    { x: sinkEntryX, y: args.targetPoint.y },
+                ]),
+            },
+            {
+                name: "sink-source-exit-dogleg",
+                vertices: normalizeVertices([
+                    { x: sourceExitX, y: args.sourcePoint.y },
+                    { x: sourceExitX, y: args.targetPoint.y },
+                ]),
+            },
             {
                 name: "lamp-bottom-approach",
                 vertices: normalizeVertices([
-                    { x: preTargetX, y: args.sourcePoint.y },
-                    { x: preTargetX, y: belowTargetY },
+                    { x: bottomEntryX, y: args.sourcePoint.y },
+                    { x: bottomEntryX, y: belowTargetY },
                     { x: args.targetPoint.x, y: belowTargetY },
                 ]),
             },
@@ -1439,12 +1580,12 @@ const buildRouteCandidates = (args: {
         minComponentY - routingConfig.topRouteClearance,
         Math.min(args.sourcePoint.y, args.targetPoint.y) -
             routingConfig.detourGap -
-            args.linkIndex * routingConfig.parallelRouteSpacing,
+            args.linkIndex * parallelRouteSpacing,
     );
     const localLowerY =
         Math.max(args.sourcePoint.y, args.targetPoint.y) +
         routingConfig.detourGap +
-        args.linkIndex * routingConfig.parallelRouteSpacing;
+        args.linkIndex * parallelRouteSpacing;
     const upperDetour = normalizeVertices([
         { x: sourceFanoutX, y: args.sourcePoint.y },
         { x: sourceFanoutX, y: localUpperY },
@@ -1661,8 +1802,9 @@ const routeWireCrossingCountForVertices = (args: {
     vertices: OptimizedCircuitPoint[];
     linkIndex: number;
     routedSegments: RouteSegment[];
+    routingConfig: OptimizedCircuitRoutingConfig;
 }): number =>
-    findRouteWireCrossings({
+    findRouteWireConflicts({
         sourceSynthId: args.sourceNode.id,
         targetSynthId: args.targetNode.id,
         sourcePoint: args.sourcePoint,
@@ -1670,6 +1812,7 @@ const routeWireCrossingCountForVertices = (args: {
         vertices: args.vertices,
         linkIndex: args.linkIndex,
         routedSegments: args.routedSegments,
+        routingConfig: args.routingConfig,
     }).length;
 
 const simplifySafeRouteVertices = (args: {
@@ -1697,6 +1840,7 @@ const simplifySafeRouteVertices = (args: {
             vertices,
             linkIndex: args.linkIndex,
             routedSegments: args.routedSegments,
+            routingConfig: args.routingConfig,
         });
 
         for (let start = 0; start < points.length - 2 && !changed; start += 1) {
@@ -1757,12 +1901,90 @@ const simplifySafeRouteVertices = (args: {
                     vertices: candidateVertices,
                     linkIndex: args.linkIndex,
                     routedSegments: args.routedSegments,
+                    routingConfig: args.routingConfig,
                 });
                 if (crossingCount > currentCrossingCount) continue;
 
                 vertices = candidateVertices;
                 changed = true;
                 break;
+            }
+        }
+
+        for (let start = 0; start < points.length - 2 && !changed; start += 1) {
+            for (let end = points.length - 1; end > start + 1; end -= 1) {
+                const from = points[start];
+                const to = points[end];
+                if (from.x === to.x || from.y === to.y) continue;
+
+                const bendCandidates = [
+                    { x: to.x, y: from.y },
+                    { x: from.x, y: to.y },
+                ];
+
+                for (const bend of bendCandidates) {
+                    const candidatePoints = [
+                        ...points.slice(0, start + 1),
+                        bend,
+                        ...points.slice(end),
+                    ];
+                    const candidateVertices = normalizeVertices(candidatePoints.slice(1, -1));
+                    if (candidateVertices.length >= vertices.length) continue;
+
+                    if (
+                        !isOrthogonalRoute(
+                            args.sourcePoint,
+                            candidateVertices,
+                            args.targetPoint,
+                            args.linkIndex,
+                            args.sourceNode.id,
+                            args.targetNode.id,
+                        )
+                    ) {
+                        continue;
+                    }
+
+                    const componentCrossings = routeComponentCrossingsForVertices({
+                        sourceNode: args.sourceNode,
+                        targetNode: args.targetNode,
+                        sourcePoint: args.sourcePoint,
+                        targetPoint: args.targetPoint,
+                        vertices: candidateVertices,
+                        rectsBySynthId: args.rectsBySynthId,
+                        routingConfig: args.routingConfig,
+                    });
+                    if (componentCrossings.length > 0) continue;
+                    if (
+                        routeTargetApproachViolationsForVertices({
+                            targetNode: args.targetNode,
+                            sourcePoint: args.sourcePoint,
+                            targetPoint: args.targetPoint,
+                            vertices: candidateVertices,
+                            rectsBySynthId: args.rectsBySynthId,
+                            routingConfig: args.routingConfig,
+                        }).length > 0
+                    ) {
+                        continue;
+                    }
+
+                    const crossingCount = routeWireCrossingCountForVertices({
+                        sourceNode: args.sourceNode,
+                        targetNode: args.targetNode,
+                        sourcePoint: args.sourcePoint,
+                        targetPoint: args.targetPoint,
+                        vertices: candidateVertices,
+                        linkIndex: args.linkIndex,
+                        routedSegments: args.routedSegments,
+                        routingConfig: args.routingConfig,
+                    });
+                    if (crossingCount > currentCrossingCount) continue;
+
+                    vertices = candidateVertices;
+                    changed = true;
+                    break;
+                }
+
+                if (changed) break;
             }
         }
     }
@@ -1853,6 +2075,7 @@ const componentSafeRouteCandidates = (args: {
                     vertices,
                     linkIndex: args.linkIndex,
                     routedSegments: args.routedSegments,
+                    routingConfig: args.routingConfig,
                 }),
             },
         ];
@@ -1955,7 +2178,7 @@ const buildZeroCrossingEdgeVertices = (
         rectsBySynthId: options.rectsBySynthId,
         routingConfig,
     });
-    const wireCrossings = findRouteWireCrossings({
+    const wireCrossings = findRouteWireConflicts({
         sourceSynthId: sourceNode.id,
         targetSynthId: targetNode.id,
         sourcePoint,
@@ -1963,6 +2186,7 @@ const buildZeroCrossingEdgeVertices = (
         vertices: zeroCrossingGridVertices,
         linkIndex: options.linkPlan.index,
         routedSegments: options.routedSegments ?? [],
+        routingConfig,
     });
     const targetApproachViolations = routeTargetApproachViolationsForVertices({
         targetNode,
@@ -2046,66 +2270,78 @@ export const buildOptimizedEdgeVertices = (
         compareRouteSearchResults({ sourcePoint, targetPoint, minPreferredY }),
     )[0];
 
-    const crossingFallbacks = [
+    const validGridRouteResults = (
+        routes: Array<RouteSearchResult | undefined>,
+    ): RouteSearchResult[] =>
+        routes.flatMap((route) => {
+            if (!route) return [];
+            const vertices = simplifySafeRouteVertices({
+                sourceNode,
+                targetNode,
+                sourcePoint,
+                targetPoint,
+                vertices: route.vertices,
+                linkIndex: options.linkPlan.index,
+                rectsBySynthId: options.rectsBySynthId,
+                routedSegments: options.routedSegments ?? [],
+                routingConfig,
+            });
+            const componentCrossings = routeComponentCrossingsForVertices({
+                sourceNode,
+                targetNode,
+                sourcePoint,
+                targetPoint,
+                vertices,
+                rectsBySynthId: options.rectsBySynthId,
+                routingConfig,
+            });
+            const targetApproachViolations = routeTargetApproachViolationsForVertices({
+                targetNode,
+                sourcePoint,
+                targetPoint,
+                vertices,
+                rectsBySynthId: options.rectsBySynthId,
+                routingConfig,
+            });
+
+            return componentCrossings.length === 0 && targetApproachViolations.length === 0
+                ? [
+                      {
+                          vertices,
+                          crossingCount: routeWireCrossingCountForVertices({
+                              sourceNode,
+                              targetNode,
+                              sourcePoint,
+                              targetPoint,
+                              vertices,
+                              linkIndex: options.linkPlan.index,
+                              routedSegments: options.routedSegments ?? [],
+                              routingConfig,
+                          }),
+                      },
+                  ]
+                : [];
+        });
+    const strictGridFallbacks = validGridRouteResults([
+        buildDeterministicGridRoute(gridSearchOptions),
+        buildDeterministicGridRoute({ ...gridSearchOptions, wideSearch: true }),
+    ]);
+    const crossingFallbacks = validGridRouteResults([
         buildDeterministicGridRoute({ ...gridSearchOptions, allowWireCrossings: true }),
         buildDeterministicGridRoute({
             ...gridSearchOptions,
             allowWireCrossings: true,
             wideSearch: true,
         }),
-    ].flatMap((route) => {
-        if (!route) return [];
-        const vertices = simplifySafeRouteVertices({
-            sourceNode,
-            targetNode,
-            sourcePoint,
-            targetPoint,
-            vertices: route.vertices,
-            linkIndex: options.linkPlan.index,
-            rectsBySynthId: options.rectsBySynthId,
-            routedSegments: options.routedSegments ?? [],
-            routingConfig,
-        });
-        const componentCrossings = routeComponentCrossingsForVertices({
-            sourceNode,
-            targetNode,
-            sourcePoint,
-            targetPoint,
-            vertices,
-            rectsBySynthId: options.rectsBySynthId,
-            routingConfig,
-        });
-        const targetApproachViolations = routeTargetApproachViolationsForVertices({
-            targetNode,
-            sourcePoint,
-            targetPoint,
-            vertices,
-            rectsBySynthId: options.rectsBySynthId,
-            routingConfig,
-        });
-
-        return componentCrossings.length === 0 && targetApproachViolations.length === 0
-            ? [
-                  {
-                      vertices,
-                      crossingCount: routeWireCrossingCountForVertices({
-                          sourceNode,
-                          targetNode,
-                          sourcePoint,
-                          targetPoint,
-                          vertices,
-                          linkIndex: options.linkPlan.index,
-                          routedSegments: options.routedSegments ?? [],
-                      }),
-                  },
-              ]
-            : [];
-    });
+    ]);
+    const bestStrictGridFallback = strictGridFallbacks.sort(
+        compareRouteSearchResults({ sourcePoint, targetPoint, minPreferredY }),
+    )[0];
     const bestCrossingFallback = crossingFallbacks.sort(
         compareRouteSearchResults({ sourcePoint, targetPoint, minPreferredY }),
     )[0];
 
-    const bestFallback = [bestCandidate, bestCrossingFallback]
+    const bestFallback = [bestCandidate, bestStrictGridFallback, bestCrossingFallback]
         .flatMap((route) => (route ? [route] : []))
         .sort(compareRouteSearchResults({ sourcePoint, targetPoint, minPreferredY }))[0];
 
@@ -2288,6 +2524,7 @@ export const buildOptimizedEdgeRoutes = (
                     vertices: currentVertices,
                     linkIndex,
                     routedSegments,
+                    routingConfig,
                 }),
             };
             const candidateRoute = {
@@ -2300,6 +2537,7 @@ export const buildOptimizedEdgeRoutes = (
                     vertices: candidateVertices,
                     linkIndex,
                     routedSegments,
+                    routingConfig,
                 }),
             };
 
@@ -2355,6 +2593,119 @@ export const findRouteSetWireCrossings = (options: {
     });
 
     return crossings;
+};
+
+export const findRouteSetWireClearanceViolations = (options: {
+    linkPlans: OptimizedCircuitLinkPlan[];
+    netlist: RoutableCircuitNetlist;
+    rectsBySynthId: Map<string, OptimizedCircuitRect>;
+    routesByLinkIndex: Map<number, OptimizedCircuitPoint[]>;
+    routingConfig?: Partial<OptimizedCircuitRoutingConfig>;
+}): string[] => {
+    const nodesById = new Map(options.netlist.nodes.map((node) => [node.id, node]));
+    const routingConfig = normalizeOptimizedCircuitRoutingConfig(options.routingConfig);
+    const segments: RouteSegment[] = [];
+    const violations: string[] = [];
+
+    options.linkPlans.forEach((linkPlan) => {
+        const sourceNode = nodesById.get(linkPlan.link.from);
+        const targetNode = nodesById.get(linkPlan.link.to);
+        const sourceRect = options.rectsBySynthId.get(linkPlan.link.from);
+        const targetRect = options.rectsBySynthId.get(linkPlan.link.to);
+        if (!sourceNode || !targetNode || !sourceRect || !targetRect) return;
+
+        segments.push(
+            ...routeSegments(
+                roundPoint(sourcePortPoint(sourceNode, sourceRect)),
+                options.routesByLinkIndex.get(linkPlan.index) ?? [],
+                roundPoint(targetPortPoint(targetNode, targetRect, linkPlan.targetPin)),
+                linkPlan.index,
+                sourceNode.id,
+                targetNode.id,
+            ),
+        );
+    });
+
+    segments.forEach((segment, index) => {
+        segments.slice(index + 1).forEach((candidate) => {
+            if (segmentsTooClose(segment, candidate, routingConfig.wireClearance)) {
+                violations.push(`${segment.linkIndex}:${candidate.linkIndex}`);
+            }
+        });
+    });
+
+    return violations;
+};
+
+export const buildRouteSetJunctionDots = (options: {
+    linkPlans: OptimizedCircuitLinkPlan[];
+    netlist: RoutableCircuitNetlist;
+    rectsBySynthId: Map<string, OptimizedCircuitRect>;
+    routesByLinkIndex: Map<number, OptimizedCircuitPoint[]>;
+}): Map<number, RouteJunctionDot[]> => {
+    const nodesById = new Map(options.netlist.nodes.map((node) => [node.id, node]));
+    const routeGeometries = options.linkPlans.flatMap((linkPlan) => {
+        const sourceNode = nodesById.get(linkPlan.link.from);
+        const targetNode = nodesById.get(linkPlan.link.to);
+        const sourceRect = options.rectsBySynthId.get(linkPlan.link.from);
+        const targetRect = options.rectsBySynthId.get(linkPlan.link.to);
+        if (!sourceNode || !targetNode || !sourceRect || !targetRect) return [];
+
+        const sourcePoint = roundPoint(sourcePortPoint(sourceNode, sourceRect));
+        const targetPoint = roundPoint(targetPortPoint(targetNode, targetRect, linkPlan.targetPin));
+        const vertices = options.routesByLinkIndex.get(linkPlan.index) ?? [];
+
+        return [
+            {
+                linkPlan,
+                sourcePoint,
+                targetPoint,
+                vertices,
+                points: routePoints(sourcePoint, vertices, targetPoint),
+                segments: routeSegments(
+                    sourcePoint,
+                    vertices,
+                    targetPoint,
+                    linkPlan.index,
+                    sourceNode.id,
+                    targetNode.id,
+                ),
+            },
+        ];
+    });
+    const dotsByLinkIndex = new Map<number, RouteJunctionDot[]>();
+    const seen = new Set<string>();
+
+    routeGeometries.forEach((branch) => {
+        const branchPoints = branch.points.slice(1, -1);
+        branchPoints.forEach((point) => {
+            routeGeometries.forEach((trunk) => {
+                if (trunk.linkPlan.index === branch.linkPlan.index) return;
+                if (trunk.linkPlan.link.from !== branch.linkPlan.link.from) return;
+                if (!trunk.segments.some((segment) => pointOnSegmentInterior(point, segment))) {
+                    return;
+                }
+
+                const distance = distanceAlongRouteToPoint(
+                    trunk.sourcePoint,
+                    trunk.vertices,
+                    trunk.targetPoint,
+                    point,
+                );
+                if (distance === undefined) return;
+
+                const key = `${trunk.linkPlan.index}:${pointKey(point)}`;
+                if (seen.has(key)) return;
+                seen.add(key);
+                dotsByLinkIndex.set(trunk.linkPlan.index, [
+                    ...(dotsByLinkIndex.get(trunk.linkPlan.index) ?? []),
+                    { point, distance },
+                ]);
+            });
+        });
+    });
+
+    return dotsByLinkIndex;
 };
 
 export const findRouteSetComponentCrossings = (options: {
@@ -2540,8 +2891,9 @@ export const findUnnecessaryRouteWireCrossings = (options: {
                     vertices: currentVertices,
                     linkIndex,
                     routedSegments,
+                    routingConfig,
                 });
-                const wireCrossings = findRouteWireCrossings({
+                const wireCrossings = findRouteWireConflicts({
                     sourceSynthId: sourceNode.id,
                     targetSynthId: targetNode.id,
                     sourcePoint,
@@ -2549,6 +2901,7 @@ export const findUnnecessaryRouteWireCrossings = (options: {
                     vertices: alternateVertices,
                     linkIndex,
                     routedSegments,
+                    routingConfig,
                 });
                 const comparator = compareRouteSearchResults({
                     sourcePoint,

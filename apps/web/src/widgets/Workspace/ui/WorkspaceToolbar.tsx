@@ -41,6 +41,7 @@ const ROUTING_SETTINGS: Array<{
     { key: "searchMarginStep", label: "Search step", min: 0, max: 128, step: 4 },
     { key: "outputSinkTargetClearance", label: "Sink side", min: 16, max: 192, step: 4 },
     { key: "outputSinkBottomClearance", label: "Sink lane", min: 16, max: 192, step: 4 },
+    { key: "outputSinkPreferredRise", label: "Sink rise", min: 0, max: 192, step: 4 },
 ];
 
 const SIGNAL_PATH_COLOR_SETTINGS: Array<{

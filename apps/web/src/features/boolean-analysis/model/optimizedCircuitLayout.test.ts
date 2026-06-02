@@ -5,12 +5,14 @@ import {
     buildOptimizedCircuitLayout,
     buildOptimizedEdgeVertices,
     buildRoutableCircuitLinkPlans,
+    buildRouteSetJunctionDots,
     estimateOptimizedNodeSize,
     findRouteComponentCrossings,
     findRouteSetWireCrossings,
     findRouteSetNonOrthogonalSegments,
     findRouteSetComponentCrossings,
     findRouteSetTargetApproachViolations,
+    findRouteSetWireClearanceViolations,
     findUnnecessaryRouteWireCrossings,
     DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG,
     getOptimizedIncomingCounts,
@@ -278,11 +280,13 @@ const expectCleanRoutes = (netlist: BooleanSynthNetlist): void => {
         rectsBySynthId,
         routesByLinkIndex,
     };
+    const clearanceViolations = findRouteSetWireClearanceViolations(routeSet);
 
     expect(routesByLinkIndex.size).toBe(netlist.links.length);
     expect(findRouteSetNonOrthogonalSegments(routeSet)).toEqual([]);
     expect(findRouteSetComponentCrossings(routeSet)).toEqual([]);
     expect(findRouteSetTargetApproachViolations(routeSet)).toEqual([]);
+    expect(clearanceViolations).toEqual([]);
     expect(findUnnecessaryRouteWireCrossings(routeSet)).toEqual([]);
 };
 
@@ -426,6 +430,52 @@ describe("optimized circuit layout", () => {
         );
     });
 
+    it("places the output sink for a short final dogleg instead of a lower detour", () => {
+        const layout = buildOptimizedCircuitLayout(complexFanInNetlist, {
+            baseX: 120,
+            baseY: 120,
+        });
+        const rectsBySynthId = buildRects(complexFanInNetlist);
+        const routesByLinkIndex = buildOptimizedEdgeRoutes({
+            linkPlans: layout.linkPlans,
+            netlist: complexFanInNetlist,
+            rectsBySynthId,
+        });
+        const outputLink = layout.linkPlans.find(
+            (linkPlan) =>
+                linkPlan.link.from === "or_1" && linkPlan.link.to === "output_lamp",
+        );
+        const sourceRect = rectsBySynthId.get("or_1");
+        const targetRect = rectsBySynthId.get("output_lamp");
+        expect(outputLink).toBeDefined();
+        expect(sourceRect).toBeDefined();
+        expect(targetRect).toBeDefined();
+
+        const sourcePoint = {
+            x: sourceRect!.x + sourceRect!.width - NODE_INSET,
+            y: sourceRect!.y + PORT_OFFSET_Y,
+        };
+        const targetPoint = {
+            x: targetRect!.x + targetRect!.width / 2,
+            y: targetRect!.y + targetRect!.height - NODE_INSET,
+        };
+        const vertices = routesByLinkIndex.get(outputLink!.index) ?? [];
+        const routeYValues = [sourcePoint.y, targetPoint.y, ...vertices.map((point) => point.y)];
+
+        expect(targetPoint.y).toBe(
+            sourcePoint.y -
+                DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.outputSinkPreferredRise,
+        );
+        expect(Math.max(...routeYValues)).toBe(sourcePoint.y);
+        expect(vertices.length).toBeLessThanOrEqual(2);
+        expect(findRouteSetComponentCrossings({
+            linkPlans: layout.linkPlans,
+            netlist: complexFanInNetlist,
+            rectsBySynthId,
+            routesByLinkIndex,
+        })).toEqual([]);
+    });
+
     it("routes a source netlist with physical gate hashes through the deterministic router", () => {
         const rectsBySynthId = buildRoutableRects(mixedGateSourceNetlist, {
             input_a: { x: 120, y: 120 },
@@ -484,6 +534,96 @@ describe("optimized circuit layout", () => {
                 }),
             ).toEqual([]);
         });
+    });
+
+    it("detects parallel wire segments inside the configured clearance", () => {
+        const netlist: RoutableCircuitNetlist = {
+            nodes: [
+                { id: "source_a", kind: "TOGGLE", label: "A" },
+                { id: "source_b", kind: "TOGGLE", label: "B" },
+                { id: "target_a", kind: "AND", label: "A OUT", inputCount: 1 },
+                { id: "target_b", kind: "AND", label: "B OUT", inputCount: 1 },
+            ],
+            links: [
+                { from: "source_a", to: "target_a", targetPin: "0" },
+                { from: "source_b", to: "target_b", targetPin: "0" },
+            ],
+        };
+        const rectsBySynthId = buildRoutableRects(netlist, {
+            source_a: { x: 120, y: 120 },
+            source_b: { x: 120, y: 124 },
+            target_a: { x: 408, y: 120 },
+            target_b: { x: 408, y: 124 },
+        });
+        const linkPlans = buildRoutableCircuitLinkPlans(netlist.links);
+        const routesByLinkIndex = new Map<number, Array<{ x: number; y: number }>>([
+            [0, []],
+            [1, []],
+        ]);
+
+        expect(
+            findRouteSetWireClearanceViolations({
+                linkPlans,
+                netlist,
+                rectsBySynthId,
+                routesByLinkIndex,
+            }),
+        ).toEqual(["0:1"]);
+    });
+
+    it("builds junction dots when same-source fanout attaches to an existing path", () => {
+        const netlist: RoutableCircuitNetlist = {
+            nodes: [
+                { id: "source", kind: "TOGGLE", label: "A" },
+                { id: "target_top", kind: "AND", label: "TOP", inputCount: 1 },
+                { id: "target_bottom", kind: "AND", label: "BOTTOM", inputCount: 1 },
+            ],
+            links: [
+                { from: "source", to: "target_top", targetPin: "0" },
+                { from: "source", to: "target_bottom", targetPin: "0" },
+            ],
+        };
+        const rectsBySynthId = buildRoutableRects(netlist, {
+            source: { x: 120, y: 120 },
+            target_top: { x: 480, y: 120 },
+            target_bottom: { x: 480, y: 248 },
+        });
+        const linkPlans = buildRoutableCircuitLinkPlans(netlist.links);
+        const sourceRect = rectsBySynthId.get("source")!;
+        const bottomRect = rectsBySynthId.get("target_bottom")!;
+        const sourcePoint = {
+            x: sourceRect.x + sourceRect.width - NODE_INSET,
+            y: sourceRect.y + PORT_OFFSET_Y,
+        };
+        const bottomTargetPoint = {
+            x: bottomRect.x + NODE_INSET,
+            y: bottomRect.y + PORT_OFFSET_Y,
+        };
+        const branchX = sourcePoint.x + 96;
+        const routesByLinkIndex = new Map<number, Array<{ x: number; y: number }>>([
+            [0, []],
+            [
+                1,
+                [
+                    { x: branchX, y: sourcePoint.y },
+                    { x: branchX, y: bottomTargetPoint.y },
+                ],
+            ],
+        ]);
+        const dotsByLinkIndex = buildRouteSetJunctionDots({
+            linkPlans,
+            netlist,
+            rectsBySynthId,
+            routesByLinkIndex,
+        });
+
+        expect(dotsByLinkIndex.get(0)).toEqual([
+            {
+                point: { x: branchX, y: sourcePoint.y },
+                distance: branchX - sourcePoint.x,
+            },
+        ]);
+        expect(dotsByLinkIndex.get(1)).toBeUndefined();
     });
 
     it("rejects routes that crowd a target component input edge", () => {
