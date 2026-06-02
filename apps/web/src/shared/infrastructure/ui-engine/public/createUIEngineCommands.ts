@@ -1,4 +1,5 @@
 import type { ItemBuilderResult } from "@cnbn/engine";
+import type { KindKey } from "@cnbn/schema";
 import { getNodeKindByHash } from "../model";
 import type { UIEngineContext, UIEngineErrorEvent } from "../model/types";
 import type { createGraphRuntimeHost } from "../components/graph-runtime";
@@ -18,6 +19,13 @@ export const createUIEngineCommands = ({
     graphRuntimeHost,
     reportError,
 }: CreateUIEngineCommandsDeps): UIEnginePublicApi["commands"] => {
+    type CreateItemPayload = {
+        kind: KindKey;
+        hash: string;
+        path: string[];
+        meta?: { numOfInputs?: number; numOfOutputs?: number };
+    };
+
     const getRequiredLogicEngine = () => {
         const logicEngine = ctx.external.logicEngine;
         if (!logicEngine) {
@@ -59,14 +67,29 @@ export const createUIEngineCommands = ({
             const activeScope = workspace.state.getScope(activeScopeId);
             if (!activeScope) return;
 
-            const result = (await logicEngine.call("/item/create", {
-                kind: getNodeKindByHash(input.hash),
+            const createItem = logicEngine.call.bind(logicEngine) as (
+                command: "/item/create",
+                payload: CreateItemPayload,
+            ) => Promise<ItemBuilderResult>;
+            const result = await createItem("/item/create", {
+                kind: input.kind ?? getNodeKindByHash(input.hash),
                 hash: input.hash,
                 path: [...activeScope.path, activeScope.id],
                 meta: input.meta,
-            })) as ItemBuilderResult;
-            console.log(result);
+            });
             return runtime.createBuiltNode(result, { position: input.position });
+        },
+        registerCustomComponents(inputs) {
+            graphRuntimeHost.requireRuntime().registerCustomComponents(inputs);
+        },
+        zoomIn() {
+            return graphRuntimeHost.requireRuntime().zoomIn();
+        },
+        zoomOut() {
+            return graphRuntimeHost.requireRuntime().zoomOut();
+        },
+        resetZoom() {
+            return graphRuntimeHost.requireRuntime().resetZoom();
         },
         exportScopeSnapshot() {
             const activeScopeId = workspace.state.activeScopeId();
@@ -89,6 +112,12 @@ export const createUIEngineCommands = ({
         },
         importScopeSnapshot(snapshot) {
             ctx.getSharedService("snapshotHub").importScopeSnapshot(snapshot);
+        },
+        exportWorkspaceSnapshot() {
+            return workspace.exportWorkspaceSnapshot();
+        },
+        importWorkspaceSnapshot(snapshot) {
+            workspace.importWorkspaceSnapshot(snapshot);
         },
         applyPinPatch(patch) {
             graphRuntimeHost.requireRuntime().applyPinPatch(patch);

@@ -27,5 +27,13 @@ export const createWorkspaceSession = (deps: WorkspaceSessionDeps): WorkspaceSes
         canCloseTab: services.tab.canCloseTab,
         closeTab: services.tab.closeTab,
         syncRuntimeSnapshot: services.snapshot.syncRuntimeSnapshot,
+        exportWorkspaceSnapshot: () => {
+            services.snapshot.persistScopeSnapshot(services.state.activeScopeId());
+            return services.state.exportWorkspaceSnapshot();
+        },
+        importWorkspaceSnapshot: (snapshot) => {
+            services.state.importWorkspaceSnapshot(snapshot);
+            services.snapshot.syncRuntimeSnapshot();
+        },
     };
 };

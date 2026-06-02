@@ -4,14 +4,17 @@ import { useUIEngine } from "@gately/shared/infrastructure";
 import type { WorkspaceSimulationMode } from "@gately/shared/types";
 import { Pusher } from "@gately/shared/ui";
 import type { WorkspaceController } from "../lib/types";
-import { Component } from "solid-js";
+import { Component, For, Show } from "solid-js";
 
 const SIMULATION_MODE_OPTIONS: Array<{ value: WorkspaceSimulationMode; label: string }> = [
     { value: "instant", label: "instant" },
     { value: "0.5sec", label: "0.5 sec" },
 ];
 
-type WorkspaceToolbarProps = Pick<WorkspaceController, "booleanAnalysis" | "hardware" | "simulation">;
+type WorkspaceToolbarProps = Pick<
+    WorkspaceController,
+    "booleanAnalysis" | "configuration" | "customComponents" | "hardware" | "persistence" | "simulation"
+>;
 
 export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
     const uiEngine = useUIEngine();
@@ -31,10 +34,31 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
         add7segDisplay,
     } = useAddLogicNode();
     const disabled = () => !uiEngine.state.activeScopeId();
+    const commandDisabled = () =>
+        props.simulation.isDisabled ||
+        props.booleanAnalysis.isBusy ||
+        props.customComponents.isBusy ||
+        props.persistence.isBusy;
+    const selectedCustomHash = () => props.customComponents.selectedHash();
+    const builtInButtons = [
+        { label: "Add TOGGLE", action: addToggle },
+        { label: "Add True Constant", action: addTrueConstant },
+        { label: "Add False Constant", action: addFalseConstant },
+        { label: "Add LAMP", action: addLamp },
+        { label: "Add 7-Seg Display", action: add7segDisplay },
+        { label: "Add Buffer", action: addBuffer },
+        { label: "Add AND", action: addAnd },
+        { label: "Add OR", action: addOr },
+        { label: "Add NOT", action: addNot },
+        { label: "Add NOR", action: addNor },
+        { label: "Add NAND", action: addNand },
+        { label: "Add XOR", action: addXor },
+        { label: "Add XNOR", action: addXnor },
+    ];
 
     return (
-        <div class="absolute left-3 top-3 z-10 flex flex-col gap-2">
-            <div class="flex items-center gap-2 px-2 py-1 rounded-md bg-gray-2/90 shadow">
+        <div data-testid="workspace-toolbar" class="flex flex-col gap-2 p-3">
+            <div class="flex flex-wrap items-center gap-2">
                 <Pusher
                     class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
                     onClick={() =>
@@ -78,105 +102,133 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                 </Pusher>
                 <Pusher
                     class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={props.booleanAnalysis.createDemoCircuitInNewTab}
-                    disabled={props.simulation.isDisabled || props.booleanAnalysis.isSynthesizing}
+                    onClick={props.persistence.createTab}
+                    disabled={props.persistence.isBusy}
                 >
-                    Demo Circuit
+                    New Tab
+                </Pusher>
+                <Pusher
+                    class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
+                    onClick={props.persistence.saveWorkspace}
+                    disabled={props.persistence.isBusy}
+                >
+                    Save
+                </Pusher>
+                <Pusher
+                    class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
+                    onClick={props.persistence.loadWorkspace}
+                    disabled={props.persistence.isBusy || !props.persistence.hasSavedWorkspace()}
+                >
+                    Load
+                </Pusher>
+                <Pusher
+                    class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
+                    onClick={() => uiEngine.commands.zoomOut()}
+                    disabled={disabled()}
+                >
+                    Canvas -
+                </Pusher>
+                <Pusher
+                    class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
+                    onClick={() => uiEngine.commands.resetZoom()}
+                    disabled={disabled()}
+                >
+                    Canvas 100%
+                </Pusher>
+                <Pusher
+                    class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
+                    onClick={() => uiEngine.commands.zoomIn()}
+                    disabled={disabled()}
+                >
+                    Canvas +
+                </Pusher>
+                <Pusher
+                    class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4"
+                    onClick={props.configuration.uiZoomOut}
+                >
+                    UI -
+                </Pusher>
+                <Pusher
+                    class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4"
+                    onClick={props.configuration.resetUiZoom}
+                >
+                    UI {props.configuration.uiScalePercent()}%
+                </Pusher>
+                <Pusher
+                    class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4"
+                    onClick={props.configuration.uiZoomIn}
+                >
+                    UI +
                 </Pusher>
             </div>
 
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
+                <For each={builtInButtons}>
+                    {(button) => (
+                        <Pusher
+                            class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
+                            onClick={button.action}
+                            disabled={disabled()}
+                        >
+                            {button.label}
+                        </Pusher>
+                    )}
+                </For>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
                 <Pusher
                     class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={addToggle}
-                    disabled={disabled()}
+                    onClick={props.customComponents.createFromSelection}
+                    disabled={disabled() || commandDisabled()}
                 >
-                    Add TOGGLE
+                    Save Selection
                 </Pusher>
-                <Pusher
-                    class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={addTrueConstant}
-                    disabled={disabled()}
-                >
-                    Add True Constant
-                </Pusher>
-                <Pusher
-                    class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={addFalseConstant}
-                    disabled={disabled()}
-                >
-                    Add False Constant
-                </Pusher>
-                <Pusher
-                    class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={addLamp}
-                    disabled={disabled()}
-                >
-                    Add LAMP
-                </Pusher>
-                <Pusher
-                    class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={add7segDisplay}
-                    disabled={disabled()}
-                >
-                    Add 7-Seg Display
-                </Pusher>
-                <Pusher
-                    class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={addBuffer}
-                    disabled={disabled()}
-                >
-                    Add Buffer
-                </Pusher>
-                <Pusher
-                    class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={addAnd}
-                    disabled={disabled()}
-                >
-                    Add AND
-                </Pusher>
-                <Pusher
-                    class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={addOr}
-                    disabled={disabled()}
-                >
-                    Add OR
-                </Pusher>
-                <Pusher
-                    class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={addNot}
-                    disabled={disabled()}
-                >
-                    Add NOT
-                </Pusher>
-                <Pusher
-                    class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={addNor}
-                    disabled={disabled()}
-                >
-                    Add NOR
-                </Pusher>
-                <Pusher
-                    class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={addNand}
-                    disabled={disabled()}
-                >
-                    Add NAND
-                </Pusher>
-                <Pusher
-                    class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={addXor}
-                    disabled={disabled()}
-                >
-                    Add XOR
-                </Pusher>
-                <Pusher
-                    class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
-                    onClick={addXnor}
-                    disabled={disabled()}
-                >
-                    Add XNOR
-                </Pusher>
+                <Show when={props.customComponents.components().length > 0}>
+                    <select
+                        class="px-2 py-1 rounded bg-gray-3 text-gray-12 border border-gray-5"
+                        value={selectedCustomHash() ?? ""}
+                        disabled={props.customComponents.isBusy}
+                        onChange={(e) =>
+                            props.customComponents.setSelectedHash(e.currentTarget.value || undefined)
+                        }
+                    >
+                        <option value="">Custom Parts</option>
+                        <For each={props.customComponents.components()}>
+                            {(component) => (
+                                <option value={component.hash}>
+                                    {component.name} ({component.inputCount} in,{" "}
+                                    {component.outputCount} out)
+                                </option>
+                            )}
+                        </For>
+                    </select>
+                    <Pusher
+                        class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
+                        onClick={props.customComponents.renameSelected}
+                        disabled={!selectedCustomHash() || props.customComponents.isBusy}
+                    >
+                        Rename
+                    </Pusher>
+                    <Pusher
+                        class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
+                        onClick={props.customComponents.removeSelected}
+                        disabled={!selectedCustomHash() || props.customComponents.isBusy}
+                    >
+                        Delete
+                    </Pusher>
+                    <For each={props.customComponents.components()}>
+                        {(component) => (
+                            <Pusher
+                                class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
+                                onClick={() => props.customComponents.addComponent(component.hash)}
+                                disabled={disabled()}
+                            >
+                                Add {component.name}
+                            </Pusher>
+                        )}
+                    </For>
+                </Show>
             </div>
         </div>
     );

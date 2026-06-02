@@ -18,6 +18,5 @@ export type BooleanAnalysisController = {
     analyze: () => void;
     createOptimizedCircuit: () => void;
     createOptimizedCircuitInNewTab: () => void;
-    createDemoCircuitInNewTab: () => void;
     close: () => void;
 };

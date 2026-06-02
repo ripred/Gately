@@ -7,6 +7,7 @@ import type {
     UIEngineTab,
     UIEngineTabSessionCreateInput,
     UIEngineTabSession,
+    UIEngineWorkspaceSnapshot,
 } from "@gately/shared/infrastructure/ui-engine/model/types";
 import type { WorkspaceStateService } from "./types";
 
@@ -204,6 +205,34 @@ export const createWorkspaceStateService = (): WorkspaceStateService => {
         return session;
     };
 
+    const exportWorkspaceSnapshot = (): UIEngineWorkspaceSnapshot => ({
+        version: 1,
+        scopes: Object.values(store.scopes).map((scope) => ({ ...scope })),
+        tabSessions: Object.values(store.tabSessions).map((session) => ({ ...session })),
+        orderedTabIds: [...store.orderedTabIds],
+        activeTabId: store.activeTabId,
+        activeScopeId: store.activeScopeId,
+    });
+
+    const importWorkspaceSnapshot = (snapshot: UIEngineWorkspaceSnapshot): void => {
+        if (snapshot.version !== 1) {
+            throw new Error(`[UIEngine.workspaceState] Unsupported snapshot version ${snapshot.version}.`);
+        }
+
+        const scopes = Object.fromEntries(snapshot.scopes.map((scope) => [scope.id, { ...scope }]));
+        const tabSessions = Object.fromEntries(
+            snapshot.tabSessions.map((session) => [session.tabId, { ...session }]),
+        );
+
+        setStore({
+            scopes,
+            tabSessions,
+            orderedTabIds: [...snapshot.orderedTabIds],
+            activeScopeId: snapshot.activeScopeId,
+            activeTabId: snapshot.activeTabId,
+        });
+    };
+
     return {
         tabs,
         orderedTabs,
@@ -226,5 +255,7 @@ export const createWorkspaceStateService = (): WorkspaceStateService => {
         createTabSession,
         setNavigationPath,
         removeTabSession,
+        exportWorkspaceSnapshot,
+        importWorkspaceSnapshot,
     };
 };

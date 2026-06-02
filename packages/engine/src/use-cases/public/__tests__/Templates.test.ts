@@ -1,0 +1,171 @@
+import { describe, expect, it } from "vitest";
+import { CinabonoBuilder } from "@engine/engine/builder";
+import type { InnerItemInputLinks, InnerItemOutputLinks } from "@cnbn/schema";
+
+type InnerItemWithLinks = {
+    inputLinks?: InnerItemInputLinks;
+    outputLinks?: InnerItemOutputLinks;
+};
+
+describe("template public use cases", () => {
+    it("creates a custom component from an arbitrary selected subgraph boundary", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const { tabId } = engine.api.tab.create({ id: "tab" });
+
+        engine.api.item.create([
+            { id: "A", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "B", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "AND_0", kind: "base:logic", hash: "AND", path: [tabId] },
+            { id: "OR_0", kind: "base:logic", hash: "OR", path: [tabId] },
+            { id: "OUT", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "A", fromPin: "0", toItemId: "AND_0", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "B", fromPin: "0", toItemId: "AND_0", toPin: "1" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "AND_0", fromPin: "0", toItemId: "OR_0", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "B", fromPin: "0", toItemId: "OR_0", toPin: "1" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "OR_0", fromPin: "0", toItemId: "OUT", toPin: "0" },
+            },
+        ]);
+
+        const result = engine.api.template.createFromSelection({
+            tabId,
+            hash: "CUSTOM_SHARED_INPUT",
+            name: "Shared Input",
+            selectedItemIds: ["AND_0", "OR_0"],
+        });
+
+        expect(result.summary).toMatchObject({
+            hash: "CUSTOM_SHARED_INPUT",
+            name: "Shared Input",
+            custom: true,
+            inputCount: 2,
+            outputCount: 1,
+        });
+        expect(result.template.inputPins["0"].inputItems).toEqual([
+            { itemId: "AND_0", pin: "0" },
+        ]);
+        expect(result.template.inputPins["1"].inputItems).toEqual([
+            { itemId: "AND_0", pin: "1" },
+            { itemId: "OR_0", pin: "1" },
+        ]);
+        expect(result.template.outputPins["0"].outputItem).toEqual({
+            itemId: "OR_0",
+            pin: "0",
+        });
+        expect((result.template.items["AND_0"] as InnerItemWithLinks).outputLinks?.["0"]).toEqual([
+            "AND_0:0:OR_0:0",
+        ]);
+        expect((result.template.items["OR_0"] as InnerItemWithLinks).inputLinks?.["0"]).toBe(
+            "AND_0:0:OR_0:0",
+        );
+    });
+
+    it("preserves multiple output pins in custom templates", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const { tabId } = engine.api.tab.create({ id: "tab" });
+
+        engine.api.item.create([
+            { id: "A", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "NOT_0", kind: "base:logic", hash: "NOT", path: [tabId] },
+            { id: "BUFFER_0", kind: "base:logic", hash: "BUFFER", path: [tabId] },
+            { id: "OUT_0", kind: "base:display", hash: "LAMP", path: [tabId] },
+            { id: "OUT_1", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "A", fromPin: "0", toItemId: "NOT_0", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "A", fromPin: "0", toItemId: "BUFFER_0", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "NOT_0", fromPin: "0", toItemId: "OUT_0", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "BUFFER_0", fromPin: "0", toItemId: "OUT_1", toPin: "0" },
+            },
+        ]);
+
+        const result = engine.api.template.createFromSelection({
+            tabId,
+            hash: "CUSTOM_TWO_OUTPUTS",
+            name: "Two Outputs",
+            selectedItemIds: ["NOT_0", "BUFFER_0"],
+        });
+
+        expect(result.summary.inputCount).toBe(1);
+        expect(result.summary.outputCount).toBe(2);
+        expect(result.template.outputPins["0"].outputItem).toEqual({
+            itemId: "NOT_0",
+            pin: "0",
+        });
+        expect(result.template.outputPins["1"].outputItem).toEqual({
+            itemId: "BUFFER_0",
+            pin: "0",
+        });
+    });
+
+    it("round-trips custom templates and tab stores through engine session snapshots", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const { tabId } = engine.api.tab.create({ id: "tab" });
+
+        engine.api.item.create([
+            { id: "A", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "BUFFER_0", kind: "base:logic", hash: "BUFFER", path: [tabId] },
+            { id: "OUT", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "A", fromPin: "0", toItemId: "BUFFER_0", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "BUFFER_0", fromPin: "0", toItemId: "OUT", toPin: "0" },
+            },
+        ]);
+
+        engine.api.template.createFromSelection({
+            tabId,
+            hash: "CUSTOM_BUFFER",
+            name: "Saved Buffer",
+            selectedItemIds: ["BUFFER_0"],
+        });
+
+        const snapshot = engine.api.session.export();
+        expect(snapshot.templates.map(([hash]) => hash)).toEqual(["CUSTOM_BUFFER"]);
+        expect(snapshot.tabs).toHaveLength(1);
+
+        engine.api.session.import(snapshot);
+
+        expect(
+            engine.api.template.list().find((template) => template.hash === "CUSTOM_BUFFER"),
+        ).toMatchObject({ custom: true, inputCount: 1, outputCount: 1 });
+        expect(engine.api.session.export().tabs[0].items.map(([id]) => id).sort()).toEqual([
+            "A",
+            "BUFFER_0",
+            "OUT",
+        ]);
+    });
+});

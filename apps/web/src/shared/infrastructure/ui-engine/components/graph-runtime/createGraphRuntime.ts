@@ -5,6 +5,14 @@ import type { EngineSignalEvent } from "@gately/shared/types";
 import { buildGraphServices } from "./services";
 import { applyPlugins } from "../../plugins";
 import type { UIEngineContext, PinUpdate, UIScopeSnapshot } from "../../model/types";
+import type { CustomComponentVisualInput } from "../../model/nodes-spec";
+
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 4;
+const ZOOM_STEP = 1.2;
+const TOOLBAR_ZOOM_CENTER = { x: 0, y: 0 } as const;
+
+const clampZoom = (zoom: number): number => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
 
 export const createGraphRuntime = (container: HTMLDivElement, ctx: UIEngineContext) => {
     const graph = new Graph(makeGraphOptions(container, ctx));
@@ -53,6 +61,23 @@ export const createGraphRuntime = (container: HTMLDivElement, ctx: UIEngineConte
         },
         applySignalEvents(events: EngineSignalEvent | EngineSignalEvent[]): void {
             services.signals.applyEvents(events);
+        },
+        registerCustomComponents(inputs: CustomComponentVisualInput[]): void {
+            inputs.forEach((input) => services["node-visual"].registerCustomComponent(input));
+        },
+        zoomIn(): number {
+            const nextZoom = clampZoom(graph.zoom() * ZOOM_STEP);
+            graph.zoomTo(nextZoom, { center: TOOLBAR_ZOOM_CENTER });
+            return nextZoom;
+        },
+        zoomOut(): number {
+            const nextZoom = clampZoom(graph.zoom() / ZOOM_STEP);
+            graph.zoomTo(nextZoom, { center: TOOLBAR_ZOOM_CENTER });
+            return nextZoom;
+        },
+        resetZoom(): number {
+            graph.zoomTo(1, { center: TOOLBAR_ZOOM_CENTER });
+            return 1;
         },
         getSelectionCount(): number {
             return graph.getSelectedCellCount?.() ?? 0;

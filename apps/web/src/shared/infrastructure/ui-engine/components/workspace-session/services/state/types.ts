@@ -5,6 +5,7 @@ import type {
     UIEngineTab,
     UIEngineTabSessionCreateInput,
     UIEngineTabSession,
+    UIEngineWorkspaceSnapshot,
 } from "@gately/shared/infrastructure/ui-engine/model/types";
 
 export type WorkspaceStateService = {
@@ -29,4 +30,6 @@ export type WorkspaceStateService = {
     createTabSession: (data: UIEngineTabSessionCreateInput) => UIEngineTabSession;
     setNavigationPath: (tabId: string, navigationPath: string[]) => void;
     removeTabSession: (tabId: string) => UIEngineTabSession | undefined;
+    exportWorkspaceSnapshot: () => UIEngineWorkspaceSnapshot;
+    importWorkspaceSnapshot: (snapshot: UIEngineWorkspaceSnapshot) => void;
 };

@@ -5,6 +5,9 @@ import type { BooleanAnalysisController } from "@gately/features/boolean-analysi
 import type { UIEnginePublicApi } from "@gately/shared/infrastructure/ui-engine";
 import type { WorkspaceSimulationMode, XYCoords } from "@gately/shared/types";
 import type { Accessor } from "solid-js";
+import type { WorkspaceConfigurationController } from "./configuration";
+import type { WorkspaceCustomComponentsController } from "./custom-components";
+import type { WorkspacePersistenceController } from "./persistence";
 
 export type ContextTarget = "blank" | "node" | "edge";
 export type AnchorReadySetter = (rect: XYCoords) => void;
@@ -41,6 +44,9 @@ export type WorkspaceController = {
     simulation: WorkspaceSimulationController;
     hardware: ArduinoHardwareController;
     booleanAnalysis: BooleanAnalysisController;
+    configuration: WorkspaceConfigurationController;
+    customComponents: WorkspaceCustomComponentsController;
+    persistence: WorkspacePersistenceController;
 };
 
 export type WorkspaceUIEngine = Pick<UIEnginePublicApi, "commands" | "debug" | "state"> & {

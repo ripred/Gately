@@ -1,5 +1,6 @@
 import type { Node } from "@antv/x6";
 import type { LogicValue } from "@cnbn/schema";
+import type { CustomComponentVisualInput } from "../../model/nodes-spec";
 import type { AnyVisualBinding, VisualBinding } from "../../model/visual";
 import type { PinSide } from "../../model/types";
 
@@ -31,6 +32,7 @@ export type VisualServiceContract = {
         presets: VisualBinding<TState>[],
         options?: RegisterVisualPresetOptions,
     ) => string[];
+    registerCustomComponent: (input: CustomComponentVisualInput) => string;
     getPreset: <TState extends string = string>(hash: string) => VisualBinding<TState> | undefined;
     removePreset: (hash: string) => boolean;
     listPresetKeys: () => string[];

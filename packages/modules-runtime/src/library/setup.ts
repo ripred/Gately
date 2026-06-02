@@ -12,7 +12,7 @@ export interface InMemoryLibraryStoreFactoryOverrides {
 
 export class InMemoryLibraryStoreSetup {
     static init(overrides?: InMemoryLibraryStoreFactoryOverrides) {
-        const templateMap = overrides?.initialTemplates ?? defaultTemplatesMap;
+        const templateMap = new Map(overrides?.initialTemplates ?? defaultTemplatesMap);
         const libraryStore =
             overrides?.makeLibraryStore?.(templateMap) ??
             new DefaultInMemoryLibraryStore(templateMap);

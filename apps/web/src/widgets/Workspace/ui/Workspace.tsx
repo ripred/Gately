@@ -16,21 +16,37 @@ export const InnerWorkspace: Component = () => {
     });
 
     return (
-        <div class="w-full h-full relative">
-            <WorkspaceToolbar
-                booleanAnalysis={controller.booleanAnalysis}
-                hardware={controller.hardware}
-                simulation={controller.simulation}
-            />
+        <div class="flex h-full w-full flex-col overflow-hidden">
+            <div class="relative z-10 shrink-0 border-b border-gray-4 bg-gray-1/95">
+                <div
+                    style={{
+                        zoom: controller.configuration.uiScale(),
+                    }}
+                >
+                    <WorkspaceToolbar
+                        booleanAnalysis={controller.booleanAnalysis}
+                        configuration={controller.configuration}
+                        customComponents={controller.customComponents}
+                        hardware={controller.hardware}
+                        persistence={controller.persistence}
+                        simulation={controller.simulation}
+                    />
+                </div>
+            </div>
             <BooleanAnalysisPanel controller={controller.booleanAnalysis} />
-            <Show when={uiEngine.state.activeTabId()} fallback={<p>Create a new tab</p>}>
-                <div ref={uiEngine.mount.setContainer} class="w-full h-full"></div>
-                <WorkspaceContextMenu
-                    contextMenu={controller.contextMenu}
-                    getSelectionCount={controller.getSelectionCount}
-                    removeSelected={controller.removeSelected}
-                />
-            </Show>
+            <div class="relative min-h-0 flex-1">
+                <Show
+                    when={uiEngine.state.activeTabId()}
+                    fallback={<p class="p-4 text-gray-11">Create a new tab</p>}
+                >
+                    <div ref={uiEngine.mount.setContainer} class="absolute inset-0"></div>
+                    <WorkspaceContextMenu
+                        contextMenu={controller.contextMenu}
+                        getSelectionCount={controller.getSelectionCount}
+                        removeSelected={controller.removeSelected}
+                    />
+                </Show>
+            </div>
         </div>
     );
 };

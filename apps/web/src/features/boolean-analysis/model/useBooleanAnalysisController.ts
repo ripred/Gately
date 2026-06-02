@@ -16,7 +16,6 @@ import {
     type OptimizedCircuitRect,
 } from "./optimizedCircuitLayout";
 import type { BooleanAnalysisController, BooleanAnalysisControllerDeps } from "./types";
-import { createOptimizerDemoSourceCircuit } from "./sourceCircuitDemo";
 
 type NodeHash = Parameters<BooleanAnalysisControllerDeps["uiEngine"]["commands"]["addNode"]>[0]["hash"];
 
@@ -252,22 +251,6 @@ export const useBooleanAnalysisController = (
             .finally(() => setIsSynthesizing(false));
     };
 
-    const createDemoCircuitInNewTab = () => {
-        const currentTabId = deps.getActiveTabId();
-        if (!currentTabId) return;
-
-        setIsSynthesizing(true);
-        setError(undefined);
-
-        void createOptimizerDemoSourceCircuit({
-            logicEngine: deps.logicEngine,
-            uiEngine: deps.uiEngine,
-            getActiveTabId: deps.getActiveTabId,
-        })
-            .catch((err) => setError(getErrorMessage(err)))
-            .finally(() => setIsSynthesizing(false));
-    };
-
     return {
         get isOpen() {
             return isOpen();
@@ -288,6 +271,5 @@ export const useBooleanAnalysisController = (
         createOptimizedCircuit,
         close: () => setIsOpen(false),
         createOptimizedCircuitInNewTab: () => createOptimizedCircuit({ inNewTab: true }),
-        createDemoCircuitInNewTab,
     };
 };

@@ -25,6 +25,10 @@ export type MetaMap = {
     circuit: {
         logic: {
             isSymmetric?: boolean;
+            custom?: boolean;
+            label?: string;
+            createdAt?: number;
+            updatedAt?: number;
         };
     };
 };

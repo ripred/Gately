@@ -15,6 +15,14 @@ import { ApiUpdateItemOutput_Fn } from "@engine/use-cases/public/UpdateItemOutpu
 import { ApiSimulateTab_Fn } from "@engine/use-cases/public/SimulateTab";
 import { ApiSimulationStatus_Fn } from "@engine/use-cases/public/GetSimulationStatus";
 import { ApiAnalyzeBoolean_Fn } from "@engine/use-cases/public/AnalyzeBoolean";
+import {
+    ApiCreateTemplateFromSelection_Fn,
+    ApiListTemplates_Fn,
+    ApiRemoveTemplate_Fn,
+    ApiSaveTemplate_Fn,
+    ApiUpdateTemplate_Fn,
+} from "@engine/use-cases/public/Templates";
+import { ApiExportSession_Fn, ApiImportSession_Fn } from "@engine/use-cases/public/Session";
 
 export interface ApiSpec {
     tab: TabApiSpec;
@@ -22,6 +30,8 @@ export interface ApiSpec {
     scope: ScopeApiScec;
     simulation: SimulationApiSpec;
     analysis: AnalysisApiSpec;
+    template: TemplateApiSpec;
+    session: SessionApiSpec;
     plugins: PluginApiSpec;
 }
 
@@ -58,6 +68,19 @@ export interface SimulationApiSpec {
 
 export interface AnalysisApiSpec {
     boolean: ApiToken<ApiAnalyzeBoolean_Fn, "public">;
+}
+
+export interface TemplateApiSpec {
+    list: ApiToken<ApiListTemplates_Fn, "public">;
+    save: ApiToken<ApiSaveTemplate_Fn, "public">;
+    update: ApiToken<ApiUpdateTemplate_Fn, "public">;
+    remove: ApiToken<ApiRemoveTemplate_Fn, "public">;
+    createFromSelection: ApiToken<ApiCreateTemplateFromSelection_Fn, "public">;
+}
+
+export interface SessionApiSpec {
+    export: ApiToken<ApiExportSession_Fn, "public">;
+    import: ApiToken<ApiImportSession_Fn, "public">;
 }
 
 export interface PluginApiSpec {}

@@ -4,6 +4,7 @@ import type {
     UIEngineTabCloseConditions,
     UIEngineTabCreateInput,
     UIEngineTab,
+    UIEngineWorkspaceSnapshot,
 } from "../../model/types";
 import type { WorkspaceStateService } from "./services/state";
 
@@ -39,4 +40,6 @@ export type WorkspaceSessionApi = {
     canCloseTab: (tabId: string, conditions?: WorkspaceSessionCloseTabConditions) => boolean;
     closeTab: (tabId: string, conditions?: WorkspaceSessionCloseTabConditions) => Promise<boolean>;
     syncRuntimeSnapshot: () => void;
+    exportWorkspaceSnapshot: () => UIEngineWorkspaceSnapshot;
+    importWorkspaceSnapshot: (snapshot: UIEngineWorkspaceSnapshot) => void;
 };

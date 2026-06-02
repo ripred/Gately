@@ -1,19 +1,22 @@
 import type { Graph, Node } from "@antv/x6";
+import type { KindKey } from "@cnbn/schema";
 import type { EngineSignalEvent } from "@gately/shared/types";
 import type { Accessor } from "solid-js";
 import type { XYCoords } from "@gately/shared/types";
 import type {
-    NodeHashes,
+    CustomComponentVisualInput,
     PinUpdate,
     UIScopeSnapshot,
     UIEngineTabCloseConditions,
     UIEngineTabCreateInput,
     UIEngineTab,
     UIEngineScope,
+    UIEngineWorkspaceSnapshot,
 } from "../model";
 
 export type UIEngineAddNodeCommandInput = {
-    hash: NodeHashes;
+    hash: string;
+    kind?: KindKey;
     meta?: { numOfInputs?: number; numOfOutputs?: number };
     position?: XYCoords;
 };
@@ -32,8 +35,14 @@ export type UIEngineCommandApi = {
         conditions?: UIEngineCloseTabCommandConditions,
     ) => Promise<boolean>;
     addNode: (input: UIEngineAddNodeCommandInput) => Promise<Node | undefined>;
+    registerCustomComponents: (inputs: CustomComponentVisualInput[]) => void;
+    zoomIn: () => number;
+    zoomOut: () => number;
+    resetZoom: () => number;
     exportScopeSnapshot: () => UIScopeSnapshot;
     importScopeSnapshot: (snapshot?: Partial<UIScopeSnapshot> | null) => void;
+    exportWorkspaceSnapshot: () => UIEngineWorkspaceSnapshot;
+    importWorkspaceSnapshot: (snapshot: UIEngineWorkspaceSnapshot) => void;
     applyPinPatch: (patch: PinUpdate | PinUpdate[]) => void;
     applySignalEvents: (events: EngineSignalEvent | EngineSignalEvent[]) => void;
 };

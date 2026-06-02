@@ -2,14 +2,18 @@ import { createEffect, createSignal, onCleanup } from "solid-js";
 import { useArduinoHardwareController } from "@gately/features/arduino-hardware";
 import { useBooleanAnalysisController } from "@gately/features/boolean-analysis";
 import { attachWorkspaceBridge } from "./bridge";
+import { createWorkspaceConfiguration } from "./configuration";
 import { attachWorkspaceGraphInteractions } from "./graph-interactions";
 import { useWorkspaceContextMenu } from "./context-menu";
+import { createWorkspaceCustomComponents } from "./custom-components";
+import { createWorkspacePersistence } from "./persistence";
 import { createWorkspaceSimulation } from "./simulation";
 import type { WorkspaceController, WorkspaceControllerDeps } from "./types";
 
 export const useWorkspaceController = (deps: WorkspaceControllerDeps): WorkspaceController => {
     const [selectionVersion, setSelectionVersion] = createSignal(0);
     const contextMenu = useWorkspaceContextMenu();
+    const configuration = createWorkspaceConfiguration();
     const signalEventHandlers = new Set<WorkspaceController["hardware"]["handleSignalEvents"]>();
     const simulation = createWorkspaceSimulation({
         logicEngine: deps.logicEngine,
@@ -31,6 +35,17 @@ export const useWorkspaceController = (deps: WorkspaceControllerDeps): Workspace
         uiEngine: deps.uiEngine,
         getActiveTabId: deps.getActiveTabId,
         getActiveScopeId: deps.uiEngine.state.activeScopeId,
+    });
+    const customComponents = createWorkspaceCustomComponents({
+        logicEngine: deps.logicEngine,
+        uiEngine: deps.uiEngine,
+        getActiveTabId: deps.getActiveTabId,
+        getActiveScopeId: deps.uiEngine.state.activeScopeId,
+    });
+    const persistence = createWorkspacePersistence({
+        logicEngine: deps.logicEngine,
+        uiEngine: deps.uiEngine,
+        onAfterLoad: customComponents.refresh,
     });
     signalEventHandlers.add(hardware.handleSignalEvents);
 
@@ -88,5 +103,8 @@ export const useWorkspaceController = (deps: WorkspaceControllerDeps): Workspace
         simulation,
         hardware,
         booleanAnalysis,
+        configuration,
+        customComponents,
+        persistence,
     };
 };

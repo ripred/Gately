@@ -13,6 +13,14 @@ import { updateItemOutputUC } from "@engine/use-cases/public/UpdateItemOutput";
 import { simulateTabUC } from "@engine/use-cases/public/SimulateTab";
 import { simulationStatusUC } from "@engine/use-cases/public/GetSimulationStatus";
 import { analyzeBooleanUC } from "@engine/use-cases/public/AnalyzeBoolean";
+import {
+    createTemplateFromSelectionUC,
+    listTemplatesUC,
+    removeTemplateUC,
+    saveTemplateUC,
+    updateTemplateUC,
+} from "@engine/use-cases/public/Templates";
+import { exportSessionUC, importSessionUC } from "@engine/use-cases/public/Session";
 
 export const API_CONFIGS = [
     createTabUC,
@@ -39,4 +47,13 @@ export const API_CONFIGS = [
     simulationStatusUC,
 
     analyzeBooleanUC,
+
+    listTemplatesUC,
+    saveTemplateUC,
+    updateTemplateUC,
+    removeTemplateUC,
+    createTemplateFromSelectionUC,
+
+    exportSessionUC,
+    importSessionUC,
 ];

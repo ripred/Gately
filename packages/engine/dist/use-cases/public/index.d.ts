@@ -9,4 +9,6 @@ export * from "./UpdateItemOutput.js";
 export * from "./SimulateTab.js";
 export * from "./GetSimulationStatus.js";
 export * from "./AnalyzeBoolean.js";
+export * from "./Templates.js";
+export * from "./Session.js";
 //# sourceMappingURL=index.d.ts.map

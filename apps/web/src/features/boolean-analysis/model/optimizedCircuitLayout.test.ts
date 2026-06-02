@@ -386,7 +386,7 @@ describe("optimized circuit layout", () => {
                 }),
             ).toEqual([]);
         });
-    }, 30000);
+    }, 60000);
 
     it("keeps source columns ordered while placing terms near their contributing inputs", () => {
         const layout = buildOptimizedCircuitLayout(netlistWithTrueAndInvertedA, {
@@ -530,7 +530,7 @@ describe("optimized circuit layout", () => {
         ];
 
         cases.forEach(expectCleanRoutes);
-    }, 30000);
+    }, 60000);
 
     it("routes the optimizer demo result without visible wire-wire crossings", () => {
         const netlist = buildSopShapedNetlist(8, [

@@ -1,6 +1,8 @@
+import type { KindKey } from "@cnbn/schema";
 import type { NodeHashes } from "./nodes-spec";
 
 export type BaseNodeKind = "base:logic" | "base:generator" | "base:display";
+export type UINodeKind = BaseNodeKind | "circuit:logic";
 
 const NODE_KIND_BY_HASH: Record<NodeHashes, BaseNodeKind> = {
     BUFFER: "base:logic",
@@ -18,4 +20,5 @@ const NODE_KIND_BY_HASH: Record<NodeHashes, BaseNodeKind> = {
     FALSE_CONSTANT: "base:generator",
 };
 
-export const getNodeKindByHash = (hash: NodeHashes): BaseNodeKind => NODE_KIND_BY_HASH[hash];
+export const getNodeKindByHash = (hash: string, fallback: UINodeKind = "circuit:logic"): KindKey =>
+    NODE_KIND_BY_HASH[hash as NodeHashes] ?? fallback;

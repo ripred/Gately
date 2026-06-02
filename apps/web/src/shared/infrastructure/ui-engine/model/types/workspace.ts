@@ -39,3 +39,12 @@ export type UIEngineTabSessionCreateInput = {
     rootScopeId: string;
     navigationPath?: string[];
 };
+
+export type UIEngineWorkspaceSnapshot = {
+    version: 1;
+    scopes: UIEngineScope[];
+    tabSessions: UIEngineTabSession[];
+    orderedTabIds: string[];
+    activeTabId?: string;
+    activeScopeId?: string;
+};

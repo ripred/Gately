@@ -15,5 +15,13 @@ export type MetaMap = {
         logic: { isSymmetric?: boolean; numOfInputs?: number };
         display: { numOfInputs?: number };
     };
-    circuit: { logic: { isSymmetric?: boolean } };
+    circuit: {
+        logic: {
+            isSymmetric?: boolean;
+            custom?: boolean;
+            label?: string;
+            createdAt?: number;
+            updatedAt?: number;
+        };
+    };
 };

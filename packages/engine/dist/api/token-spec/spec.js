@@ -26,5 +26,16 @@ export const API_SPEC = {
     analysis: {
         boolean: ApiFactories.token("booleanAnalysis", "public"),
     },
+    template: {
+        list: ApiFactories.token("listTemplates", "public"),
+        save: ApiFactories.token("saveTemplate", "public"),
+        update: ApiFactories.token("updateTemplate", "public"),
+        remove: ApiFactories.token("removeTemplate", "public"),
+        createFromSelection: ApiFactories.token("createTemplateFromSelection", "public"),
+    },
+    session: {
+        export: ApiFactories.token("exportSession", "public"),
+        import: ApiFactories.token("importSession", "public"),
+    },
     plugins: {},
 };

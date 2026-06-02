@@ -15,7 +15,7 @@ export const openGlobalOperations = (flow: FlowToolContract, stores: ApiCtx["dep
     removeTemplate: makeRemoveStep("template", flow, stores.template),
 
     saveTab: makeInsertStep("tab", flow, stores.tab),
-    saveTemplate: makeInsertStep("template", flow, stores.template, () => "hash"),
+    saveTemplate: makeInsertStep("template", flow, stores.template, (template) => template.hash),
 });
 
 export const openTabOperations = (flow: FlowToolContract) => (tab: TabContract) => {

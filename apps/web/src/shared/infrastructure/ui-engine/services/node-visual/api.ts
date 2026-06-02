@@ -1,4 +1,5 @@
 import type { Graph, Node } from "@antv/x6";
+import { createCustomComponentVisualBinding } from "../../model/nodes-spec";
 import type { AnyVisualBinding, VisualBinding } from "../../model/visual";
 import type { UIEngineContext } from "../../model/types";
 import { defaultVisualPresets } from "./default-nodes";
@@ -10,7 +11,7 @@ import type {
     VisualServiceContract,
 } from "./types";
 
-export const useVisualService = (_graph: Graph, ctx: UIEngineContext): VisualServiceContract => {
+export const useVisualService = (graph: Graph, ctx: UIEngineContext): VisualServiceContract => {
     const presetByHash = new Map<string, AnyVisualBinding>();
     const executorByHash = new Map<string, AnyVisualExecutor>();
     const nodeRegistrator = useVisualNodeRegistrator();
@@ -52,6 +53,19 @@ export const useVisualService = (_graph: Graph, ctx: UIEngineContext): VisualSer
         options: RegisterVisualPresetOptions = {},
     ): string[] => {
         return presets.map((preset) => _usePreset(preset, options));
+    };
+
+    const registerCustomComponent: VisualServiceContract["registerCustomComponent"] = (input) => {
+        const binding = createCustomComponentVisualBinding(input);
+        const key = _usePreset(binding, { replace: true });
+
+        graph.getNodes().forEach((node) => {
+            const data = node.getData<{ hash?: string }>() ?? {};
+            if (data.hash !== input.hash) return;
+            node.attr("label/text", input.label ?? input.name ?? input.hash);
+        });
+
+        return key;
     };
 
     const getPreset = <TState extends string = string>(
@@ -110,6 +124,7 @@ export const useVisualService = (_graph: Graph, ctx: UIEngineContext): VisualSer
 
     return {
         usePresets,
+        registerCustomComponent,
         getPreset,
         removePreset,
         listPresetKeys,
