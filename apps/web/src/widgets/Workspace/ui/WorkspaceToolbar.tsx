@@ -8,8 +8,12 @@ import { useUIEngine } from "@gately/shared/infrastructure";
 import type { WorkspaceSimulationMode } from "@gately/shared/types";
 import { Pusher } from "@gately/shared/ui";
 import type { WorkspaceController } from "../lib/types";
-import { Component, For, Show } from "solid-js";
-import { SIMULATION_MODE_OPTIONS } from "./settingsSchema";
+import { Component, createEffect, createSignal, For, onCleanup, Show } from "solid-js";
+import {
+    SIMULATION_MODE_OPTIONS,
+    TOOLBAR_GROUP_SETTINGS,
+    setToolbarGroupVisible,
+} from "./settingsSchema";
 import type { WorkspaceViewMode } from "./workbenchTypes";
 
 type WorkspaceToolbarProps = Pick<
@@ -35,6 +39,8 @@ const toolbarGroup = "flex flex-wrap items-center gap-1 border-r border-gray-4 p
 
 export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
     const uiEngine = useUIEngine();
+    const [customizationOpen, setCustomizationOpen] = createSignal(false);
+    let customizationRoot: HTMLDivElement | undefined;
     const {
         addBuffer,
         addAnd,
@@ -58,6 +64,13 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
         props.persistence.isBusy;
     const toolbarGroupVisible = (group: WorkbenchToolbarGroupKey) =>
         props.configuration.workbenchConfig().visibleToolbarGroups[group];
+    const showAllToolbarGroups = () => {
+        props.configuration.setWorkbenchConfig({
+            visibleToolbarGroups: Object.fromEntries(
+                TOOLBAR_GROUP_SETTINGS.map((setting) => [setting.key, true]),
+            ),
+        });
+    };
     const selectedCustomHash = () => props.customComponents.selectedHash();
     const builtInButtons = [
         { label: "TOGGLE", action: addToggle },
@@ -75,12 +88,35 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
         { label: "XNOR", action: addXnor },
     ];
 
+    createEffect(() => {
+        if (!customizationOpen()) return;
+
+        const closeOnPointerDown = (event: PointerEvent) => {
+            if (!customizationRoot?.contains(event.target as Node)) {
+                setCustomizationOpen(false);
+            }
+        };
+        const closeOnKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setCustomizationOpen(false);
+            }
+        };
+
+        document.addEventListener("pointerdown", closeOnPointerDown);
+        document.addEventListener("keydown", closeOnKeyDown);
+
+        onCleanup(() => {
+            document.removeEventListener("pointerdown", closeOnPointerDown);
+            document.removeEventListener("keydown", closeOnKeyDown);
+        });
+    });
+
     return (
         <div
             data-testid="workspace-toolbar"
-            class="flex min-h-10 flex-wrap items-start gap-2 border-b border-gray-4 bg-gray-1 px-2 py-1 text-gray-12"
+            class="relative flex min-h-10 flex-wrap items-start gap-2 border-b border-gray-4 bg-gray-1 px-2 py-1 text-gray-12"
         >
-            <div class={toolbarGroup}>
+            <div class={toolbarGroup} ref={customizationRoot}>
                 <Pusher class={toolbarButton} onClick={props.toggleProjectSidebar}>
                     {props.projectSidebarCollapsed ? "Explorer >" : "Explorer <"}
                 </Pusher>
@@ -102,6 +138,66 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                 >
                     Settings
                 </Pusher>
+                <Pusher
+                    aria-expanded={customizationOpen()}
+                    aria-haspopup="menu"
+                    class={[
+                        toolbarButton,
+                        customizationOpen() ? "border-primary-7 bg-primary-3" : "",
+                    ].join(" ")}
+                    onClick={() => setCustomizationOpen((open) => !open)}
+                >
+                    Toolbar
+                </Pusher>
+                <Show when={customizationOpen()}>
+                    <div
+                        aria-label="Toolbar customization"
+                        class="absolute left-2 top-9 z-30 w-72 border border-gray-5 bg-gray-1 p-2 shadow-lg"
+                        role="menu"
+                    >
+                        <div class="border-b border-gray-4 px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-9">
+                            Toolbar Groups
+                        </div>
+                        <div class="py-1">
+                            <For each={TOOLBAR_GROUP_SETTINGS}>
+                                {(setting) => (
+                                    <label
+                                        class="flex cursor-pointer items-start gap-2 px-2 py-1.5 text-sm text-gray-12 hover:bg-gray-3"
+                                        role="menuitemcheckbox"
+                                        aria-checked={toolbarGroupVisible(setting.key)}
+                                    >
+                                        <input
+                                            class="mt-1"
+                                            type="checkbox"
+                                            checked={toolbarGroupVisible(setting.key)}
+                                            onChange={(event) =>
+                                                setToolbarGroupVisible(
+                                                    props.configuration,
+                                                    setting.key,
+                                                    event.currentTarget.checked,
+                                                )
+                                            }
+                                        />
+                                        <span class="min-w-0">
+                                            <span class="block truncate">{setting.label}</span>
+                                            <span class="block text-xs leading-4 text-gray-9">
+                                                {setting.description}
+                                            </span>
+                                        </span>
+                                    </label>
+                                )}
+                            </For>
+                        </div>
+                        <div class="border-t border-gray-4 pt-2">
+                            <button
+                                class="w-full rounded border border-gray-5 bg-gray-2 px-2 py-1.5 text-xs text-gray-12 hover:bg-gray-3"
+                                onClick={showAllToolbarGroups}
+                            >
+                                Show All Groups
+                            </button>
+                        </div>
+                    </div>
+                </Show>
             </div>
 
             <Show when={toolbarGroupVisible("simulation")}>
