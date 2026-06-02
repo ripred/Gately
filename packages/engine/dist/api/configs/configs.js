@@ -13,7 +13,7 @@ import { updateItemOutputUC } from "../../use-cases/public/UpdateItemOutput.js";
 import { simulateTabUC } from "../../use-cases/public/SimulateTab.js";
 import { simulationStatusUC } from "../../use-cases/public/GetSimulationStatus.js";
 import { analyzeBooleanUC } from "../../use-cases/public/AnalyzeBoolean.js";
-import { createTemplateFromSelectionUC, listTemplatesUC, removeTemplateUC, saveTemplateUC, updateTemplateUC, } from "../../use-cases/public/Templates.js";
+import { createTemplateFromSelectionUC, getTemplateUC, listTemplatesUC, removeTemplateUC, saveTemplateUC, updateTemplateUC, } from "../../use-cases/public/Templates.js";
 import { exportSessionUC, importSessionUC } from "../../use-cases/public/Session.js";
 export const API_CONFIGS = [
     createTabUC,
@@ -33,6 +33,7 @@ export const API_CONFIGS = [
     simulationStatusUC,
     analyzeBooleanUC,
     listTemplatesUC,
+    getTemplateUC,
     saveTemplateUC,
     updateTemplateUC,
     removeTemplateUC,

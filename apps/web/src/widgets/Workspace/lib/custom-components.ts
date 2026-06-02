@@ -1,4 +1,4 @@
-import { createEffect, createSignal } from "solid-js";
+import { createEffect, createSignal, onCleanup } from "solid-js";
 import type { ApiTemplateSummary } from "@cnbn/engine";
 import type { WorkspaceUIEngine } from "./types";
 import type { CinabonoClient } from "@cnbn/engine-worker";
@@ -7,6 +7,7 @@ export type WorkspaceCustomComponentsController = {
     components: () => ApiTemplateSummary[];
     selectedHash: () => string | undefined;
     setSelectedHash: (hash?: string) => void;
+    selectedNodeCount: () => number;
     refresh: () => Promise<void>;
     createFromSelection: () => Promise<void>;
     renameSelected: () => Promise<void>;
@@ -37,11 +38,21 @@ const isNodeCell = (cell: unknown): cell is { id: string; isNode: () => boolean 
     return typeof candidate.id === "string" && typeof candidate.isNode === "function" && candidate.isNode();
 };
 
+const errorMessage = (error: unknown, fallback: string): string => {
+    if (error instanceof Error) return error.message;
+    if (typeof error === "object" && error && "error" in error) {
+        const nested = (error as { error?: unknown }).error;
+        if (nested instanceof Error) return nested.message;
+    }
+    return fallback;
+};
+
 export const createWorkspaceCustomComponents = (
     deps: WorkspaceCustomComponentsDeps,
 ): WorkspaceCustomComponentsController => {
     const [components, setComponents] = createSignal<ApiTemplateSummary[]>([]);
     const [selectedHash, setSelectedHash] = createSignal<string | undefined>();
+    const [selectionVersion, setSelectionVersion] = createSignal(0);
     const [busy, setBusy] = createSignal(false);
 
     const registerVisuals = (nextComponents = components()) => {
@@ -60,16 +71,23 @@ export const createWorkspaceCustomComponents = (
     };
 
     const selectedNodeIds = (): string[] => {
+        selectionVersion();
         const graph = deps.uiEngine.debug.graph();
         if (!graph?.getSelectedCells) return [];
         return graph.getSelectedCells().filter(isNodeCell).map((cell) => cell.id);
     };
 
+    const selectedNodeCount = (): number => selectedNodeIds().length;
+
     const createFromSelection = async () => {
         const tabId = deps.getActiveTabId();
         const scopeId = deps.getActiveScopeId();
         const selectedItemIds = selectedNodeIds();
-        if (!tabId || !scopeId || selectedItemIds.length === 0) return;
+        if (!tabId || !scopeId) return;
+        if (selectedItemIds.length === 0) {
+            window.alert("Select at least one component before saving a custom component.");
+            return;
+        }
 
         const name = window.prompt("Custom component name");
         if (!name?.trim()) return;
@@ -84,6 +102,8 @@ export const createWorkspaceCustomComponents = (
             });
             setSelectedHash(result.summary.hash);
             await refresh();
+        } catch (error) {
+            window.alert(errorMessage(error, "Unable to save the selected custom component."));
         } finally {
             setBusy(false);
         }
@@ -101,6 +121,8 @@ export const createWorkspaceCustomComponents = (
         try {
             await deps.logicEngine.call("/template/update", { hash: current.hash, name });
             await refresh();
+        } catch (error) {
+            window.alert(errorMessage(error, "Unable to rename the selected custom component."));
         } finally {
             setBusy(false);
         }
@@ -116,6 +138,8 @@ export const createWorkspaceCustomComponents = (
         try {
             await deps.logicEngine.call("/template/remove", { hash: current.hash });
             await refresh();
+        } catch (error) {
+            window.alert(errorMessage(error, "Unable to delete the selected custom component."));
         } finally {
             setBusy(false);
         }
@@ -123,15 +147,36 @@ export const createWorkspaceCustomComponents = (
 
     const addComponent = async (hash: string) => {
         if (!deps.uiEngine.state.activeScopeId()) return;
-        await deps.uiEngine.commands.addNode({
-            hash,
-            kind: "circuit:logic",
-        });
+        try {
+            await deps.uiEngine.commands.addNode({
+                hash,
+                kind: "circuit:logic",
+            });
+        } catch (error) {
+            window.alert(errorMessage(error, "Unable to add the selected custom component."));
+        }
     };
 
     createEffect(() => {
         deps.uiEngine.debug.graph();
         registerVisuals();
+    });
+
+    createEffect(() => {
+        const graph = deps.uiEngine.debug.graph();
+        if (!graph) return;
+
+        const bumpSelection = () => setSelectionVersion((version) => version + 1);
+        graph.on("cell:selected", bumpSelection);
+        graph.on("cell:unselected", bumpSelection);
+        graph.on("selection:changed", bumpSelection);
+        bumpSelection();
+
+        onCleanup(() => {
+            graph.off("cell:selected", bumpSelection);
+            graph.off("cell:unselected", bumpSelection);
+            graph.off("selection:changed", bumpSelection);
+        });
     });
 
     void refresh();
@@ -140,6 +185,7 @@ export const createWorkspaceCustomComponents = (
         components,
         selectedHash,
         setSelectedHash,
+        selectedNodeCount,
         refresh,
         createFromSelection,
         renameSelected,

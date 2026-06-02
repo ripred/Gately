@@ -17,6 +17,7 @@ import { ApiSimulationStatus_Fn } from "@engine/use-cases/public/GetSimulationSt
 import { ApiAnalyzeBoolean_Fn } from "@engine/use-cases/public/AnalyzeBoolean";
 import {
     ApiCreateTemplateFromSelection_Fn,
+    ApiGetTemplate_Fn,
     ApiListTemplates_Fn,
     ApiRemoveTemplate_Fn,
     ApiSaveTemplate_Fn,
@@ -72,6 +73,7 @@ export interface AnalysisApiSpec {
 
 export interface TemplateApiSpec {
     list: ApiToken<ApiListTemplates_Fn, "public">;
+    get: ApiToken<ApiGetTemplate_Fn, "public">;
     save: ApiToken<ApiSaveTemplate_Fn, "public">;
     update: ApiToken<ApiUpdateTemplate_Fn, "public">;
     remove: ApiToken<ApiRemoveTemplate_Fn, "public">;

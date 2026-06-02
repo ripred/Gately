@@ -1,7 +1,9 @@
 import type { Graph, Node } from "@antv/x6";
 import { createCustomComponentVisualBinding } from "../../model/nodes-spec";
+import { STROKE_WIDTH } from "../../model";
 import type { AnyVisualBinding, VisualBinding } from "../../model/visual";
 import type { UIEngineContext } from "../../model/types";
+import { calcNodeSize } from "../nodes/lib/calcNodeSize";
 import { defaultVisualPresets } from "./default-nodes";
 import { createVisualExecutor } from "./executor";
 import { useVisualNodeRegistrator } from "./node-registrator";
@@ -62,7 +64,16 @@ export const useVisualService = (graph: Graph, ctx: UIEngineContext): VisualServ
         graph.getNodes().forEach((node) => {
             const data = node.getData<{ hash?: string }>() ?? {};
             if (data.hash !== input.hash) return;
+            const size = calcNodeSize({
+                minWidth: binding.preset.minWidth,
+                minHeight: binding.preset.minHeight,
+                pinCount: Math.max(input.inputCount ?? 0, input.outputCount ?? 0),
+            });
+
             node.attr("label/text", input.label ?? input.name ?? input.hash);
+            node.attr("body/width", size.width);
+            node.attr("body/height", size.height);
+            node.resize(size.width + STROKE_WIDTH, size.height + STROKE_WIDTH);
         });
 
         return key;

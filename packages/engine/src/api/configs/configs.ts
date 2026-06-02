@@ -15,6 +15,7 @@ import { simulationStatusUC } from "@engine/use-cases/public/GetSimulationStatus
 import { analyzeBooleanUC } from "@engine/use-cases/public/AnalyzeBoolean";
 import {
     createTemplateFromSelectionUC,
+    getTemplateUC,
     listTemplatesUC,
     removeTemplateUC,
     saveTemplateUC,
@@ -49,6 +50,7 @@ export const API_CONFIGS = [
     analyzeBooleanUC,
 
     listTemplatesUC,
+    getTemplateUC,
     saveTemplateUC,
     updateTemplateUC,
     removeTemplateUC,

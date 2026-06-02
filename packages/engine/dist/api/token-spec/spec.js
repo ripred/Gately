@@ -28,6 +28,7 @@ export const API_SPEC = {
     },
     template: {
         list: ApiFactories.token("listTemplates", "public"),
+        get: ApiFactories.token("getTemplate", "public"),
         save: ApiFactories.token("saveTemplate", "public"),
         update: ApiFactories.token("updateTemplate", "public"),
         remove: ApiFactories.token("removeTemplate", "public"),

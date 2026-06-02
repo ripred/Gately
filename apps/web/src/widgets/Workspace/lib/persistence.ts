@@ -80,8 +80,8 @@ export const createWorkspacePersistence = (
             if (!project) return;
 
             await deps.logicEngine.call("/session/import", project.engine);
-            deps.uiEngine.commands.importWorkspaceSnapshot(project.workspace);
             await deps.onAfterLoad?.();
+            deps.uiEngine.commands.importWorkspaceSnapshot(project.workspace);
         } catch (error) {
             window.alert(error instanceof Error ? error.message : "Unable to load saved workspace.");
         } finally {

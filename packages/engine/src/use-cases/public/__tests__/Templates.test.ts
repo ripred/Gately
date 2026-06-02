@@ -57,6 +57,11 @@ describe("template public use cases", () => {
             inputCount: 2,
             outputCount: 1,
         });
+        expect(engine.api.template.get({ hash: "CUSTOM_SHARED_INPUT" })).toMatchObject({
+            hash: "CUSTOM_SHARED_INPUT",
+            name: "Shared Input",
+            kind: "circuit:logic",
+        });
         expect(result.template.inputPins["0"].inputItems).toEqual([
             { itemId: "AND_0", pin: "0" },
         ]);
@@ -167,5 +172,220 @@ describe("template public use cases", () => {
             "BUFFER_0",
             "OUT",
         ]);
+    });
+
+    it("removes unused custom templates", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const { tabId } = engine.api.tab.create({ id: "tab" });
+
+        engine.api.item.create([
+            { id: "A", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "BUFFER_0", kind: "base:logic", hash: "BUFFER", path: [tabId] },
+            { id: "OUT", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "A", fromPin: "0", toItemId: "BUFFER_0", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "BUFFER_0", fromPin: "0", toItemId: "OUT", toPin: "0" },
+            },
+        ]);
+
+        engine.api.template.createFromSelection({
+            tabId,
+            hash: "CUSTOM_UNUSED",
+            name: "Unused Custom",
+            selectedItemIds: ["BUFFER_0"],
+        });
+
+        expect(engine.api.template.remove({ hash: "CUSTOM_UNUSED" })).toMatchObject({
+            removed: true,
+            template: { hash: "CUSTOM_UNUSED", custom: true },
+        });
+        expect(engine.api.template.list().some((template) => template.hash === "CUSTOM_UNUSED")).toBe(
+            false,
+        );
+    });
+
+    it("rejects removal of custom templates that are used by live items", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const { tabId } = engine.api.tab.create({ id: "tab" });
+
+        engine.api.item.create([
+            { id: "A", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "BUFFER_0", kind: "base:logic", hash: "BUFFER", path: [tabId] },
+            { id: "OUT", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "A", fromPin: "0", toItemId: "BUFFER_0", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "BUFFER_0", fromPin: "0", toItemId: "OUT", toPin: "0" },
+            },
+        ]);
+
+        engine.api.template.createFromSelection({
+            tabId,
+            hash: "CUSTOM_IN_USE",
+            name: "In Use Custom",
+            selectedItemIds: ["BUFFER_0"],
+        });
+        engine.api.item.create({
+            id: "CUSTOM_NODE",
+            kind: "circuit:logic",
+            hash: "CUSTOM_IN_USE",
+            path: [tabId],
+        });
+
+        expect(() => engine.api.template.remove({ hash: "CUSTOM_IN_USE" })).toThrow(
+            /still used by 1 item/,
+        );
+        expect(
+            engine.api.template.list().some((template) => template.hash === "CUSTOM_IN_USE"),
+        ).toBe(true);
+    });
+
+    it("rejects selections that contain missing item ids", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const { tabId } = engine.api.tab.create({ id: "tab" });
+
+        engine.api.item.create([
+            { id: "A", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "BUFFER_0", kind: "base:logic", hash: "BUFFER", path: [tabId] },
+            { id: "OUT", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "A", fromPin: "0", toItemId: "BUFFER_0", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "BUFFER_0", fromPin: "0", toItemId: "OUT", toPin: "0" },
+            },
+        ]);
+
+        expect(() =>
+            engine.api.template.createFromSelection({
+                tabId,
+                hash: "CUSTOM_PARTIAL",
+                name: "Partial",
+                selectedItemIds: ["BUFFER_0", "MISSING"],
+            }),
+        ).toThrow(/MISSING/);
+    });
+
+    it("rejects malformed custom templates at the public save boundary", async () => {
+        const engine = await new CinabonoBuilder().build();
+
+        expect(() =>
+            engine.api.template.save({
+                template: {
+                    hash: "CUSTOM_BAD",
+                    name: "Bad Custom",
+                    kind: "circuit:logic",
+                    meta: { custom: true },
+                    items: {},
+                    inputPins: {},
+                    outputPins: {},
+                },
+            }),
+        ).toThrow(/at least one item/);
+    });
+
+    it("rejects removal of custom templates used by other custom templates", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const { tabId } = engine.api.tab.create({ id: "tab" });
+
+        engine.api.item.create([
+            { id: "A", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "BUFFER_0", kind: "base:logic", hash: "BUFFER", path: [tabId] },
+            { id: "OUT", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "A", fromPin: "0", toItemId: "BUFFER_0", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "BUFFER_0", fromPin: "0", toItemId: "OUT", toPin: "0" },
+            },
+        ]);
+
+        const base = engine.api.template.createFromSelection({
+            tabId,
+            hash: "CUSTOM_BASE",
+            name: "Base Custom",
+            selectedItemIds: ["BUFFER_0"],
+        });
+        engine.api.template.save({
+            template: {
+                ...base.template,
+                hash: "CUSTOM_WRAPPER",
+                name: "Wrapper Custom",
+                items: {
+                    wrapped: {
+                        kind: "circuit:logic",
+                        hash: "CUSTOM_BASE",
+                        name: "Wrapped Base",
+                    },
+                },
+                inputPins: {
+                    "0": { inputItems: [{ itemId: "wrapped", pin: "0" }] },
+                },
+                outputPins: {
+                    "0": { outputItem: { itemId: "wrapped", pin: "0" } },
+                },
+            },
+        });
+
+        expect(() => engine.api.template.remove({ hash: "CUSTOM_BASE" })).toThrow(
+            /CUSTOM_WRAPPER/,
+        );
+    });
+
+    it("validates session imports before replacing current tabs", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const { tabId } = engine.api.tab.create({ id: "tab" });
+
+        engine.api.item.create({
+            id: "A",
+            kind: "base:generator",
+            hash: "TOGGLE",
+            path: [tabId],
+        });
+        const goodSnapshot = engine.api.session.export();
+
+        expect(() =>
+            engine.api.session.import({
+                version: 1,
+                templates: [
+                    [
+                        "CUSTOM_BAD",
+                        {
+                            hash: "CUSTOM_BAD",
+                            name: "Bad Custom",
+                            kind: "circuit:logic",
+                            meta: { custom: true },
+                            items: {},
+                            inputPins: {},
+                            outputPins: {},
+                        },
+                    ],
+                ],
+                tabs: [],
+            }),
+        ).toThrow(/at least one item/);
+
+        expect(engine.api.session.export().tabs[0].items.map(([id]) => id)).toEqual(
+            goodSnapshot.tabs[0].items.map(([id]) => id),
+        );
     });
 });

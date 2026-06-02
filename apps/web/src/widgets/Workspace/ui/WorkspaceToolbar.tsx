@@ -1,5 +1,6 @@
 import { ArduinoHardwarePanel } from "@gately/features/arduino-hardware";
 import { useAddLogicNode } from "@gately/features/nodes/useAddBaseLogic";
+import type { AppConfigurationController } from "@gately/app/providers/AppConfigurationProvider";
 import { useUIEngine } from "@gately/shared/infrastructure";
 import type { WorkspaceSimulationMode } from "@gately/shared/types";
 import { Pusher } from "@gately/shared/ui";
@@ -13,8 +14,10 @@ const SIMULATION_MODE_OPTIONS: Array<{ value: WorkspaceSimulationMode; label: st
 
 type WorkspaceToolbarProps = Pick<
     WorkspaceController,
-    "booleanAnalysis" | "configuration" | "customComponents" | "hardware" | "persistence" | "simulation"
->;
+    "booleanAnalysis" | "customComponents" | "hardware" | "persistence" | "simulation"
+> & {
+    configuration: AppConfigurationController;
+};
 
 export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
     const uiEngine = useUIEngine();
@@ -180,7 +183,11 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                 <Pusher
                     class="px-3 py-1 bg-gray-3 rounded-md shadow text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
                     onClick={props.customComponents.createFromSelection}
-                    disabled={disabled() || commandDisabled()}
+                    disabled={
+                        disabled() ||
+                        commandDisabled() ||
+                        props.customComponents.selectedNodeCount() === 0
+                    }
                 >
                     Save Selection
                 </Pusher>

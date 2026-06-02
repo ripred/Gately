@@ -1,6 +1,7 @@
 import { Accessor, createContext, createSignal, ParentComponent, useContext } from "solid-js";
 import { LogicEngineProvider, useLogicEngine } from "@gately/shared/infrastructure/LogicEngine";
 import { UIEngineProvider } from "@gately/shared/infrastructure";
+import { AppConfigurationProvider } from "./AppConfigurationProvider";
 
 interface IAppContext {
     theme: Accessor<"light" | "dark">;
@@ -37,9 +38,11 @@ export const AppProvider: ParentComponent = (props) => {
 
     return (
         <AppContext.Provider value={context}>
-            <LogicEngineProvider>
-                <UIEngineRuntimeProvider>{props.children}</UIEngineRuntimeProvider>
-            </LogicEngineProvider>
+            <AppConfigurationProvider>
+                <LogicEngineProvider>
+                    <UIEngineRuntimeProvider>{props.children}</UIEngineRuntimeProvider>
+                </LogicEngineProvider>
+            </AppConfigurationProvider>
         </AppContext.Provider>
     );
 };

@@ -1,17 +1,23 @@
-import { createEffect, createSignal } from "solid-js";
+import {
+    createContext,
+    createEffect,
+    createSignal,
+    ParentComponent,
+    useContext,
+} from "solid-js";
 
-const STORAGE_KEY = "gately.workspace.configuration.v1";
+const STORAGE_KEY = "gately.app.configuration.v1";
 const CONFIG_VERSION = 1;
 const UI_SCALE_MIN = 0.75;
 const UI_SCALE_MAX = 1.5;
 const UI_SCALE_STEP = 0.1;
 
-type StoredWorkspaceConfiguration = {
+type StoredAppConfiguration = {
     version: typeof CONFIG_VERSION;
     uiScale: number;
 };
 
-export type WorkspaceConfigurationController = {
+export type AppConfigurationController = {
     uiScale: () => number;
     uiScalePercent: () => number;
     setUiScale: (scale: number) => void;
@@ -19,6 +25,8 @@ export type WorkspaceConfigurationController = {
     uiZoomOut: () => void;
     resetUiZoom: () => void;
 };
+
+const AppConfigurationContext = createContext<AppConfigurationController>();
 
 const clampUiScale = (scale: number): number =>
     Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, scale));
@@ -28,7 +36,7 @@ const normalizeUiScale = (scale: number): number => {
     return Number(clampUiScale(scale).toFixed(2));
 };
 
-const readStoredConfiguration = (): StoredWorkspaceConfiguration | undefined => {
+const readStoredConfiguration = (): StoredAppConfiguration | undefined => {
     let raw: string | null;
     try {
         raw = window.localStorage.getItem(STORAGE_KEY);
@@ -38,7 +46,7 @@ const readStoredConfiguration = (): StoredWorkspaceConfiguration | undefined => 
     if (!raw) return;
 
     try {
-        const parsed = JSON.parse(raw) as Partial<StoredWorkspaceConfiguration>;
+        const parsed = JSON.parse(raw) as Partial<StoredAppConfiguration>;
         if (parsed.version !== CONFIG_VERSION || typeof parsed.uiScale !== "number") return;
         return {
             version: CONFIG_VERSION,
@@ -49,7 +57,7 @@ const readStoredConfiguration = (): StoredWorkspaceConfiguration | undefined => 
     }
 };
 
-export const createWorkspaceConfiguration = (): WorkspaceConfigurationController => {
+const createAppConfiguration = (): AppConfigurationController => {
     const stored = readStoredConfiguration();
     const [uiScale, setUiScaleSignal] = createSignal(stored?.uiScale ?? 1);
 
@@ -58,7 +66,7 @@ export const createWorkspaceConfiguration = (): WorkspaceConfigurationController
     };
 
     createEffect(() => {
-        const snapshot: StoredWorkspaceConfiguration = {
+        const snapshot: StoredAppConfiguration = {
             version: CONFIG_VERSION,
             uiScale: uiScale(),
         };
@@ -77,4 +85,21 @@ export const createWorkspaceConfiguration = (): WorkspaceConfigurationController
         uiZoomOut: () => setUiScale(uiScale() - UI_SCALE_STEP),
         resetUiZoom: () => setUiScale(1),
     };
+};
+
+export const AppConfigurationProvider: ParentComponent = (props) => {
+    const configuration = createAppConfiguration();
+    return (
+        <AppConfigurationContext.Provider value={configuration}>
+            {props.children}
+        </AppConfigurationContext.Provider>
+    );
+};
+
+export const useAppConfiguration = (): AppConfigurationController => {
+    const configuration = useContext(AppConfigurationContext);
+    if (!configuration) {
+        throw new Error("useAppConfiguration must be used within AppConfigurationProvider");
+    }
+    return configuration;
 };

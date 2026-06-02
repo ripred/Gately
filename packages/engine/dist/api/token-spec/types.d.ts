@@ -15,7 +15,7 @@ import { ApiUpdateItemOutput_Fn } from "../../use-cases/public/UpdateItemOutput.
 import { ApiSimulateTab_Fn } from "../../use-cases/public/SimulateTab.js";
 import { ApiSimulationStatus_Fn } from "../../use-cases/public/GetSimulationStatus.js";
 import { ApiAnalyzeBoolean_Fn } from "../../use-cases/public/AnalyzeBoolean.js";
-import { ApiCreateTemplateFromSelection_Fn, ApiListTemplates_Fn, ApiRemoveTemplate_Fn, ApiSaveTemplate_Fn, ApiUpdateTemplate_Fn } from "../../use-cases/public/Templates.js";
+import { ApiCreateTemplateFromSelection_Fn, ApiGetTemplate_Fn, ApiListTemplates_Fn, ApiRemoveTemplate_Fn, ApiSaveTemplate_Fn, ApiUpdateTemplate_Fn } from "../../use-cases/public/Templates.js";
 import { ApiExportSession_Fn, ApiImportSession_Fn } from "../../use-cases/public/Session.js";
 export interface ApiSpec {
     tab: TabApiSpec;
@@ -55,6 +55,7 @@ export interface AnalysisApiSpec {
 }
 export interface TemplateApiSpec {
     list: ApiToken<ApiListTemplates_Fn, "public">;
+    get: ApiToken<ApiGetTemplate_Fn, "public">;
     save: ApiToken<ApiSaveTemplate_Fn, "public">;
     update: ApiToken<ApiUpdateTemplate_Fn, "public">;
     remove: ApiToken<ApiRemoveTemplate_Fn, "public">;
