@@ -36,18 +36,34 @@ export type WorkbenchToolbarGroupKey =
     | "parts"
     | "customParts";
 
+export type WorkbenchExplorerSectionKey =
+    | "project"
+    | "circuits"
+    | "navigation"
+    | "components"
+    | "workbench";
+
 export type WorkbenchConfig = {
     explorerCollapsed: boolean;
+    expandedExplorerSections: Record<WorkbenchExplorerSectionKey, boolean>;
     visibleToolbarGroups: Record<WorkbenchToolbarGroupKey, boolean>;
 };
 
 export type WorkbenchConfigPatch = {
     explorerCollapsed?: boolean;
+    expandedExplorerSections?: Partial<Record<WorkbenchExplorerSectionKey, boolean>>;
     visibleToolbarGroups?: Partial<Record<WorkbenchToolbarGroupKey, boolean>>;
 };
 
 export const DEFAULT_WORKBENCH_CONFIG: WorkbenchConfig = {
     explorerCollapsed: false,
+    expandedExplorerSections: {
+        project: true,
+        circuits: true,
+        navigation: true,
+        components: true,
+        workbench: true,
+    },
     visibleToolbarGroups: {
         simulation: true,
         hardware: true,
@@ -117,6 +133,28 @@ export const normalizeWorkbenchConfig = (
         config?.explorerCollapsed,
         DEFAULT_WORKBENCH_CONFIG.explorerCollapsed,
     ),
+    expandedExplorerSections: {
+        project: normalizeBoolean(
+            config?.expandedExplorerSections?.project,
+            DEFAULT_WORKBENCH_CONFIG.expandedExplorerSections.project,
+        ),
+        circuits: normalizeBoolean(
+            config?.expandedExplorerSections?.circuits,
+            DEFAULT_WORKBENCH_CONFIG.expandedExplorerSections.circuits,
+        ),
+        navigation: normalizeBoolean(
+            config?.expandedExplorerSections?.navigation,
+            DEFAULT_WORKBENCH_CONFIG.expandedExplorerSections.navigation,
+        ),
+        components: normalizeBoolean(
+            config?.expandedExplorerSections?.components,
+            DEFAULT_WORKBENCH_CONFIG.expandedExplorerSections.components,
+        ),
+        workbench: normalizeBoolean(
+            config?.expandedExplorerSections?.workbench,
+            DEFAULT_WORKBENCH_CONFIG.expandedExplorerSections.workbench,
+        ),
+    },
     visibleToolbarGroups: {
         simulation: normalizeBoolean(
             config?.visibleToolbarGroups?.simulation,
@@ -208,6 +246,10 @@ const createAppConfiguration = (): AppConfigurationController => {
             normalizeWorkbenchConfig({
                 ...current,
                 ...config,
+                expandedExplorerSections: {
+                    ...current.expandedExplorerSections,
+                    ...config.expandedExplorerSections,
+                },
                 visibleToolbarGroups: {
                     ...current.visibleToolbarGroups,
                     ...config.visibleToolbarGroups,

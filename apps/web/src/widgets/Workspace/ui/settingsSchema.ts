@@ -1,5 +1,6 @@
 import type {
     AppConfigurationController,
+    WorkbenchExplorerSectionKey,
     SignalPathColorConfig,
     WorkbenchToolbarGroupKey,
 } from "@gately/app/providers/AppConfigurationProvider";
@@ -58,6 +59,19 @@ export type ToolbarGroupSetting = {
     description: string;
 };
 
+export type ExplorerSectionSetting = {
+    key: WorkbenchExplorerSectionKey;
+    label: string;
+};
+
+export const EXPLORER_SECTION_SETTINGS: ExplorerSectionSetting[] = [
+    { key: "project", label: "Project" },
+    { key: "circuits", label: "Open circuits" },
+    { key: "navigation", label: "Current circuit tree" },
+    { key: "components", label: "Components" },
+    { key: "workbench", label: "Workbench" },
+];
+
 export const TOOLBAR_GROUP_SETTINGS: ToolbarGroupSetting[] = [
     {
         key: "simulation",
@@ -105,6 +119,18 @@ export const setSignalPathColor = (
     value: string,
 ): void => {
     configuration.setSignalPathColors({ [key]: value });
+};
+
+export const setExplorerSectionExpanded = (
+    configuration: AppConfigurationController,
+    key: WorkbenchExplorerSectionKey,
+    expanded: boolean,
+): void => {
+    configuration.setWorkbenchConfig({
+        expandedExplorerSections: {
+            [key]: expanded,
+        },
+    });
 };
 
 export const setToolbarGroupVisible = (

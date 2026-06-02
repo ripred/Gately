@@ -1,41 +1,194 @@
-import { useUIEngine } from "@gately/shared/infrastructure";
+import type {
+    AppConfigurationController,
+    WorkbenchExplorerSectionKey,
+} from "@gately/app/providers/AppConfigurationProvider";
+import { useUIEngine, type UIEngineScope } from "@gately/shared/infrastructure";
 import { Pusher } from "@gately/shared/ui";
 import type { WorkspaceController } from "../lib/types";
 import type { WorkspaceViewMode } from "./workbenchTypes";
-import { Component, For, JSX, Show } from "solid-js";
+import { Component, createSignal, For, JSX, Show } from "solid-js";
 
 type WorkspaceProjectSidebarProps = Pick<
     WorkspaceController,
     "customComponents" | "persistence"
 > & {
     collapsed: boolean;
+    configuration: AppConfigurationController;
     mode: WorkspaceViewMode;
     setMode: (mode: WorkspaceViewMode) => void;
     toggleCollapsed: () => void;
 };
 
-const ExplorerSection: Component<{ title: string; children?: JSX.Element }> = (
-    props,
-) => (
-    <section class="border-b border-gray-4 py-2">
-        <h2 class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-9">
-            {props.title}
-        </h2>
-        <div>{props.children}</div>
-    </section>
-);
+const treeLabelButtonClass =
+    "flex min-w-0 flex-1 items-center gap-2 py-1.5 pr-2 text-left text-xs";
+
+const miniButtonClass =
+    "rounded border border-gray-5 bg-gray-3 px-2 py-1 text-[11px] text-gray-12 hover:bg-gray-4 data-disabled:text-gray-8 data-disabled:hover:bg-gray-3";
+
+const ExplorerTreeSection: Component<{
+    children?: JSX.Element;
+    configuration: AppConfigurationController;
+    sectionKey: WorkbenchExplorerSectionKey;
+    title: string;
+}> = (props) => {
+    const expanded = () =>
+        props.configuration.workbenchConfig().expandedExplorerSections[props.sectionKey];
+    const toggleExpanded = () =>
+        props.configuration.setWorkbenchConfig({
+            expandedExplorerSections: {
+                [props.sectionKey]: !expanded(),
+            },
+        });
+
+    return (
+        <section class="border-b border-gray-4 py-2">
+            <button
+                class="flex w-full items-center gap-2 px-3 pb-1 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-9 hover:text-gray-11"
+                aria-expanded={expanded()}
+                onClick={toggleExpanded}
+            >
+                <span class="w-3 text-center">{expanded() ? "v" : ">"}</span>
+                <span>{props.title}</span>
+            </button>
+            <Show when={expanded()}>
+                <div>{props.children}</div>
+            </Show>
+        </section>
+    );
+};
 
 export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = (props) => {
     const uiEngine = useUIEngine();
-    const currentScopes = () => uiEngine.state.activeNavigationScopes();
+    const [collapsedScopeIds, setCollapsedScopeIds] = createSignal<Record<string, boolean>>(
+        {},
+    );
     const activeScopeId = () => uiEngine.state.activeScopeId();
+    const activeTabId = () => uiEngine.state.activeTabId();
+    const activeRootScope = () => {
+        const tabId = activeTabId();
+        return tabId ? uiEngine.state.getScopeById(tabId) : undefined;
+    };
     const customComponents = () => props.customComponents.components();
+    const scopeChildren = (scopeId: string) => uiEngine.state.getScopeChildrenById(scopeId);
+    const canCloseCircuit = (tabId: string) => uiEngine.commands.canCloseTab(tabId);
+    const scopeExpanded = (scope: UIEngineScope) =>
+        scope.childrenIds.length > 0 && !collapsedScopeIds()[scope.id];
+    const toggleScopeExpanded = (scopeId: string) => {
+        setCollapsedScopeIds((current) => ({
+            ...current,
+            [scopeId]: !current[scopeId],
+        }));
+    };
+    const openCircuit = (tabId: string) => {
+        uiEngine.commands.openTab(tabId);
+        props.setMode("circuit");
+    };
+    const openScope = (scopeId: string, tabId?: string) => {
+        uiEngine.commands.openScope(scopeId, tabId);
+        props.setMode("circuit");
+    };
+    const closeCircuit = async (tabId: string) => {
+        try {
+            await uiEngine.commands.closeTab(tabId);
+            props.setMode("circuit");
+        } catch (error) {
+            window.alert(error instanceof Error ? error.message : "Unable to close circuit.");
+        }
+    };
+    const openTreeScope = (scope: UIEngineScope, tabId?: string) => {
+        if (scope.kind === "tab") {
+            openCircuit(tabId ?? scope.id);
+            return;
+        }
+
+        openScope(scope.id, tabId);
+    };
+
+    const ScopeTreeNode: Component<{
+        depth: number;
+        forceDirectory?: boolean;
+        scope: UIEngineScope;
+        tabId?: string;
+        withClose?: boolean;
+    }> = (nodeProps) => {
+        const children = () => scopeChildren(nodeProps.scope.id);
+        const hasChildren = () => children().length > 0;
+        const isDirectory = () =>
+            Boolean(nodeProps.forceDirectory) || nodeProps.scope.kind === "tab" || hasChildren();
+        const expanded = () => scopeExpanded(nodeProps.scope);
+        const rowIsActive = () =>
+            props.mode === "circuit" && nodeProps.scope.id === activeScopeId();
+
+        return (
+            <div>
+                <div
+                    role="treeitem"
+                    aria-expanded={hasChildren() ? expanded() : undefined}
+                    class={[
+                        "group flex min-w-0 items-center hover:bg-gray-3",
+                        rowIsActive() ? "bg-primary-3 text-primary-11" : "text-gray-11",
+                    ].join(" ")}
+                    style={{ "padding-left": `${10 + nodeProps.depth * 14}px` }}
+                >
+                    <button
+                        class="flex h-7 w-5 shrink-0 items-center justify-center rounded text-[11px] text-gray-9 hover:bg-gray-4 hover:text-gray-12 disabled:hover:bg-transparent"
+                        disabled={!hasChildren()}
+                        onClick={() => toggleScopeExpanded(nodeProps.scope.id)}
+                        title={hasChildren() ? "Expand or collapse" : undefined}
+                    >
+                        <Show when={hasChildren()} fallback=" ">
+                            {expanded() ? "v" : ">"}
+                        </Show>
+                    </button>
+                    <button
+                        class={treeLabelButtonClass}
+                        onClick={() => openTreeScope(nodeProps.scope, nodeProps.tabId)}
+                    >
+                        <span class="w-8 shrink-0 rounded border border-gray-5 bg-gray-1 px-1 py-0.5 text-center text-[9px] font-semibold text-gray-9">
+                            {isDirectory() ? "DIR" : "CKT"}
+                        </span>
+                        <span class="truncate">{nodeProps.scope.name}</span>
+                    </button>
+                    <Show when={nodeProps.withClose}>
+                        <button
+                            class="mx-1 rounded px-1.5 py-0.5 text-[11px] text-gray-9 hover:bg-gray-4 hover:text-gray-12 disabled:cursor-not-allowed disabled:text-gray-7 disabled:hover:bg-transparent"
+                            disabled={!canCloseCircuit(nodeProps.scope.id)}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                void closeCircuit(nodeProps.scope.id);
+                            }}
+                            title={
+                                canCloseCircuit(nodeProps.scope.id)
+                                    ? "Close circuit"
+                                    : "Keep at least one circuit open"
+                            }
+                        >
+                            X
+                        </button>
+                    </Show>
+                </div>
+                <Show when={hasChildren() && expanded()}>
+                    <div role="group">
+                        <For each={children()}>
+                            {(child) => (
+                                <ScopeTreeNode
+                                    depth={nodeProps.depth + 1}
+                                    scope={child}
+                                    tabId={nodeProps.tabId ?? nodeProps.scope.id}
+                                />
+                            )}
+                        </For>
+                    </div>
+                </Show>
+            </div>
+        );
+    };
 
     return (
         <aside
             class={[
                 "flex min-h-0 shrink-0 flex-col border-r border-gray-4 bg-gray-2 text-gray-12 transition-[width] duration-150",
-                props.collapsed ? "w-12" : "w-64",
+                props.collapsed ? "w-12" : "w-72",
             ].join(" ")}
             aria-label="Project explorer"
         >
@@ -72,11 +225,22 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                         >
                             S
                         </button>
+                        <button
+                            class="rounded px-2 py-1 hover:bg-gray-3"
+                            onClick={props.persistence.createTab}
+                            title="New circuit"
+                        >
+                            +
+                        </button>
                     </div>
                 }
             >
                 <div class="min-h-0 flex-1 overflow-auto">
-                    <ExplorerSection title="Project">
+                    <ExplorerTreeSection
+                        configuration={props.configuration}
+                        sectionKey="project"
+                        title="Project"
+                    >
                         <button
                             class={[
                                 "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-3",
@@ -87,59 +251,98 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                             <span class="text-gray-9">v</span>
                             <span class="truncate">Gately Workspace</span>
                         </button>
-                        <For each={uiEngine.state.tabs()}>
-                            {(tab) => (
-                                <button
-                                    class={[
-                                        "flex w-full items-center gap-2 px-7 py-1 text-left text-xs hover:bg-gray-3",
-                                        tab.id === uiEngine.state.activeTabId() &&
-                                        props.mode === "circuit"
-                                            ? "text-primary-11"
-                                            : "text-gray-11",
-                                    ].join(" ")}
-                                    onClick={() => {
-                                        uiEngine.commands.openTab(tab.id);
-                                        props.setMode("circuit");
-                                    }}
-                                >
-                                    <span class="text-gray-9">-</span>
-                                    <span class="truncate">{tab.name}</span>
-                                </button>
-                            )}
-                        </For>
-                    </ExplorerSection>
+                        <div class="px-3 py-2 text-xs leading-5 text-gray-9">
+                            <div>Storage: browser local workspace</div>
+                            <div>
+                                Saved workspace:{" "}
+                                {props.persistence.hasSavedWorkspace() ? "yes" : "no"}
+                            </div>
+                            <div>Open circuits: {uiEngine.state.tabs().length}</div>
+                        </div>
+                        <div class="flex flex-wrap gap-1 px-3 pb-2">
+                            <Pusher
+                                class={miniButtonClass}
+                                onClick={props.persistence.createTab}
+                                disabled={props.persistence.isBusy}
+                            >
+                                New
+                            </Pusher>
+                            <Pusher
+                                class={miniButtonClass}
+                                onClick={props.persistence.saveWorkspace}
+                                disabled={props.persistence.isBusy}
+                            >
+                                Save
+                            </Pusher>
+                            <Pusher
+                                class={miniButtonClass}
+                                onClick={props.persistence.loadWorkspace}
+                                disabled={
+                                    props.persistence.isBusy ||
+                                    !props.persistence.hasSavedWorkspace()
+                                }
+                            >
+                                Load
+                            </Pusher>
+                        </div>
+                    </ExplorerTreeSection>
 
-                    <ExplorerSection title="Circuit Navigation">
+                    <ExplorerTreeSection
+                        configuration={props.configuration}
+                        sectionKey="circuits"
+                        title="Open Circuits"
+                    >
                         <Show
-                            when={currentScopes().length > 0}
-                            fallback={<p class="px-3 py-2 text-xs text-gray-9">No open circuit.</p>}
+                            when={uiEngine.state.tabs().length > 0}
+                            fallback={
+                                <p class="px-3 py-2 text-xs text-gray-9">No open circuits.</p>
+                            }
                         >
-                            <For each={currentScopes()}>
-                                {(scope, index) => (
-                                    <button
-                                        class={[
-                                            "flex w-full items-center gap-2 py-1 text-left text-xs hover:bg-gray-3",
-                                            scope.id === activeScopeId()
-                                                ? "text-primary-11"
-                                                : "text-gray-11",
-                                        ].join(" ")}
-                                        style={{ "padding-left": `${12 + index() * 14}px` }}
-                                        onClick={() => {
-                                            uiEngine.commands.openScope(scope.id);
-                                            props.setMode("circuit");
-                                        }}
-                                    >
-                                        <span class="text-gray-9">
-                                            {scope.childrenIds.length > 0 ? "v" : "-"}
-                                        </span>
-                                        <span class="truncate">{scope.name}</span>
-                                    </button>
+                            <For each={uiEngine.state.tabs()}>
+                                {(tab) => (
+                                    <Show when={uiEngine.state.getScopeById(tab.id)}>
+                                        {(scope) => (
+                                            <div role="tree" aria-label={`${tab.name} scope tree`}>
+                                                <ScopeTreeNode
+                                                    depth={0}
+                                                    forceDirectory
+                                                    scope={scope()}
+                                                    tabId={tab.id}
+                                                    withClose
+                                                />
+                                            </div>
+                                        )}
+                                    </Show>
                                 )}
                             </For>
                         </Show>
-                    </ExplorerSection>
+                    </ExplorerTreeSection>
 
-                    <ExplorerSection title="Components">
+                    <ExplorerTreeSection
+                        configuration={props.configuration}
+                        sectionKey="navigation"
+                        title="Current Circuit Tree"
+                    >
+                        <Show
+                            when={activeRootScope()}
+                            fallback={<p class="px-3 py-2 text-xs text-gray-9">No open circuit.</p>}
+                        >
+                            <div role="tree" aria-label="Current circuit scope tree">
+                                <ScopeTreeNode
+                                    depth={0}
+                                    forceDirectory
+                                    scope={activeRootScope()!}
+                                    tabId={activeTabId()}
+                                />
+                            </div>
+                        </Show>
+                    </ExplorerTreeSection>
+
+                    <ExplorerTreeSection
+                        configuration={props.configuration}
+                        sectionKey="components"
+                        title="Components"
+                    >
                         <Show
                             when={customComponents().length > 0}
                             fallback={<p class="px-3 py-2 text-xs text-gray-9">No saved parts.</p>}
@@ -158,9 +361,13 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                                 )}
                             </For>
                         </Show>
-                    </ExplorerSection>
+                    </ExplorerTreeSection>
 
-                    <ExplorerSection title="Workbench">
+                    <ExplorerTreeSection
+                        configuration={props.configuration}
+                        sectionKey="workbench"
+                        title="Workbench"
+                    >
                         <button
                             class={[
                                 "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-3",
@@ -168,16 +375,10 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                             ].join(" ")}
                             onClick={() => props.setMode("settings")}
                         >
+                            <span class="text-gray-9">-</span>
                             <span>Settings</span>
                         </button>
-                        <div class="px-3 py-2 text-xs leading-5 text-gray-9">
-                            <div>
-                                Saved workspace:{" "}
-                                {props.persistence.hasSavedWorkspace() ? "yes" : "no"}
-                            </div>
-                            <div>Custom parts: {customComponents().length}</div>
-                        </div>
-                    </ExplorerSection>
+                    </ExplorerTreeSection>
                 </div>
 
                 <div class="border-t border-gray-4 p-2">

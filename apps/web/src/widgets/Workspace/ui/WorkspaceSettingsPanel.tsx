@@ -3,10 +3,12 @@ import type { WorkspaceSimulationMode } from "@gately/shared/types";
 import type { WorkspaceSimulationController } from "../lib/types";
 import { Component, For } from "solid-js";
 import {
+    EXPLORER_SECTION_SETTINGS,
     ROUTING_SETTINGS,
     SIGNAL_PATH_COLOR_SETTINGS,
     SIMULATION_MODE_OPTIONS,
     TOOLBAR_GROUP_SETTINGS,
+    setExplorerSectionExpanded,
     setRoutingDistance,
     setSignalPathColor,
     setToolbarGroupVisible,
@@ -82,34 +84,69 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                             </span>
                         </span>
                     </label>
-                    <div class="grid grid-cols-[repeat(auto-fit,minmax(17rem,1fr))] gap-3">
-                        <For each={TOOLBAR_GROUP_SETTINGS}>
-                            {(setting) => (
-                                <label class="flex items-start gap-3 rounded border border-gray-4 bg-gray-2 px-3 py-2 text-sm text-gray-12">
-                                    <input
-                                        class="mt-1"
-                                        type="checkbox"
-                                        checked={
-                                            props.configuration.workbenchConfig()
-                                                .visibleToolbarGroups[setting.key]
-                                        }
-                                        onChange={(event) =>
-                                            setToolbarGroupVisible(
-                                                props.configuration,
-                                                setting.key,
-                                                event.currentTarget.checked,
-                                            )
-                                        }
-                                    />
-                                    <span>
-                                        <span class="block font-medium">{setting.label}</span>
-                                        <span class="block text-xs leading-5 text-gray-9">
-                                            {setting.description}
+                    <div>
+                        <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-9">
+                            Explorer Sections
+                        </h3>
+                        <div class="grid grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] gap-2">
+                            <For each={EXPLORER_SECTION_SETTINGS}>
+                                {(setting) => (
+                                    <label class="flex items-center gap-2 text-sm text-gray-12">
+                                        <input
+                                            type="checkbox"
+                                            checked={
+                                                props.configuration.workbenchConfig()
+                                                    .expandedExplorerSections[setting.key]
+                                            }
+                                            onChange={(event) =>
+                                                setExplorerSectionExpanded(
+                                                    props.configuration,
+                                                    setting.key,
+                                                    event.currentTarget.checked,
+                                                )
+                                            }
+                                        />
+                                        <span>{setting.label}</span>
+                                    </label>
+                                )}
+                            </For>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-9">
+                            Toolbar Groups
+                        </h3>
+                        <div class="grid grid-cols-[repeat(auto-fit,minmax(17rem,1fr))] gap-3">
+                            <For each={TOOLBAR_GROUP_SETTINGS}>
+                                {(setting) => (
+                                    <label class="flex items-start gap-3 rounded border border-gray-4 bg-gray-2 px-3 py-2 text-sm text-gray-12">
+                                        <input
+                                            class="mt-1"
+                                            type="checkbox"
+                                            checked={
+                                                props.configuration.workbenchConfig()
+                                                    .visibleToolbarGroups[setting.key]
+                                            }
+                                            onChange={(event) =>
+                                                setToolbarGroupVisible(
+                                                    props.configuration,
+                                                    setting.key,
+                                                    event.currentTarget.checked,
+                                                )
+                                            }
+                                        />
+                                        <span>
+                                            <span class="block font-medium">
+                                                {setting.label}
+                                            </span>
+                                            <span class="block text-xs leading-5 text-gray-9">
+                                                {setting.description}
+                                            </span>
                                         </span>
-                                    </span>
-                                </label>
-                            )}
-                        </For>
+                                    </label>
+                                )}
+                            </For>
+                        </div>
                     </div>
                     <div>
                         <button

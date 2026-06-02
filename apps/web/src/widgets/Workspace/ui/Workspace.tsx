@@ -63,6 +63,7 @@ export const InnerWorkspace: Component = () => {
                 >
                     <WorkspaceProjectSidebar
                         collapsed={projectSidebarCollapsed()}
+                        configuration={configuration}
                         customComponents={controller.customComponents}
                         mode={viewMode()}
                         persistence={controller.persistence}

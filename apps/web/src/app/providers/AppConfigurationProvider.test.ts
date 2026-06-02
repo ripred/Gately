@@ -34,6 +34,11 @@ describe("normalizeWorkbenchConfig", () => {
         expect(
             normalizeWorkbenchConfig({
                 explorerCollapsed: true,
+                expandedExplorerSections: {
+                    ...DEFAULT_WORKBENCH_CONFIG.expandedExplorerSections,
+                    components: false,
+                    workbench: false,
+                },
                 visibleToolbarGroups: {
                     ...DEFAULT_WORKBENCH_CONFIG.visibleToolbarGroups,
                     canvas: false,
@@ -42,6 +47,11 @@ describe("normalizeWorkbenchConfig", () => {
             }),
         ).toEqual({
             explorerCollapsed: true,
+            expandedExplorerSections: {
+                ...DEFAULT_WORKBENCH_CONFIG.expandedExplorerSections,
+                components: false,
+                workbench: false,
+            },
             visibleToolbarGroups: {
                 ...DEFAULT_WORKBENCH_CONFIG.visibleToolbarGroups,
                 canvas: false,
@@ -54,6 +64,13 @@ describe("normalizeWorkbenchConfig", () => {
         expect(
             normalizeWorkbenchConfig({
                 explorerCollapsed: "yes" as unknown as boolean,
+                expandedExplorerSections: {
+                    project: "open" as unknown as boolean,
+                    circuits: undefined as unknown as boolean,
+                    navigation: true,
+                    components: false,
+                    workbench: true,
+                },
                 visibleToolbarGroups: {
                     simulation: "no" as unknown as boolean,
                     hardware: undefined as unknown as boolean,
@@ -65,6 +82,12 @@ describe("normalizeWorkbenchConfig", () => {
             }),
         ).toEqual({
             explorerCollapsed: DEFAULT_WORKBENCH_CONFIG.explorerCollapsed,
+            expandedExplorerSections: {
+                ...DEFAULT_WORKBENCH_CONFIG.expandedExplorerSections,
+                navigation: true,
+                components: false,
+                workbench: true,
+            },
             visibleToolbarGroups: {
                 ...DEFAULT_WORKBENCH_CONFIG.visibleToolbarGroups,
                 workspace: true,
