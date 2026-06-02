@@ -2,9 +2,11 @@ import type { Graph } from "@antv/x6";
 import type { CinabonoClient } from "@cnbn/engine-worker";
 import type { ArduinoHardwareController } from "@gately/features/arduino-hardware";
 import type { BooleanAnalysisController } from "@gately/features/boolean-analysis";
+import type { OptimizedCircuitRoutingConfig } from "@gately/features/boolean-analysis/model/optimizedCircuitLayout";
 import type { UIEnginePublicApi } from "@gately/shared/infrastructure/ui-engine";
 import type { WorkspaceSimulationMode, XYCoords } from "@gately/shared/types";
 import type { Accessor } from "solid-js";
+import type { WorkspaceAutoLayoutController } from "./auto-layout";
 import type { WorkspaceCustomComponentsController } from "./custom-components";
 import type { WorkspacePersistenceController } from "./persistence";
 
@@ -43,6 +45,7 @@ export type WorkspaceController = {
     simulation: WorkspaceSimulationController;
     hardware: ArduinoHardwareController;
     booleanAnalysis: BooleanAnalysisController;
+    autoLayout: WorkspaceAutoLayoutController;
     customComponents: WorkspaceCustomComponentsController;
     persistence: WorkspacePersistenceController;
 };
@@ -57,4 +60,5 @@ export type WorkspaceControllerDeps = {
     uiEngine: WorkspaceUIEngine;
     logicEngine: CinabonoClient;
     getActiveTabId: () => string | undefined;
+    getRoutingConfig: () => OptimizedCircuitRoutingConfig;
 };

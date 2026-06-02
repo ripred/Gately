@@ -11,6 +11,7 @@ import {
     estimateOptimizedNodeSize,
     findRouteSetNonOrthogonalSegments,
     findRouteSetComponentCrossings,
+    findRouteSetTargetApproachViolations,
     findUnnecessaryRouteWireCrossings,
     getOptimizedIncomingCounts,
     type OptimizedCircuitRect,
@@ -71,6 +72,13 @@ const assertOptimizedRouteSetIsClean = (routeSet: OptimizedRouteSet): void => {
     if (nonOrthogonalSegments.length > 0) {
         throw new Error(
             `Optimized circuit routing produced non-orthogonal segments: ${nonOrthogonalSegments.join(", ")}`,
+        );
+    }
+
+    const targetApproachViolations = findRouteSetTargetApproachViolations(routeSet);
+    if (targetApproachViolations.length > 0) {
+        throw new Error(
+            `Optimized circuit routing crowded target component edges: ${targetApproachViolations.join(", ")}`,
         );
     }
 
@@ -145,6 +153,7 @@ export const useBooleanAnalysisController = (
                 : existingNodes.reduce((max, node) => Math.max(max, node.getBBox().right), 0);
             const baseX = options.inNewTab ? 120 : maxX + 160;
             const baseY = OPTIMIZED_CIRCUIT_BASE_Y;
+            const routingConfig = deps.getRoutingConfig();
             const layout = buildOptimizedCircuitLayout(analysis.optimizedNetlist, { baseX, baseY });
             const estimatedRectsBySynthId = new Map<string, OptimizedCircuitRect>();
 
@@ -167,12 +176,14 @@ export const useBooleanAnalysisController = (
                 linkPlans: layout.linkPlans,
                 netlist: analysis.optimizedNetlist,
                 rectsBySynthId: estimatedRectsBySynthId,
+                routingConfig,
             });
             assertOptimizedRouteSetIsClean({
                 linkPlans: layout.linkPlans,
                 netlist: analysis.optimizedNetlist,
                 rectsBySynthId: estimatedRectsBySynthId,
                 routesByLinkIndex: preflightRoutesByLinkIndex,
+                routingConfig,
             });
 
             for (const node of analysis.optimizedNetlist.nodes) {
@@ -200,12 +211,14 @@ export const useBooleanAnalysisController = (
                 linkPlans: layout.linkPlans,
                 netlist: analysis.optimizedNetlist,
                 rectsBySynthId,
+                routingConfig,
             });
             assertOptimizedRouteSetIsClean({
                 linkPlans: layout.linkPlans,
                 netlist: analysis.optimizedNetlist,
                 rectsBySynthId,
                 routesByLinkIndex: edgeRoutesByLinkIndex,
+                routingConfig,
             });
 
             for (const linkPlan of layout.linkPlans) {

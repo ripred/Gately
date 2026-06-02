@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Graph } from "@antv/x6";
+import type { OptimizedCircuitRoutingConfig } from "@gately/features/boolean-analysis/model/optimizedCircuitLayout";
+import { rerouteWorkspaceEdges } from "./auto-layout";
 import type { ContextTarget } from "./types";
 
 type AttachWorkspaceGraphInteractionsOptions = {
@@ -8,6 +10,7 @@ type AttachWorkspaceGraphInteractionsOptions = {
     closeContextMenu: () => void;
     setMenuTarget: (target: ContextTarget) => void;
     bumpSelection: () => void;
+    getRoutingConfig: () => OptimizedCircuitRoutingConfig;
 };
 
 const EDGE_SELECTED_CLASS = "edge-selected";
@@ -49,6 +52,26 @@ export const attachWorkspaceGraphInteractions = (
     opts: AttachWorkspaceGraphInteractionsOptions,
 ): (() => void) => {
     const { graph, openContextMenuAt, closeContextMenu, setMenuTarget, bumpSelection } = opts;
+    let rerouteTimer: number | undefined;
+    let isRerouting = false;
+
+    const scheduleReroute = () => {
+        if (isRerouting) return;
+        if (rerouteTimer !== undefined) {
+            window.clearTimeout(rerouteTimer);
+        }
+        rerouteTimer = window.setTimeout(() => {
+            rerouteTimer = undefined;
+            isRerouting = true;
+            try {
+                rerouteWorkspaceEdges(graph, opts.getRoutingConfig());
+            } catch (error) {
+                console.error("[workspace-routing] deterministic reroute failed", error);
+            } finally {
+                isRerouting = false;
+            }
+        }, 0);
+    };
 
     const onCellContextMenu = ({ cell, e }: any) => {
         if (!cell || !e) return;
@@ -100,6 +123,10 @@ export const attachWorkspaceGraphInteractions = (
     graph.on("cell:unselected", bumpSelection);
     graph.on("edge:selected", onEdgeSelected);
     graph.on("edge:unselected", onEdgeUnselected);
+    graph.on("edge:connected", scheduleReroute);
+    graph.on("edge:change:vertices", scheduleReroute);
+    graph.on("node:moved", scheduleReroute);
+    graph.on("node:change:position", scheduleReroute);
     graph.on("selection:changed", onSelectionChanged);
     graph.on("cell:contextmenu", onCellContextMenu);
     graph.on("blank:contextmenu", onBlankContextMenu);
@@ -110,9 +137,14 @@ export const attachWorkspaceGraphInteractions = (
         graph.off("cell:unselected", bumpSelection);
         graph.off("edge:selected", onEdgeSelected);
         graph.off("edge:unselected", onEdgeUnselected);
+        graph.off("edge:connected", scheduleReroute);
+        graph.off("edge:change:vertices", scheduleReroute);
+        graph.off("node:moved", scheduleReroute);
+        graph.off("node:change:position", scheduleReroute);
         graph.off("selection:changed", onSelectionChanged);
         graph.off("cell:contextmenu", onCellContextMenu);
         graph.off("blank:contextmenu", onBlankContextMenu);
+        if (rerouteTimer !== undefined) window.clearTimeout(rerouteTimer);
         window.removeEventListener("keydown", onKeyDown);
     };
 };

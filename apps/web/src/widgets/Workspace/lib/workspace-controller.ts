@@ -4,6 +4,7 @@ import { useBooleanAnalysisController } from "@gately/features/boolean-analysis"
 import { attachWorkspaceBridge } from "./bridge";
 import { attachWorkspaceGraphInteractions } from "./graph-interactions";
 import { useWorkspaceContextMenu } from "./context-menu";
+import { createWorkspaceAutoLayout } from "./auto-layout";
 import { createWorkspaceCustomComponents } from "./custom-components";
 import { createWorkspacePersistence } from "./persistence";
 import { createWorkspaceSimulation } from "./simulation";
@@ -33,6 +34,7 @@ export const useWorkspaceController = (deps: WorkspaceControllerDeps): Workspace
         uiEngine: deps.uiEngine,
         getActiveTabId: deps.getActiveTabId,
         getActiveScopeId: deps.uiEngine.state.activeScopeId,
+        getRoutingConfig: deps.getRoutingConfig,
     });
     const customComponents = createWorkspaceCustomComponents({
         logicEngine: deps.logicEngine,
@@ -51,6 +53,11 @@ export const useWorkspaceController = (deps: WorkspaceControllerDeps): Workspace
         selectionVersion();
         return deps.uiEngine.debug.graph()?.getSelectedCellCount?.() ?? 0;
     };
+    const autoLayout = createWorkspaceAutoLayout({
+        uiEngine: deps.uiEngine,
+        getSelectionCount,
+        getRoutingConfig: deps.getRoutingConfig,
+    });
 
     const removeSelected = () => {
         const graph = deps.uiEngine.debug.graph();
@@ -85,6 +92,7 @@ export const useWorkspaceController = (deps: WorkspaceControllerDeps): Workspace
             openContextMenuAt: contextMenu.openContextMenuAt,
             closeContextMenu: contextMenu.closeContextMenu,
             setMenuTarget: (target) => contextMenu.setMenuTarget(target),
+            getRoutingConfig: deps.getRoutingConfig,
         });
 
         onCleanup(dispose);
@@ -101,6 +109,7 @@ export const useWorkspaceController = (deps: WorkspaceControllerDeps): Workspace
         simulation,
         hardware,
         booleanAnalysis,
+        autoLayout,
         customComponents,
         persistence,
     };

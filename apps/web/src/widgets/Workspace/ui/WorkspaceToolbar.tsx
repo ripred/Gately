@@ -1,6 +1,7 @@
 import { ArduinoHardwarePanel } from "@gately/features/arduino-hardware";
 import { useAddLogicNode } from "@gately/features/nodes/useAddBaseLogic";
 import type { AppConfigurationController } from "@gately/app/providers/AppConfigurationProvider";
+import type { OptimizedCircuitRoutingConfig } from "@gately/features/boolean-analysis/model/optimizedCircuitLayout";
 import { useUIEngine } from "@gately/shared/infrastructure";
 import type { WorkspaceSimulationMode } from "@gately/shared/types";
 import { Pusher } from "@gately/shared/ui";
@@ -12,9 +13,41 @@ const SIMULATION_MODE_OPTIONS: Array<{ value: WorkspaceSimulationMode; label: st
     { value: "0.5sec", label: "0.5 sec" },
 ];
 
+const ROUTING_SETTINGS: Array<{
+    key: keyof OptimizedCircuitRoutingConfig;
+    label: string;
+    min: number;
+    max: number;
+    step: number;
+}> = [
+    { key: "minClearance", label: "Min", min: 16, max: 160, step: 4 },
+    { key: "sourceExitClearance", label: "Source exit", min: 16, max: 192, step: 4 },
+    { key: "targetGutter", label: "Input lane", min: 16, max: 192, step: 4 },
+    { key: "targetGutterStep", label: "Lane step", min: 0, max: 48, step: 2 },
+    { key: "farTargetGutterOffset", label: "Far lane", min: 0, max: 160, step: 4 },
+    { key: "nearTargetGutterOffset", label: "Near lane", min: 0, max: 160, step: 4 },
+    { key: "targetEdgeClearance", label: "Edge pad", min: 16, max: 160, step: 4 },
+    { key: "sourceFanoutGutter", label: "Fanout", min: 16, max: 192, step: 4 },
+    { key: "detourGap", label: "Detour", min: 16, max: 192, step: 4 },
+    { key: "detourStep", label: "Detour step", min: 0, max: 96, step: 4 },
+    { key: "parallelRouteSpacing", label: "Route step", min: 0, max: 64, step: 1 },
+    { key: "rectClearance", label: "Body pad", min: 0, max: 48, step: 1 },
+    { key: "wireClearance", label: "Wire pad", min: 0, max: 48, step: 1 },
+    { key: "topRouteClearance", label: "Top pad", min: 16, max: 192, step: 4 },
+    { key: "searchMargin", label: "Search pad", min: 16, max: 1024, step: 16 },
+    { key: "searchMarginStep", label: "Search step", min: 0, max: 128, step: 4 },
+    { key: "outputSinkTargetClearance", label: "Sink side", min: 16, max: 192, step: 4 },
+    { key: "outputSinkBottomClearance", label: "Sink lane", min: 16, max: 192, step: 4 },
+];
+
 type WorkspaceToolbarProps = Pick<
     WorkspaceController,
-    "booleanAnalysis" | "customComponents" | "hardware" | "persistence" | "simulation"
+    | "autoLayout"
+    | "booleanAnalysis"
+    | "customComponents"
+    | "hardware"
+    | "persistence"
+    | "simulation"
 > & {
     configuration: AppConfigurationController;
 };
@@ -42,6 +75,9 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
         props.booleanAnalysis.isBusy ||
         props.customComponents.isBusy ||
         props.persistence.isBusy;
+    const setRoutingDistance = (key: keyof OptimizedCircuitRoutingConfig, value: string) => {
+        props.configuration.setRoutingConfig({ [key]: Number(value) });
+    };
     const selectedCustomHash = () => props.customComponents.selectedHash();
     const builtInButtons = [
         { label: "Add TOGGLE", action: addToggle },
@@ -146,6 +182,13 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                     Canvas +
                 </Pusher>
                 <Pusher
+                    class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
+                    onClick={props.autoLayout.applySelection}
+                    disabled={disabled() || commandDisabled() || props.autoLayout.isDisabled}
+                >
+                    Auto Layout Selection
+                </Pusher>
+                <Pusher
                     class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4"
                     onClick={props.configuration.uiZoomOut}
                 >
@@ -191,6 +234,35 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                 >
                     Save Selection
                 </Pusher>
+                <details class="rounded-md bg-gray-2 px-2 py-1 text-gray-12">
+                    <summary class="cursor-pointer select-none">Routing</summary>
+                    <div class="mt-2 grid grid-cols-[repeat(2,minmax(7rem,auto))] gap-2">
+                        <For each={ROUTING_SETTINGS}>
+                            {(setting) => (
+                                <label class="flex items-center gap-2 text-xs text-gray-11">
+                                    <span class="min-w-16">{setting.label}</span>
+                                    <input
+                                        class="w-16 rounded border border-gray-5 bg-gray-1 px-1 py-0.5 text-gray-12"
+                                        type="number"
+                                        min={setting.min}
+                                        max={setting.max}
+                                        step={setting.step}
+                                        value={props.configuration.routingConfig()[setting.key]}
+                                        onInput={(e) =>
+                                            setRoutingDistance(setting.key, e.currentTarget.value)
+                                        }
+                                    />
+                                </label>
+                            )}
+                        </For>
+                        <Pusher
+                            class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4"
+                            onClick={props.configuration.resetRoutingConfig}
+                        >
+                            Reset Routing
+                        </Pusher>
+                    </div>
+                </details>
                 <Show when={props.customComponents.components().length > 0}>
                     <select
                         class="px-2 py-1 rounded bg-gray-3 text-gray-12 border border-gray-5"

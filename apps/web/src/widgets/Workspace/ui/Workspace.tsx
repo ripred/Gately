@@ -15,6 +15,7 @@ export const InnerWorkspace: Component = () => {
         uiEngine,
         logicEngine,
         getActiveTabId: uiEngine.state.activeTabId,
+        getRoutingConfig: configuration.routingConfig,
     });
 
     return (
@@ -27,6 +28,7 @@ export const InnerWorkspace: Component = () => {
                 >
                     <WorkspaceToolbar
                         booleanAnalysis={controller.booleanAnalysis}
+                        autoLayout={controller.autoLayout}
                         configuration={configuration}
                         customComponents={controller.customComponents}
                         hardware={controller.hardware}

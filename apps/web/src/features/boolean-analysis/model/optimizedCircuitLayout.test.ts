@@ -10,7 +10,9 @@ import {
     findRouteSetWireCrossings,
     findRouteSetNonOrthogonalSegments,
     findRouteSetComponentCrossings,
+    findRouteSetTargetApproachViolations,
     findUnnecessaryRouteWireCrossings,
+    DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG,
     getOptimizedIncomingCounts,
     type OptimizedCircuitRect,
     type RoutableCircuitNetlist,
@@ -166,6 +168,14 @@ const mixedGateSourceNetlist: RoutableCircuitNetlist = {
     ],
 };
 
+const simpleManualRouteNetlist: RoutableCircuitNetlist = {
+    nodes: [
+        { id: "input_a", kind: "TOGGLE", label: "A" },
+        { id: "xnor_ab", kind: "XNOR", label: "XNOR", inputCount: 2 },
+    ],
+    links: [{ from: "input_a", to: "xnor_ab", targetPin: "1" }],
+};
+
 const buildSopShapedNetlist = (
     variableCount: number,
     outputs: SopOutputSpec[],
@@ -272,6 +282,7 @@ const expectCleanRoutes = (netlist: BooleanSynthNetlist): void => {
     expect(routesByLinkIndex.size).toBe(netlist.links.length);
     expect(findRouteSetNonOrthogonalSegments(routeSet)).toEqual([]);
     expect(findRouteSetComponentCrossings(routeSet)).toEqual([]);
+    expect(findRouteSetTargetApproachViolations(routeSet)).toEqual([]);
     expect(findUnnecessaryRouteWireCrossings(routeSet)).toEqual([]);
 };
 
@@ -475,6 +486,60 @@ describe("optimized circuit layout", () => {
         });
     });
 
+    it("rejects routes that crowd a target component input edge", () => {
+        const rectsBySynthId = buildRoutableRects(simpleManualRouteNetlist, {
+            input_a: { x: 120, y: 120 },
+            xnor_ab: { x: 320, y: 144 },
+        });
+        const linkPlans = buildRoutableCircuitLinkPlans(simpleManualRouteNetlist.links);
+        const targetRect = rectsBySynthId.get("xnor_ab");
+        expect(targetRect).toBeDefined();
+
+        const crowdedRoutes = new Map<number, Array<{ x: number; y: number }>>();
+        crowdedRoutes.set(linkPlans[0].index, [
+            { x: targetRect!.x - 8, y: 137 },
+            { x: targetRect!.x - 8, y: 177 },
+        ]);
+
+        expect(
+            findRouteSetTargetApproachViolations({
+                linkPlans,
+                netlist: simpleManualRouteNetlist,
+                rectsBySynthId,
+                routesByLinkIndex: crowdedRoutes,
+            }),
+        ).toEqual([`${linkPlans[0].index}:1`]);
+    });
+
+    it("prefers a simple legal one-bend input route over unnecessary jagged detours", () => {
+        const rectsBySynthId = buildRoutableRects(simpleManualRouteNetlist, {
+            input_a: { x: 120, y: 120 },
+            xnor_ab: { x: 320, y: 144 },
+        });
+        const linkPlans = buildRoutableCircuitLinkPlans(simpleManualRouteNetlist.links);
+        const routesByLinkIndex = buildOptimizedEdgeRoutes({
+            linkPlans,
+            netlist: simpleManualRouteNetlist,
+            rectsBySynthId,
+        });
+        const vertices = routesByLinkIndex.get(linkPlans[0].index) ?? [];
+        const targetRect = rectsBySynthId.get("xnor_ab");
+        expect(targetRect).toBeDefined();
+
+        expect(vertices.length).toBeLessThanOrEqual(2);
+        expect(
+            findRouteSetTargetApproachViolations({
+                linkPlans,
+                netlist: simpleManualRouteNetlist,
+                rectsBySynthId,
+                routesByLinkIndex,
+            }),
+        ).toEqual([]);
+        expect(vertices.at(-1)?.x).toBeLessThanOrEqual(
+            targetRect!.x - DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.targetEdgeClearance,
+        );
+    });
+
     it("routes varied generated SOP-shaped optimized netlists without critical violations", () => {
         const cases: BooleanSynthNetlist[] = [
             constantOutputsNetlist,
@@ -577,6 +642,7 @@ describe("optimized circuit layout", () => {
 
         expect(findRouteSetNonOrthogonalSegments(routeSet)).toEqual([]);
         expect(findRouteSetComponentCrossings(routeSet)).toEqual([]);
+        expect(findRouteSetTargetApproachViolations(routeSet)).toEqual([]);
         expect(findRouteSetWireCrossings(routeSet)).toEqual([]);
     }, 30000);
 
@@ -625,6 +691,7 @@ describe("optimized circuit layout", () => {
 
         expect(findRouteSetNonOrthogonalSegments(routeSet)).toEqual([]);
         expect(findRouteSetComponentCrossings(routeSet)).toEqual([]);
+        expect(findRouteSetTargetApproachViolations(routeSet)).toEqual([]);
         expect(findRouteSetWireCrossings(routeSet)).toEqual([]);
         expect(
             Math.max(...[...routesByLinkIndex.values()].map((vertices) => vertices.length)),

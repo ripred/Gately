@@ -5,6 +5,11 @@ import {
     ParentComponent,
     useContext,
 } from "solid-js";
+import {
+    DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG,
+    normalizeOptimizedCircuitRoutingConfig,
+    type OptimizedCircuitRoutingConfig,
+} from "@gately/features/boolean-analysis/model/optimizedCircuitLayout";
 
 const STORAGE_KEY = "gately.app.configuration.v1";
 const CONFIG_VERSION = 1;
@@ -15,15 +20,19 @@ const UI_SCALE_STEP = 0.1;
 type StoredAppConfiguration = {
     version: typeof CONFIG_VERSION;
     uiScale: number;
+    routingConfig?: Partial<OptimizedCircuitRoutingConfig>;
 };
 
 export type AppConfigurationController = {
     uiScale: () => number;
     uiScalePercent: () => number;
+    routingConfig: () => OptimizedCircuitRoutingConfig;
     setUiScale: (scale: number) => void;
+    setRoutingConfig: (config: Partial<OptimizedCircuitRoutingConfig>) => void;
     uiZoomIn: () => void;
     uiZoomOut: () => void;
     resetUiZoom: () => void;
+    resetRoutingConfig: () => void;
 };
 
 const AppConfigurationContext = createContext<AppConfigurationController>();
@@ -51,6 +60,7 @@ const readStoredConfiguration = (): StoredAppConfiguration | undefined => {
         return {
             version: CONFIG_VERSION,
             uiScale: normalizeUiScale(parsed.uiScale),
+            routingConfig: normalizeOptimizedCircuitRoutingConfig(parsed.routingConfig),
         };
     } catch {
         return;
@@ -60,15 +70,28 @@ const readStoredConfiguration = (): StoredAppConfiguration | undefined => {
 const createAppConfiguration = (): AppConfigurationController => {
     const stored = readStoredConfiguration();
     const [uiScale, setUiScaleSignal] = createSignal(stored?.uiScale ?? 1);
+    const [routingConfig, setRoutingConfigSignal] =
+        createSignal<OptimizedCircuitRoutingConfig>(
+            normalizeOptimizedCircuitRoutingConfig(stored?.routingConfig),
+        );
 
     const setUiScale = (scale: number) => {
         setUiScaleSignal(normalizeUiScale(scale));
+    };
+    const setRoutingConfig = (config: Partial<OptimizedCircuitRoutingConfig>) => {
+        setRoutingConfigSignal((current) =>
+            normalizeOptimizedCircuitRoutingConfig({
+                ...current,
+                ...config,
+            }),
+        );
     };
 
     createEffect(() => {
         const snapshot: StoredAppConfiguration = {
             version: CONFIG_VERSION,
             uiScale: uiScale(),
+            routingConfig: routingConfig(),
         };
         try {
             window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
@@ -80,10 +103,14 @@ const createAppConfiguration = (): AppConfigurationController => {
     return {
         uiScale,
         uiScalePercent: () => Math.round(uiScale() * 100),
+        routingConfig,
         setUiScale,
+        setRoutingConfig,
         uiZoomIn: () => setUiScale(uiScale() + UI_SCALE_STEP),
         uiZoomOut: () => setUiScale(uiScale() - UI_SCALE_STEP),
         resetUiZoom: () => setUiScale(1),
+        resetRoutingConfig: () =>
+            setRoutingConfigSignal(DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG),
     };
 };
 

@@ -69,12 +69,14 @@ type BuildRouteOptions = {
     netlist: RoutableCircuitNetlist;
     rectsBySynthId: Map<string, OptimizedCircuitRect>;
     routedSegments?: RouteSegment[];
+    routingConfig?: Partial<OptimizedCircuitRoutingConfig>;
 };
 
 type BuildRoutesOptions = {
     linkPlans: OptimizedCircuitLinkPlan[];
     netlist: RoutableCircuitNetlist;
     rectsBySynthId: Map<string, OptimizedCircuitRect>;
+    routingConfig?: Partial<OptimizedCircuitRoutingConfig>;
 };
 
 type RouteCandidate = {
@@ -103,6 +105,27 @@ type TermPlacement = {
     height: number;
 };
 
+export type OptimizedCircuitRoutingConfig = {
+    minClearance: number;
+    sourceExitClearance: number;
+    targetGutter: number;
+    targetGutterStep: number;
+    farTargetGutterOffset: number;
+    nearTargetGutterOffset: number;
+    targetEdgeClearance: number;
+    sourceFanoutGutter: number;
+    detourGap: number;
+    detourStep: number;
+    parallelRouteSpacing: number;
+    rectClearance: number;
+    wireClearance: number;
+    topRouteClearance: number;
+    searchMargin: number;
+    searchMarginStep: number;
+    outputSinkTargetClearance: number;
+    outputSinkBottomClearance: number;
+};
+
 const PORT_OFFSET_Y = GRID_SIZE + NODE_INSET;
 const PIN_GAP = GRID_SIZE;
 const SOURCE_ROW_GAP = 104;
@@ -110,17 +133,140 @@ const SOURCE_TO_TERMS_GAP = 96;
 const TERM_ROW_GAP = 56;
 const OUTPUT_GROUP_GAP = 96;
 const MIN_TERM_HEIGHT = 48;
-const MIN_CLEARANCE = 24;
-const TARGET_GUTTER = 56;
-const TARGET_GUTTER_STEP = 8;
-const SOURCE_FANOUT_GUTTER = 56;
-const DETOUR_GAP = 64;
-const DETOUR_STEP = 24;
-const RECT_CLEARANCE = 4;
-const WIRE_CLEARANCE = 8;
 const MAX_GRID_ROUTE_EXPANSIONS = 12_000;
 const STAGE_SPACING_STEP = GRID_SIZE * 4;
-const TOP_ROUTE_CLEARANCE = GRID_SIZE * 2;
+export const DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG: OptimizedCircuitRoutingConfig = {
+    minClearance: 24,
+    sourceExitClearance: 32,
+    targetGutter: 56,
+    targetGutterStep: 8,
+    farTargetGutterOffset: 40,
+    nearTargetGutterOffset: 32,
+    targetEdgeClearance: 40,
+    sourceFanoutGutter: 56,
+    detourGap: 64,
+    detourStep: 24,
+    parallelRouteSpacing: 4,
+    rectClearance: 4,
+    wireClearance: 8,
+    topRouteClearance: GRID_SIZE * 2,
+    searchMargin: 160,
+    searchMarginStep: 16,
+    outputSinkTargetClearance: 48,
+    outputSinkBottomClearance: 32,
+};
+
+const clampRoutingDistance = (
+    value: number | undefined,
+    fallback: number,
+    min = 0,
+    max = 512,
+): number => {
+    if (value === undefined || !Number.isFinite(value)) return fallback;
+    return Math.min(max, Math.max(min, Math.round(value)));
+};
+
+export const normalizeOptimizedCircuitRoutingConfig = (
+    config?: Partial<OptimizedCircuitRoutingConfig>,
+): OptimizedCircuitRoutingConfig => ({
+    minClearance: clampRoutingDistance(
+        config?.minClearance,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.minClearance,
+        GRID_SIZE,
+    ),
+    targetGutter: clampRoutingDistance(
+        config?.targetGutter,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.targetGutter,
+        GRID_SIZE,
+    ),
+    sourceExitClearance: clampRoutingDistance(
+        config?.sourceExitClearance,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.sourceExitClearance,
+        GRID_SIZE,
+    ),
+    targetGutterStep: clampRoutingDistance(
+        config?.targetGutterStep,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.targetGutterStep,
+        0,
+        64,
+    ),
+    farTargetGutterOffset: clampRoutingDistance(
+        config?.farTargetGutterOffset,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.farTargetGutterOffset,
+        0,
+    ),
+    nearTargetGutterOffset: clampRoutingDistance(
+        config?.nearTargetGutterOffset,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.nearTargetGutterOffset,
+        0,
+    ),
+    targetEdgeClearance: clampRoutingDistance(
+        config?.targetEdgeClearance,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.targetEdgeClearance,
+        GRID_SIZE,
+    ),
+    sourceFanoutGutter: clampRoutingDistance(
+        config?.sourceFanoutGutter,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.sourceFanoutGutter,
+        GRID_SIZE,
+    ),
+    detourGap: clampRoutingDistance(
+        config?.detourGap,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.detourGap,
+        GRID_SIZE,
+    ),
+    detourStep: clampRoutingDistance(
+        config?.detourStep,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.detourStep,
+        0,
+        128,
+    ),
+    parallelRouteSpacing: clampRoutingDistance(
+        config?.parallelRouteSpacing,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.parallelRouteSpacing,
+        0,
+        64,
+    ),
+    rectClearance: clampRoutingDistance(
+        config?.rectClearance,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.rectClearance,
+        0,
+        64,
+    ),
+    wireClearance: clampRoutingDistance(
+        config?.wireClearance,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.wireClearance,
+        0,
+        64,
+    ),
+    topRouteClearance: clampRoutingDistance(
+        config?.topRouteClearance,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.topRouteClearance,
+        GRID_SIZE,
+    ),
+    searchMargin: clampRoutingDistance(
+        config?.searchMargin,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.searchMargin,
+        GRID_SIZE,
+        1024,
+    ),
+    searchMarginStep: clampRoutingDistance(
+        config?.searchMarginStep,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.searchMarginStep,
+        0,
+        128,
+    ),
+    outputSinkTargetClearance: clampRoutingDistance(
+        config?.outputSinkTargetClearance,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.outputSinkTargetClearance,
+        GRID_SIZE,
+    ),
+    outputSinkBottomClearance: clampRoutingDistance(
+        config?.outputSinkBottomClearance,
+        DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.outputSinkBottomClearance,
+        GRID_SIZE,
+    ),
+});
 
 const COLUMN_OFFSET_BY_KIND: Record<BooleanSynthNodeKind, number> = {
     INPUT: 0,
@@ -314,6 +460,8 @@ const routeLength = (
     return length;
 };
 
+const routeBendCount = (vertices: OptimizedCircuitPoint[]): number => vertices.length;
+
 const routeUsesUpperDetour = (
     source: OptimizedCircuitPoint,
     vertices: OptimizedCircuitPoint[],
@@ -327,7 +475,8 @@ const compareRouteSearchResults = (args: {
     minPreferredY: number;
 }): ((a: RouteSearchResult, b: RouteSearchResult) => number) => {
     const routeScore = (route: RouteSearchResult): number =>
-        route.crossingCount * 1_000_000 +
+        routeBendCount(route.vertices) * 1_000_000 +
+        route.crossingCount * 4_000_000 +
         (routeUsesUpperDetour(
             args.sourcePoint,
             route.vertices,
@@ -336,7 +485,6 @@ const compareRouteSearchResults = (args: {
         )
             ? 100_000
             : 0) +
-        route.vertices.length * 1_000 +
         routeLength(args.sourcePoint, route.vertices, args.targetPoint);
 
     return (a, b) => routeScore(a) - routeScore(b);
@@ -402,11 +550,12 @@ const segmentIntersectsRect = (
     from: OptimizedCircuitPoint,
     to: OptimizedCircuitPoint,
     rect: OptimizedCircuitRect,
+    rectClearance = DEFAULT_OPTIMIZED_CIRCUIT_ROUTING_CONFIG.rectClearance,
 ): boolean => {
-    const left = rect.x - RECT_CLEARANCE;
-    const right = rectRight(rect) + RECT_CLEARANCE;
-    const top = rect.y - RECT_CLEARANCE;
-    const bottom = rectBottom(rect) + RECT_CLEARANCE;
+    const left = rect.x - rectClearance;
+    const right = rectRight(rect) + rectClearance;
+    const top = rect.y - rectClearance;
+    const bottom = rectBottom(rect) + rectClearance;
 
     if (from.y === to.y) {
         const minX = Math.min(from.x, to.x);
@@ -430,16 +579,20 @@ export const findRouteComponentCrossings = (args: {
     targetPoint: OptimizedCircuitPoint;
     vertices: OptimizedCircuitPoint[];
     rectsBySynthId: Map<string, OptimizedCircuitRect>;
+    routingConfig?: Partial<OptimizedCircuitRoutingConfig>;
 }): string[] => {
     const points = routePoints(args.sourcePoint, args.vertices, args.targetPoint);
     const crossings = new Set<string>();
+    const routingConfig = normalizeOptimizedCircuitRoutingConfig(args.routingConfig);
 
     for (let index = 0; index < points.length - 1; index += 1) {
         const from = points[index];
         const to = points[index + 1];
         for (const [synthId, rect] of args.rectsBySynthId) {
             if (synthId === args.sourceSynthId || synthId === args.targetSynthId) continue;
-            if (segmentIntersectsRect(from, to, rect)) crossings.add(synthId);
+            if (segmentIntersectsRect(from, to, rect, routingConfig.rectClearance)) {
+                crossings.add(synthId);
+            }
         }
     }
 
@@ -453,6 +606,7 @@ const findRouteEndpointComponentIntrusions = (args: {
     targetPoint: OptimizedCircuitPoint;
     vertices: OptimizedCircuitPoint[];
     rectsBySynthId: Map<string, OptimizedCircuitRect>;
+    routingConfig: OptimizedCircuitRoutingConfig;
 }): string[] => {
     const points = routePoints(args.sourcePoint, args.vertices, args.targetPoint);
     const intrusions = new Set<string>();
@@ -467,7 +621,7 @@ const findRouteEndpointComponentIntrusions = (args: {
         ] as const).forEach(([synthId, isAllowedPortStub]) => {
             const rect = args.rectsBySynthId.get(synthId);
             if (!rect) return;
-            if (!segmentIntersectsRect(from, to, rect)) return;
+            if (!segmentIntersectsRect(from, to, rect, args.routingConfig.rectClearance)) return;
             if (isAllowedPortStub) return;
             intrusions.add(synthId);
         });
@@ -483,10 +637,79 @@ const findUnsafeRouteComponentCrossings = (args: {
     targetPoint: OptimizedCircuitPoint;
     vertices: OptimizedCircuitPoint[];
     rectsBySynthId: Map<string, OptimizedCircuitRect>;
+    routingConfig: OptimizedCircuitRoutingConfig;
 }): string[] => [
     ...findRouteComponentCrossings(args),
     ...findRouteEndpointComponentIntrusions(args),
 ];
+
+const findRouteTargetApproachViolationsForVertices = (args: {
+    targetNode: RoutableCircuitNode;
+    targetRect: OptimizedCircuitRect;
+    targetPoint: OptimizedCircuitPoint;
+    sourcePoint: OptimizedCircuitPoint;
+    vertices: OptimizedCircuitPoint[];
+    routingConfig: OptimizedCircuitRoutingConfig;
+}): string[] => {
+    if (isOutputSinkNode(args.targetNode)) return [];
+
+    const protectedApproachRect: OptimizedCircuitRect = {
+        id: `${args.targetRect.id}:target-approach`,
+        x: args.targetRect.x - args.routingConfig.targetEdgeClearance,
+        y: args.targetRect.y,
+        width: args.routingConfig.targetEdgeClearance + NODE_INSET,
+        height: args.targetRect.height,
+    };
+    const points = routePoints(args.sourcePoint, args.vertices, args.targetPoint);
+    const violations: string[] = [];
+
+    for (let index = 0; index < points.length - 1; index += 1) {
+        const from = points[index];
+        const to = points[index + 1];
+        const isFinalPortStub = index === points.length - 2;
+        const isAllowedPortStub =
+            isFinalPortStub &&
+            from.y === args.targetPoint.y &&
+            to.y === args.targetPoint.y &&
+            to.x === args.targetPoint.x &&
+            to.y === args.targetPoint.y;
+
+        if (isAllowedPortStub) continue;
+        if (
+            segmentIntersectsRect(
+                from,
+                to,
+                protectedApproachRect,
+                args.routingConfig.rectClearance,
+            )
+        ) {
+            violations.push(String(index));
+        }
+    }
+
+    return violations;
+};
+
+const routeTargetApproachViolationsForVertices = (args: {
+    targetNode: RoutableCircuitNode;
+    targetPoint: OptimizedCircuitPoint;
+    sourcePoint: OptimizedCircuitPoint;
+    vertices: OptimizedCircuitPoint[];
+    rectsBySynthId: Map<string, OptimizedCircuitRect>;
+    routingConfig: OptimizedCircuitRoutingConfig;
+}): string[] => {
+    const targetRect = args.rectsBySynthId.get(args.targetNode.id);
+    if (!targetRect) return [];
+
+    return findRouteTargetApproachViolationsForVertices({
+        targetNode: args.targetNode,
+        targetRect,
+        targetPoint: args.targetPoint,
+        sourcePoint: args.sourcePoint,
+        vertices: args.vertices,
+        routingConfig: args.routingConfig,
+    });
+};
 
 const findRouteWireCrossings = (args: {
     sourceSynthId: string;
@@ -534,6 +757,7 @@ const isSegmentBlocked = (args: {
     rectsBySynthId: Map<string, OptimizedCircuitRect>;
     routedSegments: RouteSegment[];
     allowEndpointComponentBodies?: boolean;
+    routingConfig: OptimizedCircuitRoutingConfig;
 }): boolean => {
     if (args.from.x !== args.to.x && args.from.y !== args.to.y) return true;
     const segment: RouteSegment = {
@@ -551,7 +775,9 @@ const isSegmentBlocked = (args: {
         ) {
             continue;
         }
-        if (segmentIntersectsRect(args.from, args.to, rect)) return true;
+        if (segmentIntersectsRect(args.from, args.to, rect, args.routingConfig.rectClearance)) {
+            return true;
+        }
     }
 
     return args.routedSegments.some(
@@ -641,22 +867,28 @@ const buildDeterministicGridRoute = (args: {
     routedSegments: RouteSegment[];
     allowWireCrossings?: boolean;
     wideSearch?: boolean;
+    routingConfig: OptimizedCircuitRoutingConfig;
 }): RouteSearchResult | undefined => {
+    const routingConfig = args.routingConfig;
     const rects = [...args.rectsBySynthId.values()];
     const minRectX = Math.min(...rects.map((rect) => rect.x));
     const maxRectX = Math.max(...rects.map(rectRight));
     const minRectY = Math.min(...rects.map((rect) => rect.y));
     const maxRectY = Math.max(...rects.map(rectBottom));
-    const margin = 160 + args.linkIndex * 16;
+    const margin =
+        routingConfig.searchMargin + args.linkIndex * routingConfig.searchMarginStep;
 
     const sourceExit = roundPoint({
-        x: args.sourcePoint.x + 32,
+        x: args.sourcePoint.x + routingConfig.sourceExitClearance,
         y: args.sourcePoint.y,
     });
     const targetEntry = roundPoint(
         isOutputSinkNode(args.targetNode)
-            ? { x: args.targetPoint.x, y: args.targetPoint.y + 32 }
-            : { x: args.targetPoint.x - 32, y: args.targetPoint.y },
+            ? {
+                  x: args.targetPoint.x,
+                  y: args.targetPoint.y + routingConfig.outputSinkBottomClearance,
+              }
+            : { x: args.targetPoint.x - routingConfig.targetGutter, y: args.targetPoint.y },
     );
 
     const rawMinX = minRectX - margin;
@@ -681,33 +913,49 @@ const buildDeterministicGridRoute = (args: {
     const yValues = new Set<number>([args.sourcePoint.y, args.targetPoint.y, sourceExit.y, targetEntry.y]);
     [args.sourcePoint.x, args.targetPoint.x, sourceExit.x, targetEntry.x].forEach(addX);
     [routeMinX, routeMaxX, rawMinX, rawMaxX].forEach(addX);
-    [minRectY - TOP_ROUTE_CLEARANCE, maxRectY + margin].forEach(addY);
+    [minRectY - routingConfig.topRouteClearance, maxRectY + margin].forEach(addY);
     rects.forEach((rect) => {
-        [rect.x - MIN_CLEARANCE, rectRight(rect) + MIN_CLEARANCE, rect.x, rectRight(rect)].forEach(addX);
-        [rect.y - MIN_CLEARANCE, rectBottom(rect) + MIN_CLEARANCE, rect.y, rectBottom(rect)].forEach(addY);
+        [
+            rect.x - routingConfig.minClearance,
+            rectRight(rect) + routingConfig.minClearance,
+            rect.x,
+            rectRight(rect),
+        ].forEach(addX);
+        [
+            rect.y - routingConfig.minClearance,
+            rectBottom(rect) + routingConfig.minClearance,
+            rect.y,
+            rectBottom(rect),
+        ].forEach(addY);
     });
     args.routedSegments.forEach((segment) => {
         [
             segment.from.x,
             segment.to.x,
-            segment.from.x - WIRE_CLEARANCE,
-            segment.from.x + WIRE_CLEARANCE,
-            segment.to.x - WIRE_CLEARANCE,
-            segment.to.x + WIRE_CLEARANCE,
+            segment.from.x - routingConfig.wireClearance,
+            segment.from.x + routingConfig.wireClearance,
+            segment.to.x - routingConfig.wireClearance,
+            segment.to.x + routingConfig.wireClearance,
         ].forEach(addX);
         [
             segment.from.y,
             segment.to.y,
-            segment.from.y - WIRE_CLEARANCE,
-            segment.from.y + WIRE_CLEARANCE,
-            segment.to.y - WIRE_CLEARANCE,
-            segment.to.y + WIRE_CLEARANCE,
+            segment.from.y - routingConfig.wireClearance,
+            segment.from.y + routingConfig.wireClearance,
+            segment.to.y - routingConfig.wireClearance,
+            segment.to.y + routingConfig.wireClearance,
         ].forEach(addY);
         if (isVertical(segment)) {
-            [segment.from.x - WIRE_CLEARANCE, segment.from.x + WIRE_CLEARANCE].forEach(addX);
+            [
+                segment.from.x - routingConfig.wireClearance,
+                segment.from.x + routingConfig.wireClearance,
+            ].forEach(addX);
         }
         if (isHorizontal(segment)) {
-            [segment.from.y - WIRE_CLEARANCE, segment.from.y + WIRE_CLEARANCE].forEach(addY);
+            [
+                segment.from.y - routingConfig.wireClearance,
+                segment.from.y + routingConfig.wireClearance,
+            ].forEach(addY);
         }
     });
 
@@ -757,6 +1005,7 @@ const buildDeterministicGridRoute = (args: {
                     linkIndex: args.linkIndex,
                     rectsBySynthId: args.rectsBySynthId,
                     routedSegments: [],
+                    routingConfig,
                 });
                 if (componentBlocked) return [];
 
@@ -1105,10 +1354,18 @@ const buildRouteCandidates = (args: {
     linkIndex: number;
     sourceLaneY?: number;
     rectsBySynthId: Map<string, OptimizedCircuitRect>;
+    routingConfig: OptimizedCircuitRoutingConfig;
 }): RouteCandidate[] => {
+    const routingConfig = args.routingConfig;
     if (isOutputSinkNode(args.targetNode)) {
-        const preTargetX = Math.max(args.sourcePoint.x + MIN_CLEARANCE, args.targetRect.x - 48);
-        const belowTargetY = rectBottom(args.targetRect) + 32 + args.linkIndex * 4;
+        const preTargetX = Math.max(
+            args.sourcePoint.x + routingConfig.minClearance,
+            args.targetRect.x - routingConfig.outputSinkTargetClearance,
+        );
+        const belowTargetY =
+            rectBottom(args.targetRect) +
+            routingConfig.outputSinkBottomClearance +
+            args.linkIndex * routingConfig.parallelRouteSpacing;
         return [
             {
                 name: "lamp-bottom-approach",
@@ -1121,13 +1378,21 @@ const buildRouteCandidates = (args: {
         ];
     }
 
-    const minimumTargetGutter = args.sourcePoint.x + MIN_CLEARANCE;
+    const minimumTargetGutter = args.sourcePoint.x + routingConfig.minClearance;
     const targetGutter = Math.max(
         minimumTargetGutter,
-        args.targetRect.x - TARGET_GUTTER - args.targetPin * TARGET_GUTTER_STEP,
+            args.targetRect.x -
+            routingConfig.targetGutter -
+            args.targetPin * routingConfig.targetGutterStep,
     );
-    const farTargetGutter = Math.max(minimumTargetGutter, targetGutter - 40);
-    const nearTargetGutter = Math.max(minimumTargetGutter, targetGutter + 32);
+    const farTargetGutter = Math.max(
+        minimumTargetGutter,
+        targetGutter - routingConfig.farTargetGutterOffset,
+    );
+    const nearTargetGutter = Math.max(
+        minimumTargetGutter,
+        targetGutter + routingConfig.nearTargetGutterOffset,
+    );
     const directDogleg = normalizeVertices([
         { x: targetGutter, y: args.sourcePoint.y },
         { x: targetGutter, y: args.targetPoint.y },
@@ -1141,8 +1406,8 @@ const buildRouteCandidates = (args: {
         { x: farTargetGutter, y: args.targetPoint.y },
     ]);
     const sourceFanoutX = Math.min(
-        args.sourcePoint.x + SOURCE_FANOUT_GUTTER,
-        args.targetRect.x - MIN_CLEARANCE,
+        args.sourcePoint.x + routingConfig.sourceFanoutGutter,
+        args.targetRect.x - routingConfig.minClearance,
     );
     const sourceFanout = normalizeVertices([
         { x: sourceFanoutX, y: args.sourcePoint.y },
@@ -1150,7 +1415,9 @@ const buildRouteCandidates = (args: {
     ]);
     const targetOffsetY =
         args.targetPoint.y +
-        (args.sourcePoint.y >= args.targetPoint.y ? WIRE_CLEARANCE : -WIRE_CLEARANCE);
+        (args.sourcePoint.y >= args.targetPoint.y
+            ? routingConfig.wireClearance
+            : -routingConfig.wireClearance);
     const targetOffsetLane = normalizeVertices([
         { x: sourceFanoutX, y: args.sourcePoint.y },
         { x: sourceFanoutX, y: targetOffsetY },
@@ -1169,10 +1436,15 @@ const buildRouteCandidates = (args: {
               ]);
     const minComponentY = Math.min(...[...args.rectsBySynthId.values()].map((rect) => rect.y));
     const localUpperY = Math.max(
-        minComponentY - TOP_ROUTE_CLEARANCE,
-        Math.min(args.sourcePoint.y, args.targetPoint.y) - DETOUR_GAP - args.linkIndex * 4,
+        minComponentY - routingConfig.topRouteClearance,
+        Math.min(args.sourcePoint.y, args.targetPoint.y) -
+            routingConfig.detourGap -
+            args.linkIndex * routingConfig.parallelRouteSpacing,
     );
-    const localLowerY = Math.max(args.sourcePoint.y, args.targetPoint.y) + DETOUR_GAP + args.linkIndex * 4;
+    const localLowerY =
+        Math.max(args.sourcePoint.y, args.targetPoint.y) +
+        routingConfig.detourGap +
+        args.linkIndex * routingConfig.parallelRouteSpacing;
     const upperDetour = normalizeVertices([
         { x: sourceFanoutX, y: args.sourcePoint.y },
         { x: sourceFanoutX, y: localUpperY },
@@ -1190,17 +1462,17 @@ const buildRouteCandidates = (args: {
         args.sourcePoint.y,
         args.targetPoint.y,
     );
-    const detourY = maxBottom + DETOUR_GAP + args.linkIndex * DETOUR_STEP;
+    const detourY = maxBottom + routingConfig.detourGap + args.linkIndex * routingConfig.detourStep;
     const lowerDetour = normalizeVertices([
         { x: sourceFanoutX, y: args.sourcePoint.y },
         { x: sourceFanoutX, y: detourY },
         { x: targetGutter, y: detourY },
         { x: targetGutter, y: args.targetPoint.y },
     ]);
-    const sourceEscapeX = args.sourcePoint.x + MIN_CLEARANCE;
-    const sourceLeftGutter = args.sourceRect.x - MIN_CLEARANCE;
-    const sourceTopEscapeY = args.sourceRect.y - MIN_CLEARANCE;
-    const sourceBottomEscapeY = rectBottom(args.sourceRect) + MIN_CLEARANCE;
+    const sourceEscapeX = args.sourcePoint.x + routingConfig.minClearance;
+    const sourceLeftGutter = args.sourceRect.x - routingConfig.minClearance;
+    const sourceTopEscapeY = args.sourceRect.y - routingConfig.minClearance;
+    const sourceBottomEscapeY = rectBottom(args.sourceRect) + routingConfig.minClearance;
     const sourceLeftUpperDetour = normalizeVertices([
         { x: sourceEscapeX, y: args.sourcePoint.y },
         { x: sourceEscapeX, y: sourceTopEscapeY },
@@ -1285,26 +1557,29 @@ const buildBoundaryDetourCandidates = (args: {
     targetPoint: OptimizedCircuitPoint;
     linkIndex: number;
     rectsBySynthId: Map<string, OptimizedCircuitRect>;
+    routingConfig: OptimizedCircuitRoutingConfig;
 }): RouteCandidate[] => {
+    const routingConfig = args.routingConfig;
     const rects = [...args.rectsBySynthId.values()];
     const maxX = Math.max(...rects.map(rectRight));
     const minY = Math.min(...rects.map((rect) => rect.y));
     const maxY = Math.max(...rects.map(rectBottom));
-    const margin = 160 + args.linkIndex * DETOUR_STEP;
+    const margin =
+        routingConfig.searchMargin + args.linkIndex * routingConfig.searchMarginStep;
     const sourceExit = {
-        x: args.sourcePoint.x + MIN_CLEARANCE,
+        x: args.sourcePoint.x + routingConfig.sourceExitClearance,
         y: args.sourcePoint.y,
     };
     const targetEntry = isOutputSinkNode(args.targetNode)
         ? {
               x: args.targetPoint.x,
-              y: args.targetPoint.y + MIN_CLEARANCE,
+              y: args.targetPoint.y + routingConfig.minClearance,
           }
         : {
-              x: args.targetPoint.x - MIN_CLEARANCE,
+              x: args.targetPoint.x - routingConfig.targetGutter,
               y: args.targetPoint.y,
           };
-    const topY = minY - TOP_ROUTE_CLEARANCE;
+    const topY = minY - routingConfig.topRouteClearance;
     const bottomY = maxY + margin;
     const rightX = maxX + margin;
 
@@ -1366,6 +1641,7 @@ const routeComponentCrossingsForVertices = (args: {
     targetPoint: OptimizedCircuitPoint;
     vertices: OptimizedCircuitPoint[];
     rectsBySynthId: Map<string, OptimizedCircuitRect>;
+    routingConfig: OptimizedCircuitRoutingConfig;
 }): string[] =>
     findUnsafeRouteComponentCrossings({
         sourceSynthId: args.sourceNode.id,
@@ -1374,6 +1650,7 @@ const routeComponentCrossingsForVertices = (args: {
         targetPoint: args.targetPoint,
         vertices: args.vertices,
         rectsBySynthId: args.rectsBySynthId,
+        routingConfig: args.routingConfig,
     });
 
 const routeWireCrossingCountForVertices = (args: {
@@ -1404,6 +1681,7 @@ const simplifySafeRouteVertices = (args: {
     linkIndex: number;
     rectsBySynthId: Map<string, OptimizedCircuitRect>;
     routedSegments: RouteSegment[];
+    routingConfig: OptimizedCircuitRoutingConfig;
 }): OptimizedCircuitPoint[] => {
     let vertices = normalizeVertices(args.vertices);
     let changed = true;
@@ -1455,8 +1733,21 @@ const simplifySafeRouteVertices = (args: {
                     targetPoint: args.targetPoint,
                     vertices: candidateVertices,
                     rectsBySynthId: args.rectsBySynthId,
+                    routingConfig: args.routingConfig,
                 });
                 if (componentCrossings.length > 0) continue;
+                if (
+                    routeTargetApproachViolationsForVertices({
+                        targetNode: args.targetNode,
+                        sourcePoint: args.sourcePoint,
+                        targetPoint: args.targetPoint,
+                        vertices: candidateVertices,
+                        rectsBySynthId: args.rectsBySynthId,
+                        routingConfig: args.routingConfig,
+                    }).length > 0
+                ) {
+                    continue;
+                }
 
                 const crossingCount = routeWireCrossingCountForVertices({
                     sourceNode: args.sourceNode,
@@ -1488,6 +1779,7 @@ const componentSafeRouteCandidates = (args: {
     rectsBySynthId: Map<string, OptimizedCircuitRect>;
     routedSegments: RouteSegment[];
     candidates: RouteCandidate[];
+    routingConfig: OptimizedCircuitRoutingConfig;
 }): RouteSearchResult[] =>
     args.candidates.flatMap((candidate) => {
         if (
@@ -1510,8 +1802,21 @@ const componentSafeRouteCandidates = (args: {
             targetPoint: args.targetPoint,
             vertices: candidate.vertices,
             rectsBySynthId: args.rectsBySynthId,
+            routingConfig: args.routingConfig,
         });
         if (componentCrossings.length > 0) return [];
+        if (
+            routeTargetApproachViolationsForVertices({
+                targetNode: args.targetNode,
+                sourcePoint: args.sourcePoint,
+                targetPoint: args.targetPoint,
+                vertices: candidate.vertices,
+                rectsBySynthId: args.rectsBySynthId,
+                routingConfig: args.routingConfig,
+            }).length > 0
+        ) {
+            return [];
+        }
 
         const vertices = simplifySafeRouteVertices({
             sourceNode: args.sourceNode,
@@ -1522,7 +1827,20 @@ const componentSafeRouteCandidates = (args: {
             linkIndex: args.linkIndex,
             rectsBySynthId: args.rectsBySynthId,
             routedSegments: args.routedSegments,
+            routingConfig: args.routingConfig,
         });
+        if (
+            routeTargetApproachViolationsForVertices({
+                targetNode: args.targetNode,
+                sourcePoint: args.sourcePoint,
+                targetPoint: args.targetPoint,
+                vertices,
+                rectsBySynthId: args.rectsBySynthId,
+                routingConfig: args.routingConfig,
+            }).length > 0
+        ) {
+            return [];
+        }
 
         return [
             {
@@ -1543,6 +1861,7 @@ const componentSafeRouteCandidates = (args: {
 const buildZeroCrossingEdgeVertices = (
     options: BuildRouteOptions,
 ): OptimizedCircuitPoint[] | undefined => {
+    const routingConfig = normalizeOptimizedCircuitRoutingConfig(options.routingConfig);
     const nodesById = new Map(options.netlist.nodes.map((node) => [node.id, node]));
     const sourceNode = nodesById.get(options.linkPlan.link.from);
     const targetNode = nodesById.get(options.linkPlan.link.to);
@@ -1567,6 +1886,7 @@ const buildZeroCrossingEdgeVertices = (
         linkIndex: options.linkPlan.index,
         sourceLaneY: options.linkPlan.sourceLaneY,
         rectsBySynthId: options.rectsBySynthId,
+        routingConfig,
     });
     const boundaryCandidates = buildBoundaryDetourCandidates({
         targetNode,
@@ -1574,6 +1894,7 @@ const buildZeroCrossingEdgeVertices = (
         targetPoint,
         linkIndex: options.linkPlan.index,
         rectsBySynthId: options.rectsBySynthId,
+        routingConfig,
     });
     const cheapRoutes = componentSafeRouteCandidates({
         sourceNode,
@@ -1584,6 +1905,7 @@ const buildZeroCrossingEdgeVertices = (
         rectsBySynthId: options.rectsBySynthId,
         routedSegments: options.routedSegments ?? [],
         candidates: [...candidates, ...boundaryCandidates],
+        routingConfig,
     });
     const minPreferredY = Math.min(...[...options.rectsBySynthId.values()].map((rect) => rect.y));
     const routeComparator = compareRouteSearchResults({
@@ -1606,6 +1928,7 @@ const buildZeroCrossingEdgeVertices = (
         linkIndex: options.linkPlan.index,
         rectsBySynthId: options.rectsBySynthId,
         routedSegments: options.routedSegments ?? [],
+        routingConfig,
     };
     const zeroCrossingGridRoute =
         buildDeterministicGridRoute(gridSearchOptions) ??
@@ -1620,6 +1943,7 @@ const buildZeroCrossingEdgeVertices = (
         linkIndex: options.linkPlan.index,
         rectsBySynthId: options.rectsBySynthId,
         routedSegments: options.routedSegments ?? [],
+        routingConfig,
     });
 
     const componentCrossings = routeComponentCrossingsForVertices({
@@ -1629,6 +1953,7 @@ const buildZeroCrossingEdgeVertices = (
         targetPoint,
         vertices: zeroCrossingGridVertices,
         rectsBySynthId: options.rectsBySynthId,
+        routingConfig,
     });
     const wireCrossings = findRouteWireCrossings({
         sourceSynthId: sourceNode.id,
@@ -1639,8 +1964,18 @@ const buildZeroCrossingEdgeVertices = (
         linkIndex: options.linkPlan.index,
         routedSegments: options.routedSegments ?? [],
     });
+    const targetApproachViolations = routeTargetApproachViolationsForVertices({
+        targetNode,
+        sourcePoint,
+        targetPoint,
+        vertices: zeroCrossingGridVertices,
+        rectsBySynthId: options.rectsBySynthId,
+        routingConfig,
+    });
 
-    return componentCrossings.length === 0 && wireCrossings.length === 0
+    return componentCrossings.length === 0 &&
+        wireCrossings.length === 0 &&
+        targetApproachViolations.length === 0
         ? zeroCrossingGridVertices
         : undefined;
 };
@@ -1648,9 +1983,7 @@ const buildZeroCrossingEdgeVertices = (
 export const buildOptimizedEdgeVertices = (
     options: BuildRouteOptions,
 ): OptimizedCircuitPoint[] => {
-    const zeroCrossingVertices = buildZeroCrossingEdgeVertices(options);
-    if (zeroCrossingVertices) return zeroCrossingVertices;
-
+    const routingConfig = normalizeOptimizedCircuitRoutingConfig(options.routingConfig);
     const nodesById = new Map(options.netlist.nodes.map((node) => [node.id, node]));
     const sourceNode = nodesById.get(options.linkPlan.link.from);
     const targetNode = nodesById.get(options.linkPlan.link.to);
@@ -1675,6 +2008,7 @@ export const buildOptimizedEdgeVertices = (
         linkIndex: options.linkPlan.index,
         sourceLaneY: options.linkPlan.sourceLaneY,
         rectsBySynthId: options.rectsBySynthId,
+        routingConfig,
     });
     const boundaryCandidates = buildBoundaryDetourCandidates({
         targetNode,
@@ -1682,6 +2016,7 @@ export const buildOptimizedEdgeVertices = (
         targetPoint,
         linkIndex: options.linkPlan.index,
         rectsBySynthId: options.rectsBySynthId,
+        routingConfig,
     });
     const cheapRoutes = componentSafeRouteCandidates({
         sourceNode,
@@ -1692,6 +2027,7 @@ export const buildOptimizedEdgeVertices = (
         rectsBySynthId: options.rectsBySynthId,
         routedSegments: options.routedSegments ?? [],
         candidates: [...candidates, ...boundaryCandidates],
+        routingConfig,
     });
     const gridSearchOptions = {
         sourceNode,
@@ -1703,6 +2039,7 @@ export const buildOptimizedEdgeVertices = (
         linkIndex: options.linkPlan.index,
         rectsBySynthId: options.rectsBySynthId,
         routedSegments: options.routedSegments ?? [],
+        routingConfig,
     };
     const minPreferredY = Math.min(...[...options.rectsBySynthId.values()].map((rect) => rect.y));
     const bestCandidate = cheapRoutes.sort(
@@ -1727,6 +2064,7 @@ export const buildOptimizedEdgeVertices = (
             linkIndex: options.linkPlan.index,
             rectsBySynthId: options.rectsBySynthId,
             routedSegments: options.routedSegments ?? [],
+            routingConfig,
         });
         const componentCrossings = routeComponentCrossingsForVertices({
             sourceNode,
@@ -1735,9 +2073,18 @@ export const buildOptimizedEdgeVertices = (
             targetPoint,
             vertices,
             rectsBySynthId: options.rectsBySynthId,
+            routingConfig,
+        });
+        const targetApproachViolations = routeTargetApproachViolationsForVertices({
+            targetNode,
+            sourcePoint,
+            targetPoint,
+            vertices,
+            rectsBySynthId: options.rectsBySynthId,
+            routingConfig,
         });
 
-        return componentCrossings.length === 0
+        return componentCrossings.length === 0 && targetApproachViolations.length === 0
             ? [
                   {
                       vertices,
@@ -1770,6 +2117,7 @@ export const buildOptimizedEdgeVertices = (
 export const buildOptimizedEdgeRoutes = (
     options: BuildRoutesOptions,
 ): Map<number, OptimizedCircuitPoint[]> => {
+    const routingConfig = normalizeOptimizedCircuitRoutingConfig(options.routingConfig);
     const nodesById = new Map(options.netlist.nodes.map((node) => [node.id, node]));
     const routesByLinkIndex = new Map<number, OptimizedCircuitPoint[]>();
     const routedSegments: RouteSegment[] = [];
@@ -1830,6 +2178,7 @@ export const buildOptimizedEdgeRoutes = (
             netlist: options.netlist,
             rectsBySynthId: options.rectsBySynthId,
             routedSegments,
+            routingConfig,
         });
         routesByLinkIndex.set(linkPlan.index, vertices);
         routedSegments.push(
@@ -1900,18 +2249,62 @@ export const buildOptimizedEdgeRoutes = (
         for (const linkIndex of crossingLinkIndexes) {
             const linkPlan = options.linkPlans.find((candidate) => candidate.index === linkIndex);
             if (!linkPlan) continue;
+            const sourceNode = nodesById.get(linkPlan.link.from);
+            const targetNode = nodesById.get(linkPlan.link.to);
+            const sourceRect = options.rectsBySynthId.get(linkPlan.link.from);
+            const targetRect = options.rectsBySynthId.get(linkPlan.link.to);
+            if (!sourceNode || !targetNode || !sourceRect || !targetRect) continue;
 
+            const currentVertices = routesByLinkIndex.get(linkIndex) ?? [];
+            const sourcePoint = roundPoint(sourcePortPoint(sourceNode, sourceRect));
+            const targetPoint = roundPoint(
+                targetPortPoint(targetNode, targetRect, linkPlan.targetPin),
+            );
+            const routedSegments = rebuildSegments(linkIndex);
             const candidateVertices = buildOptimizedEdgeVertices({
                 linkPlan,
                 netlist: options.netlist,
                 rectsBySynthId: options.rectsBySynthId,
-                routedSegments: rebuildSegments(linkIndex),
+                routedSegments,
+                routingConfig,
             });
             const candidateRoutes = new Map(routesByLinkIndex);
             candidateRoutes.set(linkIndex, candidateVertices);
             const nextCount = crossingCount(candidateRoutes);
+            const comparator = compareRouteSearchResults({
+                sourcePoint,
+                targetPoint,
+                minPreferredY: Math.min(
+                    ...[...options.rectsBySynthId.values()].map((rect) => rect.y),
+                ),
+            });
+            const currentRoute = {
+                vertices: currentVertices,
+                crossingCount: routeWireCrossingCountForVertices({
+                    sourceNode,
+                    targetNode,
+                    sourcePoint,
+                    targetPoint,
+                    vertices: currentVertices,
+                    linkIndex,
+                    routedSegments,
+                }),
+            };
+            const candidateRoute = {
+                vertices: candidateVertices,
+                crossingCount: routeWireCrossingCountForVertices({
+                    sourceNode,
+                    targetNode,
+                    sourcePoint,
+                    targetPoint,
+                    vertices: candidateVertices,
+                    linkIndex,
+                    routedSegments,
+                }),
+            };
 
             if (nextCount >= currentCount) continue;
+            if (comparator(candidateRoute, currentRoute) >= 0) continue;
 
             routesByLinkIndex.set(linkIndex, candidateVertices);
             improved = true;
@@ -1969,8 +2362,10 @@ export const findRouteSetComponentCrossings = (options: {
     netlist: RoutableCircuitNetlist;
     rectsBySynthId: Map<string, OptimizedCircuitRect>;
     routesByLinkIndex: Map<number, OptimizedCircuitPoint[]>;
+    routingConfig?: Partial<OptimizedCircuitRoutingConfig>;
 }): string[] => {
     const nodesById = new Map(options.netlist.nodes.map((node) => [node.id, node]));
+    const routingConfig = normalizeOptimizedCircuitRoutingConfig(options.routingConfig);
     const crossings: string[] = [];
 
     options.linkPlans.forEach((linkPlan) => {
@@ -1987,6 +2382,7 @@ export const findRouteSetComponentCrossings = (options: {
             targetPoint: roundPoint(targetPortPoint(targetNode, targetRect, linkPlan.targetPin)),
             vertices: options.routesByLinkIndex.get(linkPlan.index) ?? [],
             rectsBySynthId: options.rectsBySynthId,
+            routingConfig,
         });
 
         crossedComponents.forEach((componentId) => {
@@ -2032,13 +2428,50 @@ export const findRouteSetNonOrthogonalSegments = (options: {
     return violations;
 };
 
+export const findRouteSetTargetApproachViolations = (options: {
+    linkPlans: OptimizedCircuitLinkPlan[];
+    netlist: RoutableCircuitNetlist;
+    rectsBySynthId: Map<string, OptimizedCircuitRect>;
+    routesByLinkIndex: Map<number, OptimizedCircuitPoint[]>;
+    routingConfig?: Partial<OptimizedCircuitRoutingConfig>;
+}): string[] => {
+    const nodesById = new Map(options.netlist.nodes.map((node) => [node.id, node]));
+    const routingConfig = normalizeOptimizedCircuitRoutingConfig(options.routingConfig);
+    const violations: string[] = [];
+
+    options.linkPlans.forEach((linkPlan) => {
+        const sourceNode = nodesById.get(linkPlan.link.from);
+        const targetNode = nodesById.get(linkPlan.link.to);
+        const sourceRect = options.rectsBySynthId.get(linkPlan.link.from);
+        const targetRect = options.rectsBySynthId.get(linkPlan.link.to);
+        if (!sourceNode || !targetNode || !sourceRect || !targetRect) return;
+
+        const targetViolations = routeTargetApproachViolationsForVertices({
+            targetNode,
+            sourcePoint: roundPoint(sourcePortPoint(sourceNode, sourceRect)),
+            targetPoint: roundPoint(targetPortPoint(targetNode, targetRect, linkPlan.targetPin)),
+            vertices: options.routesByLinkIndex.get(linkPlan.index) ?? [],
+            rectsBySynthId: options.rectsBySynthId,
+            routingConfig,
+        });
+
+        targetViolations.forEach((segmentIndex) => {
+            violations.push(`${linkPlan.index}:${segmentIndex}`);
+        });
+    });
+
+    return violations;
+};
+
 export const findUnnecessaryRouteWireCrossings = (options: {
     linkPlans: OptimizedCircuitLinkPlan[];
     netlist: RoutableCircuitNetlist;
     rectsBySynthId: Map<string, OptimizedCircuitRect>;
     routesByLinkIndex: Map<number, OptimizedCircuitPoint[]>;
+    routingConfig?: Partial<OptimizedCircuitRoutingConfig>;
 }): string[] => {
     const nodesById = new Map(options.netlist.nodes.map((node) => [node.id, node]));
+    const routingConfig = normalizeOptimizedCircuitRoutingConfig(options.routingConfig);
     const currentCrossings = findRouteSetWireCrossings(options);
     const unnecessary = new Set<string>();
 
@@ -2090,6 +2523,7 @@ export const findUnnecessaryRouteWireCrossings = (options: {
                     netlist: options.netlist,
                     rectsBySynthId: options.rectsBySynthId,
                     routedSegments,
+                    routingConfig,
                 });
                 if (alternateVertices === undefined) return;
 
@@ -2097,6 +2531,16 @@ export const findUnnecessaryRouteWireCrossings = (options: {
                 const targetPoint = roundPoint(
                     targetPortPoint(targetNode, targetRect, linkPlan.targetPin),
                 );
+                const currentVertices = options.routesByLinkIndex.get(linkIndex) ?? [];
+                const currentCrossingCount = routeWireCrossingCountForVertices({
+                    sourceNode,
+                    targetNode,
+                    sourcePoint,
+                    targetPoint,
+                    vertices: currentVertices,
+                    linkIndex,
+                    routedSegments,
+                });
                 const wireCrossings = findRouteWireCrossings({
                     sourceSynthId: sourceNode.id,
                     targetSynthId: targetNode.id,
@@ -2106,8 +2550,23 @@ export const findUnnecessaryRouteWireCrossings = (options: {
                     linkIndex,
                     routedSegments,
                 });
+                const comparator = compareRouteSearchResults({
+                    sourcePoint,
+                    targetPoint,
+                    minPreferredY: Math.min(
+                        ...[...options.rectsBySynthId.values()].map((rect) => rect.y),
+                    ),
+                });
 
-                if (wireCrossings.length === 0) unnecessary.add(String(linkIndex));
+                if (
+                    wireCrossings.length === 0 &&
+                    comparator(
+                        { vertices: alternateVertices, crossingCount: 0 },
+                        { vertices: currentVertices, crossingCount: currentCrossingCount },
+                    ) < 0
+                ) {
+                    unnecessary.add(String(linkIndex));
+                }
             });
     });
 
