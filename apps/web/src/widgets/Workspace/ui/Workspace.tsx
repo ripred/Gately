@@ -1,3 +1,4 @@
+import { BooleanAnalysisPanel } from "@gately/features/boolean-analysis";
 import { useUIEngine } from "@gately/shared/infrastructure";
 import { useLogicEngine } from "@gately/shared/infrastructure/LogicEngine";
 import { Component, Show } from "solid-js";
@@ -16,7 +17,12 @@ export const InnerWorkspace: Component = () => {
 
     return (
         <div class="w-full h-full relative">
-            <WorkspaceToolbar hardware={controller.hardware} simulation={controller.simulation} />
+            <WorkspaceToolbar
+                booleanAnalysis={controller.booleanAnalysis}
+                hardware={controller.hardware}
+                simulation={controller.simulation}
+            />
+            <BooleanAnalysisPanel controller={controller.booleanAnalysis} />
             <Show when={uiEngine.state.activeTabId()} fallback={<p>Create a new tab</p>}>
                 <div ref={uiEngine.mount.setContainer} class="w-full h-full"></div>
                 <WorkspaceContextMenu

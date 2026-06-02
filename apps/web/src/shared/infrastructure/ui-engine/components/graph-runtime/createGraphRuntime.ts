@@ -39,8 +39,8 @@ export const createGraphRuntime = (container: HTMLDivElement, ctx: UIEngineConte
     };
 
     return {
-        createBuiltNode(result: ItemBuilderResult) {
-            return services.nodes.createNode(result);
+        createBuiltNode(result: ItemBuilderResult, options?: Parameters<typeof services.nodes.createNode>[1]) {
+            return services.nodes.createNode(result, options);
         },
         exportScopeSnapshot(): UIScopeSnapshot {
             return services.snapshot.exportScopeSnapshot();

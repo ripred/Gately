@@ -23,5 +23,8 @@ export const API_SPEC = {
         simulate: ApiFactories.token("simulateTab", "public"),
         status: ApiFactories.token("simulationStatus", "public"),
     },
+    analysis: {
+        boolean: ApiFactories.token("booleanAnalysis", "public"),
+    },
     plugins: {},
 };

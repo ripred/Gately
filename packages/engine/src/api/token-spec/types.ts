@@ -14,12 +14,14 @@ import { ApiUpdateItemInput_Fn } from "@engine/use-cases/public/UpdateItemInput"
 import { ApiUpdateItemOutput_Fn } from "@engine/use-cases/public/UpdateItemOutput";
 import { ApiSimulateTab_Fn } from "@engine/use-cases/public/SimulateTab";
 import { ApiSimulationStatus_Fn } from "@engine/use-cases/public/GetSimulationStatus";
+import { ApiAnalyzeBoolean_Fn } from "@engine/use-cases/public/AnalyzeBoolean";
 
 export interface ApiSpec {
     tab: TabApiSpec;
     item: ItemApiSpec;
     scope: ScopeApiScec;
     simulation: SimulationApiSpec;
+    analysis: AnalysisApiSpec;
     plugins: PluginApiSpec;
 }
 
@@ -52,6 +54,10 @@ export interface ScopeApiScec {
 export interface SimulationApiSpec {
     simulate: ApiToken<ApiSimulateTab_Fn, "public">;
     status: ApiToken<ApiSimulationStatus_Fn, "public">;
+}
+
+export interface AnalysisApiSpec {
+    boolean: ApiToken<ApiAnalyzeBoolean_Fn, "public">;
 }
 
 export interface PluginApiSpec {}

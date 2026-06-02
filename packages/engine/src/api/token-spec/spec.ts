@@ -29,5 +29,8 @@ export const API_SPEC: ApiSpec = {
         simulate: ApiFactories.token("simulateTab", "public"),
         status: ApiFactories.token("simulationStatus", "public"),
     },
+    analysis: {
+        boolean: ApiFactories.token("booleanAnalysis", "public"),
+    },
     plugins: {} as PluginApiSpec,
 } as const;

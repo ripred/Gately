@@ -8,3 +8,4 @@ export * from "./UpdateItemInput";
 export * from "./UpdateItemOutput";
 export * from "./SimulateTab";
 export * from "./GetSimulationStatus";
+export * from "./AnalyzeBoolean";

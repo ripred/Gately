@@ -11,7 +11,7 @@ const SIMULATION_MODE_OPTIONS: Array<{ value: WorkspaceSimulationMode; label: st
     { value: "0.5sec", label: "0.5 sec" },
 ];
 
-type WorkspaceToolbarProps = Pick<WorkspaceController, "hardware" | "simulation">;
+type WorkspaceToolbarProps = Pick<WorkspaceController, "booleanAnalysis" | "hardware" | "simulation">;
 
 export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
     const uiEngine = useUIEngine();
@@ -69,6 +69,20 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                     {props.simulation.isBusy ? "running..." : "idle"}
                 </span>
                 <ArduinoHardwarePanel hardware={props.hardware} />
+                <Pusher
+                    class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
+                    onClick={props.booleanAnalysis.analyze}
+                    disabled={props.simulation.isDisabled || props.booleanAnalysis.isBusy}
+                >
+                    Optimize
+                </Pusher>
+                <Pusher
+                    class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4 data-disabled:bg-gray-2 data-disabled:text-gray-8"
+                    onClick={props.booleanAnalysis.createDemoCircuitInNewTab}
+                    disabled={props.simulation.isDisabled || props.booleanAnalysis.isSynthesizing}
+                >
+                    Demo Circuit
+                </Pusher>
             </div>
 
             <div class="flex gap-2">

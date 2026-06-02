@@ -83,6 +83,12 @@ export const buildNodeProps = (
         y: pos.y,
         width: width + STROKE_WIDTH,
         height: height + STROKE_WIDTH,
+        attrs: {
+            body: {
+                width,
+                height,
+            },
+        },
         data: {
             hash: item.hash,
             path: item.path,

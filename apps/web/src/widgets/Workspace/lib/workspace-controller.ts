@@ -1,5 +1,6 @@
 import { createEffect, createSignal, onCleanup } from "solid-js";
 import { useArduinoHardwareController } from "@gately/features/arduino-hardware";
+import { useBooleanAnalysisController } from "@gately/features/boolean-analysis";
 import { attachWorkspaceBridge } from "./bridge";
 import { attachWorkspaceGraphInteractions } from "./graph-interactions";
 import { useWorkspaceContextMenu } from "./context-menu";
@@ -24,6 +25,12 @@ export const useWorkspaceController = (deps: WorkspaceControllerDeps): Workspace
         getActiveTabId: deps.getActiveTabId,
         getActiveScopeId: deps.uiEngine.state.activeScopeId,
         requestSimulationNow: simulation.requestNow,
+    });
+    const booleanAnalysis = useBooleanAnalysisController({
+        logicEngine: deps.logicEngine,
+        uiEngine: deps.uiEngine,
+        getActiveTabId: deps.getActiveTabId,
+        getActiveScopeId: deps.uiEngine.state.activeScopeId,
     });
     signalEventHandlers.add(hardware.handleSignalEvents);
 
@@ -80,5 +87,6 @@ export const useWorkspaceController = (deps: WorkspaceControllerDeps): Workspace
         removeSelected,
         simulation,
         hardware,
+        booleanAnalysis,
     };
 };

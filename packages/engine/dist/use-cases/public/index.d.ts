@@ -8,4 +8,5 @@ export * from "./UpdateItemInput.js";
 export * from "./UpdateItemOutput.js";
 export * from "./SimulateTab.js";
 export * from "./GetSimulationStatus.js";
+export * from "./AnalyzeBoolean.js";
 //# sourceMappingURL=index.d.ts.map

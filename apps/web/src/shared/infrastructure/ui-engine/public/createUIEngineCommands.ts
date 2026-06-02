@@ -63,9 +63,10 @@ export const createUIEngineCommands = ({
                 kind: getNodeKindByHash(input.hash),
                 hash: input.hash,
                 path: [...activeScope.path, activeScope.id],
+                meta: input.meta,
             })) as ItemBuilderResult;
             console.log(result);
-            return runtime.createBuiltNode(result);
+            return runtime.createBuiltNode(result, { position: input.position });
         },
         exportScopeSnapshot() {
             const activeScopeId = workspace.state.activeScopeId();

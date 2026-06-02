@@ -12,6 +12,7 @@ import { updateItemInputUC } from "@engine/use-cases/public/UpdateItemInput";
 import { updateItemOutputUC } from "@engine/use-cases/public/UpdateItemOutput";
 import { simulateTabUC } from "@engine/use-cases/public/SimulateTab";
 import { simulationStatusUC } from "@engine/use-cases/public/GetSimulationStatus";
+import { analyzeBooleanUC } from "@engine/use-cases/public/AnalyzeBoolean";
 
 export const API_CONFIGS = [
     createTabUC,
@@ -36,4 +37,6 @@ export const API_CONFIGS = [
 
     simulateTabUC,
     simulationStatusUC,
+
+    analyzeBooleanUC,
 ];

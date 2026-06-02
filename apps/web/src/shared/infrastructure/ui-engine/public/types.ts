@@ -1,6 +1,7 @@
 import type { Graph, Node } from "@antv/x6";
 import type { EngineSignalEvent } from "@gately/shared/types";
 import type { Accessor } from "solid-js";
+import type { XYCoords } from "@gately/shared/types";
 import type {
     NodeHashes,
     PinUpdate,
@@ -13,6 +14,8 @@ import type {
 
 export type UIEngineAddNodeCommandInput = {
     hash: NodeHashes;
+    meta?: { numOfInputs?: number; numOfOutputs?: number };
+    position?: XYCoords;
 };
 
 export type UIEngineCreateTabCommandInput = UIEngineTabCreateInput;
