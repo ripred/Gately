@@ -14,6 +14,7 @@ type AttachWorkspaceGraphInteractionsOptions = {
 };
 
 const EDGE_SELECTED_CLASS = "edge-selected";
+const ROUTE_DEBOUNCE_MS = 750;
 
 const shouldIgnoreKey = (e: KeyboardEvent) => {
     const target = e.target as HTMLElement | null;
@@ -70,7 +71,7 @@ export const attachWorkspaceGraphInteractions = (
             } finally {
                 isRerouting = false;
             }
-        }, 0);
+        }, ROUTE_DEBOUNCE_MS);
     };
 
     const onCellContextMenu = ({ cell, e }: any) => {

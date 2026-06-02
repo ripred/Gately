@@ -36,7 +36,7 @@ export type UIEngineNodeProps = Omit<NodeProperties, "data"> & {
     data: UIEngineNodeData;
 };
 
-export type EdgeRouterMode = "manhattan" | "metro";
+export type EdgeRouterMode = "normal" | "manhattan" | "metro";
 
 export type EdgeEndpoint = {
     node: Node;

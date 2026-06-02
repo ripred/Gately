@@ -25,7 +25,7 @@ export const LOGIC_VALUE_BY_CLASS: Record<LogicValueClass, LogicValue> = {
     "value-x": "X",
 };
 
-export const EDGE_ROUTER_MODES: EdgeRouterMode[] = ["manhattan", "metro"];
+export const EDGE_ROUTER_MODES: EdgeRouterMode[] = ["normal", "manhattan", "metro"];
 
 export const DEFAULT_VALUE_CLASS = "value-x";
 

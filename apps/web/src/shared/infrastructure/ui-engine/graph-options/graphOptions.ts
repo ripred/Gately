@@ -27,7 +27,7 @@ export const makeGraphOptions = (
         enabled: true,
         eventTypes: ["mouseWheelDown"],
     },
-    connecting: createConnectingConfig("manhattan"),
+    connecting: createConnectingConfig("normal"),
     preventDefaultBlankAction: true,
     preventDefaultContextMenu: true,
     preventDefaultDblClick: true,
