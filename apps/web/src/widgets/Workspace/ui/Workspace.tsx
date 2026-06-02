@@ -2,15 +2,20 @@ import { BooleanAnalysisPanel } from "@gately/features/boolean-analysis";
 import { useAppConfiguration } from "@gately/app/providers/AppConfigurationProvider";
 import { useUIEngine } from "@gately/shared/infrastructure";
 import { useLogicEngine } from "@gately/shared/infrastructure/LogicEngine";
-import { Component, Show } from "solid-js";
+import { Component, createSignal, Show } from "solid-js";
 import { useWorkspaceController } from "../lib";
 import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
+import { WorkspaceProjectSidebar } from "./WorkspaceProjectSidebar";
+import { WorkspaceSettingsPanel } from "./WorkspaceSettingsPanel";
 import { WorkspaceToolbar } from "./WorkspaceToolbar";
+import type { WorkspaceViewMode } from "./workbenchTypes";
 
 export const InnerWorkspace: Component = () => {
     const uiEngine = useUIEngine();
     const logicEngine = useLogicEngine();
     const configuration = useAppConfiguration();
+    const [viewMode, setViewMode] = createSignal<WorkspaceViewMode>("circuit");
+    const [projectSidebarCollapsed, setProjectSidebarCollapsed] = createSignal(false);
     const controller = useWorkspaceController({
         uiEngine,
         logicEngine,
@@ -29,11 +34,16 @@ export const InnerWorkspace: Component = () => {
                     <WorkspaceToolbar
                         booleanAnalysis={controller.booleanAnalysis}
                         autoLayout={controller.autoLayout}
-                        configuration={configuration}
                         customComponents={controller.customComponents}
                         hardware={controller.hardware}
+                        mode={viewMode()}
                         persistence={controller.persistence}
+                        projectSidebarCollapsed={projectSidebarCollapsed()}
+                        setMode={setViewMode}
                         simulation={controller.simulation}
+                        toggleProjectSidebar={() =>
+                            setProjectSidebarCollapsed((collapsed) => !collapsed)
+                        }
                     />
                 </div>
             </div>
@@ -44,18 +54,77 @@ export const InnerWorkspace: Component = () => {
             >
                 <BooleanAnalysisPanel controller={controller.booleanAnalysis} />
             </div>
-            <div class="relative min-h-0 flex-1">
-                <Show
-                    when={uiEngine.state.activeTabId()}
-                    fallback={<p class="p-4 text-gray-11">Create a new tab</p>}
+            <div class="flex min-h-0 flex-1">
+                <div
+                    style={{
+                        zoom: configuration.uiScale(),
+                    }}
                 >
-                    <div ref={uiEngine.mount.setContainer} class="absolute inset-0"></div>
-                    <WorkspaceContextMenu
-                        contextMenu={controller.contextMenu}
-                        getSelectionCount={controller.getSelectionCount}
-                        removeSelected={controller.removeSelected}
+                    <WorkspaceProjectSidebar
+                        collapsed={projectSidebarCollapsed()}
+                        customComponents={controller.customComponents}
+                        mode={viewMode()}
+                        persistence={controller.persistence}
+                        setMode={setViewMode}
+                        toggleCollapsed={() =>
+                            setProjectSidebarCollapsed((collapsed) => !collapsed)
+                        }
                     />
-                </Show>
+                </div>
+                <div class="relative min-h-0 flex-1">
+                    <Show
+                        when={uiEngine.state.activeTabId()}
+                        fallback={
+                            <Show
+                                when={viewMode() === "settings"}
+                                fallback={<p class="p-4 text-gray-11">Create a new tab</p>}
+                            >
+                                <div></div>
+                            </Show>
+                        }
+                    >
+                        <div
+                            ref={uiEngine.mount.setContainer}
+                            class="absolute inset-0"
+                            classList={{
+                                "opacity-0 pointer-events-none": viewMode() === "settings",
+                            }}
+                        ></div>
+                        <Show when={viewMode() === "circuit"}>
+                            <WorkspaceContextMenu
+                                contextMenu={controller.contextMenu}
+                                getSelectionCount={controller.getSelectionCount}
+                                removeSelected={controller.removeSelected}
+                            />
+                        </Show>
+                    </Show>
+                    <Show when={viewMode() === "settings"}>
+                        <div
+                            class="absolute inset-0 z-10"
+                            style={{
+                                zoom: configuration.uiScale(),
+                            }}
+                        >
+                            <WorkspaceSettingsPanel
+                                configuration={configuration}
+                                simulation={controller.simulation}
+                            />
+                        </div>
+                    </Show>
+                </div>
+            </div>
+            <div
+                class="flex h-6 shrink-0 items-center gap-4 border-t border-gray-4 bg-gray-2 px-3 text-[11px] text-gray-10"
+                style={{
+                    zoom: configuration.uiScale(),
+                }}
+            >
+                <span>
+                    {controller.simulation.isBusy ? "simulation running" : "simulation idle"}
+                </span>
+                <span>{controller.getSelectionCount()} selected</span>
+                <span>{viewMode() === "settings" ? "settings" : "circuit canvas"}</span>
+                <span>{uiEngine.state.activeNavigationPath().join(" / ") || "no circuit"}</span>
             </div>
         </div>
     );
