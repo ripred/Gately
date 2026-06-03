@@ -42,7 +42,6 @@ describe("buildProjectExplorerTree", () => {
             getScopeById: (id) => scopes[id],
             getScopeChildrenById: (id) =>
                 scopes[id]?.childrenIds.map((childId) => scopes[childId]).filter(Boolean) ?? [],
-            hasSavedWorkspace: true,
             tabs: [{ id: "tab-1", name: "Main" }],
         });
 
@@ -76,9 +75,8 @@ describe("buildProjectExplorerTree", () => {
             label: "Half Adder",
         });
         expect(tree.children?.[2].children?.[0]).toMatchObject({
-            detail: "saved",
             kind: "status",
-            label: "Browser workspace",
+            label: "Workspace file",
         });
     });
 
@@ -87,7 +85,6 @@ describe("buildProjectExplorerTree", () => {
             components: [],
             getScopeById: () => undefined,
             getScopeChildrenById: () => [],
-            hasSavedWorkspace: false,
             tabs: [],
         });
 
@@ -100,8 +97,8 @@ describe("buildProjectExplorerTree", () => {
             label: "No saved parts",
         });
         expect(tree.children?.[2].children?.[0]).toMatchObject({
-            detail: "not saved",
             kind: "status",
+            label: "Workspace file",
         });
     });
 });

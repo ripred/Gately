@@ -169,10 +169,7 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                     <Pusher
                         class={toolbarButton}
                         onClick={props.persistence.loadWorkspace}
-                        disabled={
-                            props.persistence.isBusy ||
-                            !props.persistence.hasSavedWorkspace()
-                        }
+                        disabled={props.persistence.isBusy}
                     >
                         Load
                     </Pusher>

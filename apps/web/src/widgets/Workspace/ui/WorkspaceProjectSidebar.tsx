@@ -178,7 +178,6 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
             components: customComponents(),
             getScopeById: uiEngine.state.getScopeById,
             getScopeChildrenById: uiEngine.state.getScopeChildrenById,
-            hasSavedWorkspace: props.persistence.hasSavedWorkspace(),
             tabs: uiEngine.state.tabs(),
         }),
     );
@@ -355,7 +354,7 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
             return;
         }
 
-        if (node.id === "project:workspace-storage" && props.persistence.hasSavedWorkspace()) {
+        if (node.id === "project:workspace-storage") {
             void props.persistence.loadWorkspace();
             return;
         }
@@ -477,12 +476,10 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                 separatorBefore: items.length > 0,
             });
 
-            if (props.persistence.hasSavedWorkspace()) {
-                items.push({
-                    label: "Load Workspace",
-                    onSelect: () => void props.persistence.loadWorkspace(),
-                });
-            }
+            items.push({
+                label: "Load Workspace",
+                onSelect: () => void props.persistence.loadWorkspace(),
+            });
         }
 
         if (node.scopeId) {

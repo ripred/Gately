@@ -31,7 +31,6 @@ type BuildProjectExplorerTreeInput = {
     components: ProjectExplorerComponent[];
     getScopeById: (scopeId: string) => UIEngineScope | undefined;
     getScopeChildrenById: (scopeId: string) => UIEngineScope[];
-    hasSavedWorkspace: boolean;
     tabs: UIEngineTab[];
 };
 
@@ -64,7 +63,6 @@ export const buildProjectExplorerTree = ({
     components,
     getScopeById,
     getScopeChildrenById,
-    hasSavedWorkspace,
     tabs,
 }: BuildProjectExplorerTreeInput): ProjectExplorerNode => {
     const circuitChildren = tabs
@@ -108,10 +106,9 @@ export const buildProjectExplorerTree = ({
             {
                 children: [
                     {
-                        detail: hasSavedWorkspace ? "saved" : "not saved",
                         id: "project:workspace-storage",
                         kind: "status",
-                        label: "Browser workspace",
+                        label: "Workspace file",
                     },
                 ],
                 id: "project:workbench",
