@@ -278,6 +278,10 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         event.preventDefault();
         event.stopPropagation();
         selectEntry();
+        if (!items.length) {
+            closeEntryMenu();
+            return;
+        }
         setEntryMenu({
             items,
             x: event.clientX,
@@ -370,14 +374,17 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
             return;
         }
 
+        if (node.id === "project:workspace-storage" && props.persistence.hasSavedWorkspace()) {
+            void props.persistence.loadWorkspace();
+            return;
+        }
+
         if (node.kind === "component" && node.hash) {
             void props.customComponents.addComponent(node.hash);
             return;
         }
 
-        if (node.children?.length) {
-            toggleProjectNodeExpanded(node.id);
-        }
+        // Folder expansion is handled by single-click on folder rows.
     };
     const projectNodeIsActive = (node: ProjectExplorerNode) => {
         const selectedEntryId = selectedExplorerEntryId();
@@ -455,14 +462,10 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
             });
         }
 
-        if (withClose) {
-            const canClose = canCloseCircuit(scope.id);
+        if (withClose && canCloseCircuit(scope.id)) {
             items.push({
-                disabled: !canClose,
                 label: "Close Circuit",
-                onSelect: () => {
-                    if (canClose) void closeCircuit(scope.id);
-                },
+                onSelect: () => void closeCircuit(scope.id),
                 separatorBefore: true,
             });
         }
@@ -480,39 +483,26 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         const isCircuitsFolder = node.id === "project:circuits";
         const isWorkspaceStorage = node.id === "project:workspace-storage";
 
-        if (isWorkspaceRoot || isCircuitsFolder) {
+        if ((isWorkspaceRoot || isCircuitsFolder) && !props.persistence.isBusy) {
             items.push({
-                disabled: props.persistence.isBusy,
                 label: "New Circuit",
-                onSelect: () => {
-                    if (!props.persistence.isBusy) props.persistence.createTab();
-                },
+                onSelect: () => props.persistence.createTab(),
             });
         }
 
-        if (isWorkspaceRoot || isWorkspaceStorage) {
-            items.push(
-                {
-                    disabled: props.persistence.isBusy,
-                    label: "Save Workspace",
-                    onSelect: () => {
-                        if (!props.persistence.isBusy) void props.persistence.saveWorkspace();
-                    },
-                    separatorBefore: items.length > 0,
-                },
-                {
-                    disabled: props.persistence.isBusy || !props.persistence.hasSavedWorkspace(),
+        if ((isWorkspaceRoot || isWorkspaceStorage) && !props.persistence.isBusy) {
+            items.push({
+                label: "Save Workspace",
+                onSelect: () => void props.persistence.saveWorkspace(),
+                separatorBefore: items.length > 0,
+            });
+
+            if (props.persistence.hasSavedWorkspace()) {
+                items.push({
                     label: "Load Workspace",
-                    onSelect: () => {
-                        if (
-                            !props.persistence.isBusy &&
-                            props.persistence.hasSavedWorkspace()
-                        ) {
-                            void props.persistence.loadWorkspace();
-                        }
-                    },
-                },
-            );
+                    onSelect: () => void props.persistence.loadWorkspace(),
+                });
+            }
         }
 
         if (node.scopeId) {
@@ -555,54 +545,49 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
             });
         }
 
-        if (node.scopeId && node.scopeId === node.tabId) {
-            const canClose = Boolean(node.tabId && canCloseCircuit(node.tabId));
+        const tabId = node.tabId;
+        if (node.scopeId && node.scopeId === tabId && tabId && canCloseCircuit(tabId)) {
             items.push({
-                disabled: !canClose,
                 label: "Close Circuit",
-                onSelect: () => {
-                    if (canClose && node.tabId) void closeCircuit(node.tabId);
-                },
+                onSelect: () => void closeCircuit(tabId),
                 separatorBefore: true,
             });
         }
 
-        return items.length > 0 ? items : [{ disabled: true, label: "No Actions Available" }];
+        return items;
     };
 
     const componentEntryMenuItems = (component: {
         hash: string;
         name: string;
-    }): EntryMenuItem[] => [
-        {
-            disabled: props.customComponents.isBusy,
-            label: "Insert Component",
-            onSelect: () => {
-                if (props.customComponents.isBusy) return;
-                selectComponentEntry(component.hash);
-                void props.customComponents.addComponent(component.hash);
+    }): EntryMenuItem[] => {
+        if (props.customComponents.isBusy) return [];
+
+        return [
+            {
+                label: "Insert Component",
+                onSelect: () => {
+                    selectComponentEntry(component.hash);
+                    void props.customComponents.addComponent(component.hash);
+                },
             },
-        },
-        {
-            disabled: props.customComponents.isBusy,
-            label: "Rename Component",
-            onSelect: () => {
-                if (props.customComponents.isBusy) return;
-                selectComponentEntry(component.hash);
-                void props.customComponents.renameSelected();
+            {
+                label: "Rename Component",
+                onSelect: () => {
+                    selectComponentEntry(component.hash);
+                    void props.customComponents.renameSelected();
+                },
+                separatorBefore: true,
             },
-            separatorBefore: true,
-        },
-        {
-            disabled: props.customComponents.isBusy,
-            label: "Delete Component",
-            onSelect: () => {
-                if (props.customComponents.isBusy) return;
-                selectComponentEntry(component.hash);
-                void props.customComponents.removeSelected();
+            {
+                label: "Delete Component",
+                onSelect: () => {
+                    selectComponentEntry(component.hash);
+                    void props.customComponents.removeSelected();
+                },
             },
-        },
-    ];
+        ];
+    };
 
     const settingsEntryMenuItems = (): EntryMenuItem[] => [
         {
@@ -748,11 +733,14 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         const rowIsActive = () => projectNodeIsActive(nodeProps.node);
         const nodeIsRenaming = () =>
             Boolean(nodeProps.node.scopeId && isRenamingScope(nodeProps.node.scopeId));
+        const menuItems = () =>
+            projectEntryMenuItems(nodeProps.node, hasChildren(), expanded());
+        const hasMenuActions = () => menuItems().some((item) => !item.disabled);
         const openProjectRowMenu = (event: MouseEvent | PointerEvent) =>
             openEntryMenu(
                 event,
                 () => selectProjectEntry(nodeProps.node.id),
-                projectEntryMenuItems(nodeProps.node, hasChildren(), expanded()),
+                menuItems(),
             );
         const handleProjectRowKeyDown = (event: KeyboardEvent) => {
             switch (event.key) {
@@ -812,7 +800,12 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                         rowIsActive() ? "bg-primary-3 text-primary-11" : "text-gray-11",
                     ].join(" ")}
                     onClick={(event) => {
-                        if (isLeftMouseButton(event)) selectProjectEntry(nodeProps.node.id);
+                        if (!isLeftMouseButton(event)) return;
+
+                        selectProjectEntry(nodeProps.node.id);
+                        if (hasChildren()) {
+                            toggleProjectNodeExpanded(nodeProps.node.id);
+                        }
                     }}
                     onContextMenu={openProjectRowMenu}
                     onKeyDown={handleProjectRowKeyDown}
@@ -822,7 +815,10 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                     <button
                         class="flex h-7 w-5 shrink-0 items-center justify-center rounded text-gray-9 hover:bg-gray-4 hover:text-gray-12 disabled:hover:bg-transparent"
                         disabled={!hasChildren()}
-                        onClick={() => toggleProjectNodeExpanded(nodeProps.node.id)}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            toggleProjectNodeExpanded(nodeProps.node.id);
+                        }}
                         title={hasChildren() ? "Expand or collapse" : undefined}
                     >
                         <TreeChevron visible={hasChildren()} expanded={expanded()} />
@@ -832,9 +828,11 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                         fallback={
                             <button
                                 class={projectTreeLabelButtonClass}
-                                disabled={nodeProps.node.kind === "status"}
+                                disabled={!hasMenuActions() && nodeProps.node.kind === "status"}
                                 onContextMenu={openProjectRowMenu}
-                                onDblClick={() => activateProjectNode(nodeProps.node)}
+                                onDblClick={() => {
+                                    if (!hasChildren()) activateProjectNode(nodeProps.node);
+                                }}
                                 title={nodeProps.node.detail}
                             >
                                 <ProjectNodeLabel />

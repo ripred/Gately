@@ -19,6 +19,7 @@ const contextMenuItem = tv({
     select-none outline-none
     data-highlighted:bg-gray-3
     data-disabled:text-gray-10 data-disabled:pointer-events-none
+    disabled:text-gray-8 disabled:cursor-default
     `,
 });
 
