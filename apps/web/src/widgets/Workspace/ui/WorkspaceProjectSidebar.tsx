@@ -12,8 +12,6 @@ import {
     type ProjectExplorerNode,
     type ProjectExplorerNodeKind,
 } from "./projectExplorerTree";
-import type { SettingsCategoryId } from "./WorkspaceSettingsPanel";
-import type { WorkspaceViewMode } from "./workbenchTypes";
 import {
     Component,
     createMemo,
@@ -32,9 +30,6 @@ type WorkspaceProjectSidebarProps = Pick<
 > & {
     collapsed: boolean;
     configuration: AppConfigurationController;
-    mode: WorkspaceViewMode;
-    openSettings: (categoryId?: SettingsCategoryId) => void;
-    setMode: (mode: WorkspaceViewMode) => void;
     toggleCollapsed: () => void;
 };
 
@@ -83,8 +78,6 @@ const TreeNodeIcon: Component<{ kind: ProjectExplorerNodeKind; expanded?: boolea
         switch (props.kind) {
             case "component":
                 return "M5 3h5l3 3v7H5z M10 3v3h3";
-            case "settings":
-                return "M8 4.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z M8 2.5v2 M8 11.5v2 M2.5 8h2 M11.5 8h2 M3.75 3.75l1.4 1.4 M10.85 10.85l1.4 1.4 M12.25 3.75l-1.4 1.4 M5.15 10.85l-1.4 1.4";
             case "status":
                 return "M4 3h8v10H4z M6 6h4 M6 9h3";
             default:
@@ -148,7 +141,7 @@ const ExplorerTreeSection: Component<{
                 aria-expanded={expanded()}
                 onClick={toggleExpanded}
             >
-                <span class="w-3 text-center">{expanded() ? "v" : ">"}</span>
+                <TreeChevron expanded={expanded()} visible />
                 <span>{props.title}</span>
             </button>
             <Show when={expanded()}>
@@ -213,16 +206,12 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         scope.childrenIds.length > 0 && !collapsedScopeIds()[scope.id];
     const projectNodeExpanded = (node: ProjectExplorerNode) =>
         Boolean(node.children?.length) && !collapsedProjectNodeIds()[node.id];
-    const settingsExplorerEntryId = "project:settings";
     const scopeExplorerEntryId = (scopeId: string) => `scope:${scopeId}`;
     const componentExplorerEntryId = (hash: string) => `component:${hash}`;
     const explorerSelectionIsActive = (entryId: string) => {
         const selectedEntryId = selectedExplorerEntryId();
         return selectedEntryId ? selectedEntryId === entryId : false;
     };
-    const settingsEntryIsActive = () =>
-        explorerSelectionIsActive(settingsExplorerEntryId) ||
-        (!selectedExplorerEntryId() && props.mode === "settings");
     const selectScopeEntry = (scopeId: string) => {
         setSelectedExplorerEntryId(scopeExplorerEntryId(scopeId));
     };
@@ -251,17 +240,14 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
     const openCircuit = (tabId: string) => {
         selectScopeEntry(tabId);
         uiEngine.commands.openTab(tabId);
-        props.setMode("circuit");
     };
     const openScope = (scopeId: string, tabId?: string) => {
         selectScopeEntry(scopeId);
         uiEngine.commands.openScope(scopeId, tabId);
-        props.setMode("circuit");
     };
     const closeCircuit = async (tabId: string) => {
         try {
             await uiEngine.commands.closeTab(tabId);
-            props.setMode("circuit");
         } catch (error) {
             window.alert(error instanceof Error ? error.message : "Unable to close circuit.");
         }
@@ -369,11 +355,6 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
             return;
         }
 
-        if (node.kind === "settings") {
-            props.openSettings("workbench");
-            return;
-        }
-
         if (node.id === "project:workspace-storage" && props.persistence.hasSavedWorkspace()) {
             void props.persistence.loadWorkspace();
             return;
@@ -390,9 +371,8 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         const selectedEntryId = selectedExplorerEntryId();
         if (selectedEntryId) return selectedEntryId === node.id;
 
-        if (node.kind === "settings") return props.mode === "settings";
         if (!node.scopeId) return false;
-        return props.mode === "circuit" && node.scopeId === activeScopeId();
+        return node.scopeId === activeScopeId();
     };
 
     const ScopeNameCell: Component<{
@@ -529,14 +509,6 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
             });
         }
 
-        if (node.kind === "settings") {
-            items.push({
-                label: "Open Settings",
-                onSelect: () => props.openSettings("workbench"),
-                separatorBefore: items.length > 0,
-            });
-        }
-
         if (hasChildren) {
             items.push({
                 label: expanded ? "Collapse" : "Expand",
@@ -589,13 +561,6 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         ];
     };
 
-    const settingsEntryMenuItems = (): EntryMenuItem[] => [
-        {
-            label: "Open Settings",
-            onSelect: () => props.openSettings("workbench"),
-        },
-    ];
-
     const ScopeTreeNode: Component<{
         depth: number;
         forceDirectory?: boolean;
@@ -612,7 +577,7 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
             const entryId = scopeExplorerEntryId(nodeProps.scope.id);
             if (selectedExplorerEntryId()) return explorerSelectionIsActive(entryId);
 
-            return props.mode === "circuit" && nodeProps.scope.id === activeScopeId();
+            return nodeProps.scope.id === activeScopeId();
         };
         const openScopeRowMenu = (event: MouseEvent | PointerEvent) =>
             openEntryMenu(
@@ -904,20 +869,6 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                     <div class="flex flex-col items-center gap-2 py-3 text-[11px] text-gray-10">
                         <button
                             class="rounded px-2 py-1 hover:bg-gray-3"
-                            onClick={() => props.setMode("circuit")}
-                            title="Circuit"
-                        >
-                            C
-                        </button>
-                        <button
-                            class="rounded px-2 py-1 hover:bg-gray-3"
-                            onClick={() => props.openSettings("workbench")}
-                            title="Settings"
-                        >
-                            S
-                        </button>
-                        <button
-                            class="rounded px-2 py-1 hover:bg-gray-3"
                             onClick={props.persistence.createTab}
                             title="New circuit"
                         >
@@ -1055,46 +1006,6 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                         </Show>
                     </ExplorerTreeSection>
 
-                    <ExplorerTreeSection
-                        configuration={props.configuration}
-                        sectionKey="workbench"
-                        title="Workbench"
-                    >
-                        <div role="tree" aria-label="Workbench tree">
-                            <div
-                                role="treeitem"
-                                aria-selected={settingsEntryIsActive()}
-                                class={[
-                                    "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-3",
-                                    settingsEntryIsActive()
-                                        ? "bg-primary-3 text-primary-11"
-                                        : "text-gray-11",
-                                ].join(" ")}
-                                onClick={(event) => {
-                                    if (isLeftMouseButton(event)) {
-                                        selectProjectEntry(settingsExplorerEntryId);
-                                    }
-                                }}
-                                onContextMenu={(event) =>
-                                    openEntryMenu(
-                                        event,
-                                        () => selectProjectEntry(settingsExplorerEntryId),
-                                        settingsEntryMenuItems(),
-                                    )
-                                }
-                                onKeyDown={(event) => {
-                                    if (event.key === "Enter") {
-                                        event.preventDefault();
-                                        props.openSettings("workbench");
-                                    }
-                                }}
-                                tabIndex={0}
-                            >
-                                <span class="text-gray-9">-</span>
-                                <span>Settings</span>
-                            </div>
-                        </div>
-                    </ExplorerTreeSection>
                 </div>
 
             </Show>

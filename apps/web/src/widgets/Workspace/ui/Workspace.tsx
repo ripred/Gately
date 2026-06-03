@@ -8,13 +8,12 @@ import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
 import { WorkspaceProjectSidebar } from "./WorkspaceProjectSidebar";
 import { WorkspaceSettingsPanel, type SettingsCategoryId } from "./WorkspaceSettingsPanel";
 import { WorkspaceToolbar } from "./WorkspaceToolbar";
-import type { WorkspaceViewMode } from "./workbenchTypes";
 
 export const InnerWorkspace: Component = () => {
     const uiEngine = useUIEngine();
     const logicEngine = useLogicEngine();
     const configuration = useAppConfiguration();
-    const [viewMode, setViewMode] = createSignal<WorkspaceViewMode>("circuit");
+    const [settingsOpen, setSettingsOpen] = createSignal(false);
     const [activeSettingsCategoryId, setActiveSettingsCategoryId] =
         createSignal<SettingsCategoryId>("accessibility");
     const projectSidebarCollapsed = () => configuration.workbenchConfig().explorerCollapsed;
@@ -22,8 +21,9 @@ export const InnerWorkspace: Component = () => {
         configuration.setWorkbenchConfig({ explorerCollapsed: !projectSidebarCollapsed() });
     const openSettings = (categoryId: SettingsCategoryId = "accessibility") => {
         setActiveSettingsCategoryId(categoryId);
-        setViewMode("settings");
+        setSettingsOpen(true);
     };
+    const closeSettings = () => setSettingsOpen(false);
     const controller = useWorkspaceController({
         uiEngine,
         logicEngine,
@@ -38,6 +38,12 @@ export const InnerWorkspace: Component = () => {
         return target.isContentEditable;
     };
     const handleWorkspaceShortcut = (event: KeyboardEvent) => {
+        if (event.key === "Escape" && settingsOpen()) {
+            event.preventDefault();
+            closeSettings();
+            return;
+        }
+
         if (shouldIgnoreShortcut(event)) return;
         if (!event.metaKey && !event.ctrlKey) return;
         if (!uiEngine.state.activeScopeId()) return;
@@ -75,12 +81,11 @@ export const InnerWorkspace: Component = () => {
                         autoLayout={controller.autoLayout}
                         customComponents={controller.customComponents}
                         hardware={controller.hardware}
-                        mode={viewMode()}
+                        settingsOpen={settingsOpen()}
                         openSettings={openSettings}
                         persistence={controller.persistence}
                         projectSidebarCollapsed={projectSidebarCollapsed()}
                         configuration={configuration}
-                        setMode={setViewMode}
                         simulation={controller.simulation}
                         toggleProjectSidebar={toggleProjectSidebar}
                     />
@@ -103,53 +108,44 @@ export const InnerWorkspace: Component = () => {
                         collapsed={projectSidebarCollapsed()}
                         configuration={configuration}
                         customComponents={controller.customComponents}
-                        mode={viewMode()}
-                        openSettings={openSettings}
                         persistence={controller.persistence}
-                        setMode={setViewMode}
                         toggleCollapsed={toggleProjectSidebar}
                     />
                 </div>
                 <div class="relative min-h-0 flex-1">
                     <Show
                         when={uiEngine.state.activeTabId()}
-                        fallback={
-                            <Show
-                                when={viewMode() === "settings"}
-                                fallback={<p class="p-4 text-gray-11">Create a new tab</p>}
-                            >
-                                <div></div>
-                            </Show>
-                        }
+                        fallback={<p class="p-4 text-gray-11">Create a new tab</p>}
                     >
                         <div
                             ref={uiEngine.mount.setContainer}
                             class="absolute inset-0"
-                            classList={{
-                                "opacity-0 pointer-events-none": viewMode() === "settings",
-                            }}
                         ></div>
-                        <Show when={viewMode() === "circuit"}>
-                            <WorkspaceContextMenu
-                                contextMenu={controller.contextMenu}
-                                getSelectionCount={controller.getSelectionCount}
-                                removeSelected={controller.removeSelected}
-                            />
-                        </Show>
+                        <WorkspaceContextMenu
+                            contextMenu={controller.contextMenu}
+                            getSelectionCount={controller.getSelectionCount}
+                            removeSelected={controller.removeSelected}
+                        />
                     </Show>
-                    <Show when={viewMode() === "settings"}>
+                    <Show when={settingsOpen()}>
                         <div
-                            class="absolute inset-0 z-10"
+                            aria-modal="true"
+                            class="absolute inset-0 z-20 flex items-start justify-center bg-black/20 px-8 py-8"
+                            role="dialog"
                             style={{
                                 zoom: configuration.uiScale(),
                             }}
+                            onClick={closeSettings}
                         >
-                            <WorkspaceSettingsPanel
-                                activeCategoryId={activeSettingsCategoryId}
-                                configuration={configuration}
-                                setActiveCategoryId={setActiveSettingsCategoryId}
-                                simulation={controller.simulation}
-                            />
+                            <div onClick={(event) => event.stopPropagation()}>
+                                <WorkspaceSettingsPanel
+                                    activeCategoryId={activeSettingsCategoryId}
+                                    configuration={configuration}
+                                    onClose={closeSettings}
+                                    setActiveCategoryId={setActiveSettingsCategoryId}
+                                    simulation={controller.simulation}
+                                />
+                            </div>
                         </div>
                     </Show>
                 </div>
@@ -164,7 +160,7 @@ export const InnerWorkspace: Component = () => {
                     {controller.simulation.isBusy ? "simulation running" : "simulation idle"}
                 </span>
                 <span>{controller.getSelectionCount()} selected</span>
-                <span>{viewMode() === "settings" ? "settings" : "circuit canvas"}</span>
+                <span>{settingsOpen() ? "settings open" : "circuit canvas"}</span>
                 <span>{uiEngine.state.activeNavigationPath().join(" / ") || "no circuit"}</span>
             </div>
         </div>

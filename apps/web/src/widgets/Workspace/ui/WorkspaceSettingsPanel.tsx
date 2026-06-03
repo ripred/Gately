@@ -21,6 +21,7 @@ import {
 type WorkspaceSettingsPanelProps = {
     activeCategoryId: Accessor<SettingsCategoryId>;
     configuration: AppConfigurationController;
+    onClose: () => void;
     setActiveCategoryId: (categoryId: SettingsCategoryId) => void;
     simulation: WorkspaceSimulationController;
 };
@@ -344,14 +345,38 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
     });
 
     return (
-        <div class="h-full overflow-hidden bg-gray-1 text-gray-12">
-            <div class="flex h-full min-h-0 flex-col">
+        <div class="flex h-[min(44rem,calc(100vh-6rem))] w-[min(62rem,calc(100vw-4rem))] overflow-hidden rounded border border-gray-4 bg-gray-1 text-gray-12 shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
+            <div class="flex h-full min-h-0 flex-1 flex-col">
                 <header class="shrink-0 border-b border-gray-4 px-6 py-4">
-                    <p class="text-xs font-bold uppercase tracking-wide text-gray-10">
-                        Gately Preferences
-                    </p>
-                    <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
-                        <h1 class="text-2xl font-semibold text-gray-12">Settings</h1>
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-wide text-gray-10">
+                                Gately Preferences
+                            </p>
+                            <h1 class="mt-2 text-2xl font-semibold text-gray-12">Settings</h1>
+                        </div>
+                        <button
+                            aria-label="Close settings"
+                            class="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-gray-5 bg-gray-2 text-sm text-gray-12 hover:bg-gray-3"
+                            onClick={props.onClose}
+                            type="button"
+                        >
+                            <svg
+                                aria-hidden="true"
+                                class="h-4 w-4"
+                                viewBox="0 0 16 16"
+                            >
+                                <path
+                                    d="M4 4l8 8M12 4l-8 8"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-linecap="round"
+                                    stroke-width="1.8"
+                                />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
                         <label class="min-w-[16rem] flex-1 max-w-sm">
                             <span class="sr-only">Search settings</span>
                             <input

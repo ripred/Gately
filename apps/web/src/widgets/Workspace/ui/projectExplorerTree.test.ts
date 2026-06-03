@@ -56,7 +56,7 @@ describe("buildProjectExplorerTree", () => {
         const circuitsFolder = tree.children?.[0];
         expect(circuitsFolder?.children?.[0]).toMatchObject({
             id: "scope:tab-1",
-            kind: "folder",
+            kind: "circuit",
             label: "Main",
             scopeId: "tab-1",
             tabId: "tab-1",
@@ -75,7 +75,7 @@ describe("buildProjectExplorerTree", () => {
             kind: "component",
             label: "Half Adder",
         });
-        expect(tree.children?.[2].children?.[1]).toMatchObject({
+        expect(tree.children?.[2].children?.[0]).toMatchObject({
             detail: "saved",
             kind: "status",
             label: "Browser workspace",
@@ -99,7 +99,7 @@ describe("buildProjectExplorerTree", () => {
             kind: "status",
             label: "No saved parts",
         });
-        expect(tree.children?.[2].children?.[1]).toMatchObject({
+        expect(tree.children?.[2].children?.[0]).toMatchObject({
             detail: "not saved",
             kind: "status",
         });

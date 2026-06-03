@@ -11,7 +11,6 @@ import type { WorkspaceController } from "../lib/types";
 import { Component, For, Show } from "solid-js";
 import { SIMULATION_MODE_OPTIONS } from "./settingsSchema";
 import type { SettingsCategoryId } from "./WorkspaceSettingsPanel";
-import type { WorkspaceViewMode } from "./workbenchTypes";
 
 type WorkspaceToolbarProps = Pick<
     WorkspaceController,
@@ -23,10 +22,9 @@ type WorkspaceToolbarProps = Pick<
     | "simulation"
 > & {
     configuration: AppConfigurationController;
-    mode: WorkspaceViewMode;
     openSettings: (categoryId?: SettingsCategoryId) => void;
     projectSidebarCollapsed: boolean;
-    setMode: (mode: WorkspaceViewMode) => void;
+    settingsOpen: boolean;
     toggleProjectSidebar: () => void;
 };
 
@@ -89,26 +87,11 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                 <Pusher
                     class={[
                         toolbarButton,
-                        props.mode === "circuit" ? "border-primary-7 bg-primary-3" : "",
-                    ].join(" ")}
-                    onClick={() => props.setMode("circuit")}
-                >
-                    Circuit
-                </Pusher>
-                <Pusher
-                    class={[
-                        toolbarButton,
-                        props.mode === "settings" ? "border-primary-7 bg-primary-3" : "",
+                        props.settingsOpen ? "border-primary-7 bg-primary-3" : "",
                     ].join(" ")}
                     onClick={() => props.openSettings("accessibility")}
                 >
                     Settings
-                </Pusher>
-                <Pusher
-                    class={toolbarButton}
-                    onClick={() => props.openSettings("workbench")}
-                >
-                    Customize Toolbar
                 </Pusher>
             </div>
 

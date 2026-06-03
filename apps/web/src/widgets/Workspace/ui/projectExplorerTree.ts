@@ -7,7 +7,6 @@ export type ProjectExplorerNodeKind =
     | "folder"
     | "circuit"
     | "component"
-    | "settings"
     | "status";
 
 export type ProjectExplorerComponent = {
@@ -54,7 +53,7 @@ const buildScopeNode = (
     return {
         children,
         id: `scope:${scope.id}`,
-        kind: children.length > 0 || scope.kind === "tab" ? "folder" : "circuit",
+        kind: "circuit",
         label: scope.name,
         scopeId: scope.id,
         tabId,
@@ -108,11 +107,6 @@ export const buildProjectExplorerTree = ({
             },
             {
                 children: [
-                    {
-                        id: "project:settings",
-                        kind: "settings",
-                        label: "Settings",
-                    },
                     {
                         detail: hasSavedWorkspace ? "saved" : "not saved",
                         id: "project:workspace-storage",
