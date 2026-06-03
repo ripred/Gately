@@ -2,6 +2,10 @@ import { createSignal } from "solid-js";
 import type { EngineSessionSnapshot } from "@cnbn/engine";
 import type { CinabonoClient } from "@cnbn/engine-worker";
 import type {
+    AppConfigurationController,
+    AppConfigurationSnapshot,
+} from "@gately/app/providers/AppConfigurationProvider";
+import type {
     UIEngineWorkspaceSnapshot,
 } from "@gately/shared/infrastructure/ui-engine/model/types";
 import type { WorkspaceUIEngine } from "./types";
@@ -15,6 +19,7 @@ type GatelyProjectSnapshot = {
     savedAt: number;
     engine: EngineSessionSnapshot;
     workspace: UIEngineWorkspaceSnapshot;
+    configuration?: AppConfigurationSnapshot;
 };
 
 type FileSystemWritableFileStream = {
@@ -56,7 +61,11 @@ export type WorkspacePersistenceController = {
 type WorkspacePersistenceDeps = {
     logicEngine: CinabonoClient;
     uiEngine: WorkspaceUIEngine;
+    configuration: AppConfigurationController;
     onAfterLoad?: () => Promise<void> | void;
+    onAfterProjectLoad?: () => void;
+    onAfterSave?: () => void;
+    onDirty?: () => void;
 };
 
 const parseProject = (raw: string): GatelyProjectSnapshot => {
@@ -181,18 +190,22 @@ export const createWorkspacePersistence = (
         savedAt: Date.now(),
         engine: (await deps.logicEngine.call("/session/export", undefined)) as EngineSessionSnapshot,
         workspace: deps.uiEngine.commands.exportWorkspaceSnapshot(),
+        configuration: deps.configuration.exportSnapshot(),
     });
 
     const importProjectSnapshot = async (project: GatelyProjectSnapshot): Promise<void> => {
         await deps.logicEngine.call("/session/import", project.engine);
         await deps.onAfterLoad?.();
         deps.uiEngine.commands.importWorkspaceSnapshot(project.workspace);
+        deps.configuration.importSnapshot(project.configuration);
+        deps.onAfterProjectLoad?.();
     };
 
     const saveWorkspace = async () => {
         setBusy(true);
         try {
-            await writeProjectFile(await buildProjectSnapshot(), projectFileName(deps));
+            const saved = await writeProjectFile(await buildProjectSnapshot(), projectFileName(deps));
+            if (saved) deps.onAfterSave?.();
         } catch (error) {
             if (!userCanceledFilePicker(error)) {
                 window.alert(error instanceof Error ? error.message : "Unable to save workspace.");
@@ -219,7 +232,8 @@ export const createWorkspacePersistence = (
     };
 
     const createTab = async () => {
-        await deps.uiEngine.commands.createTab({ name: "Untitled" });
+        await deps.uiEngine.commands.createTab({ name: "untitled" });
+        deps.onDirty?.();
     };
 
     return {

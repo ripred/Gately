@@ -30,6 +30,7 @@ type WorkspaceProjectSidebarProps = Pick<
 > & {
     collapsed: boolean;
     configuration: AppConfigurationController;
+    onDirty: () => void;
     toggleCollapsed: () => void;
 };
 
@@ -185,6 +186,7 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
     const isRenamingScope = (scopeId: string) => renamingScopeId() === scopeId;
     const renameScope = (scopeId: string, name: string) => {
         uiEngine.commands.renameScope(scopeId, name);
+        props.onDirty();
     };
     const setScopeRenaming =
         (scopeId: string): Setter<boolean> =>
@@ -246,7 +248,8 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
     };
     const closeCircuit = async (tabId: string) => {
         try {
-            await uiEngine.commands.closeTab(tabId);
+            const closed = await uiEngine.commands.closeTab(tabId);
+            if (closed) props.onDirty();
         } catch (error) {
             window.alert(error instanceof Error ? error.message : "Unable to close circuit.");
         }

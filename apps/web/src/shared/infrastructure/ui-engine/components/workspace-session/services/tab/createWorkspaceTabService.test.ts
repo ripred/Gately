@@ -53,7 +53,7 @@ describe("createWorkspaceTabService", () => {
         });
     });
 
-    it("uses Untitled as the default tab name", async () => {
+    it("uses untitled as the default tab name", async () => {
         await createRoot(async (dispose) => {
             const state = createWorkspaceStateService();
             const openTab = vi.fn();
@@ -79,7 +79,7 @@ describe("createWorkspaceTabService", () => {
 
             await tab.createTab();
 
-            expect(state.tabs()).toEqual([{ id: "tab-1", name: "Untitled" }]);
+            expect(state.tabs()).toEqual([{ id: "tab-1", name: "untitled" }]);
 
             dispose();
         });

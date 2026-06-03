@@ -30,7 +30,7 @@ export const createWorkspaceTabService = (ctx: WorkspaceSessionServiceContext): 
         const tab = state.addTab({
             id: tabId,
             childrenIds: data.childrenIds,
-            name: data.name ?? "Untitled",
+            name: data.name ?? "untitled",
             contentJson: data.contentJson ?? DEFAULT_SCOPE_SNAPSHOT.contentJson,
             viewport: data.viewport ?? DEFAULT_SCOPE_SNAPSHOT.viewport,
             options: { setActive: false },

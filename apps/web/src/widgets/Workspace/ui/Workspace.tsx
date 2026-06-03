@@ -1,5 +1,8 @@
 import { BooleanAnalysisPanel } from "@gately/features/boolean-analysis";
-import { useAppConfiguration } from "@gately/app/providers/AppConfigurationProvider";
+import {
+    type AppConfigurationController,
+    useAppConfiguration,
+} from "@gately/app/providers/AppConfigurationProvider";
 import { useUIEngine } from "@gately/shared/infrastructure";
 import { useLogicEngine } from "@gately/shared/infrastructure/LogicEngine";
 import { Component, createSignal, onCleanup, onMount, Show } from "solid-js";
@@ -13,12 +16,40 @@ export const InnerWorkspace: Component = () => {
     const uiEngine = useUIEngine();
     const logicEngine = useLogicEngine();
     const configuration = useAppConfiguration();
+    const [workspaceDirty, setWorkspaceDirty] = createSignal(false);
+    const markWorkspaceDirty = () => setWorkspaceDirty(true);
+    const markWorkspaceClean = () => setWorkspaceDirty(false);
+    const markDirtyBefore = <Args extends unknown[]>(
+        fn: (...args: Args) => void,
+    ): ((...args: Args) => void) => {
+        return (...args: Args) => {
+            markWorkspaceDirty();
+            fn(...args);
+        };
+    };
+    const dirtyAwareConfiguration: AppConfigurationController = {
+        ...configuration,
+        setUiScale: markDirtyBefore(configuration.setUiScale),
+        setRoutingConfig: markDirtyBefore(configuration.setRoutingConfig),
+        setSignalPathColors: markDirtyBefore(configuration.setSignalPathColors),
+        setWorkbenchConfig: markDirtyBefore(configuration.setWorkbenchConfig),
+        uiZoomIn: markDirtyBefore(configuration.uiZoomIn),
+        uiZoomOut: markDirtyBefore(configuration.uiZoomOut),
+        resetUiZoom: markDirtyBefore(configuration.resetUiZoom),
+        resetRoutingConfig: markDirtyBefore(configuration.resetRoutingConfig),
+        resetSignalPathColors: markDirtyBefore(configuration.resetSignalPathColors),
+        resetWorkbenchConfig: markDirtyBefore(configuration.resetWorkbenchConfig),
+        importSnapshot: configuration.importSnapshot,
+        exportSnapshot: configuration.exportSnapshot,
+    };
     const [settingsOpen, setSettingsOpen] = createSignal(false);
     const [activeSettingsCategoryId, setActiveSettingsCategoryId] =
         createSignal<SettingsCategoryId>("accessibility");
     const projectSidebarCollapsed = () => configuration.workbenchConfig().explorerCollapsed;
     const toggleProjectSidebar = () =>
-        configuration.setWorkbenchConfig({ explorerCollapsed: !projectSidebarCollapsed() });
+        dirtyAwareConfiguration.setWorkbenchConfig({
+            explorerCollapsed: !projectSidebarCollapsed(),
+        });
     const openSettings = (categoryId: SettingsCategoryId = "accessibility") => {
         setActiveSettingsCategoryId(categoryId);
         setSettingsOpen(true);
@@ -27,8 +58,11 @@ export const InnerWorkspace: Component = () => {
     const controller = useWorkspaceController({
         uiEngine,
         logicEngine,
+        configuration,
         getActiveTabId: uiEngine.state.activeTabId,
         getRoutingConfig: configuration.routingConfig,
+        onDirty: markWorkspaceDirty,
+        onClean: markWorkspaceClean,
     });
     const shouldIgnoreShortcut = (event: KeyboardEvent) => {
         const target = event.target as HTMLElement | null;
@@ -68,6 +102,16 @@ export const InnerWorkspace: Component = () => {
     onMount(() => window.addEventListener("keydown", handleWorkspaceShortcut));
     onCleanup(() => window.removeEventListener("keydown", handleWorkspaceShortcut));
 
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+        if (!workspaceDirty()) return;
+
+        event.preventDefault();
+        event.returnValue = "";
+    };
+
+    onMount(() => window.addEventListener("beforeunload", handleBeforeUnload));
+    onCleanup(() => window.removeEventListener("beforeunload", handleBeforeUnload));
+
     return (
         <div class="flex h-full w-full flex-col overflow-hidden">
             <div class="relative z-10 shrink-0 border-b border-gray-4 bg-gray-1/95">
@@ -85,7 +129,7 @@ export const InnerWorkspace: Component = () => {
                         openSettings={openSettings}
                         persistence={controller.persistence}
                         projectSidebarCollapsed={projectSidebarCollapsed()}
-                        configuration={configuration}
+                        configuration={dirtyAwareConfiguration}
                         simulation={controller.simulation}
                         toggleProjectSidebar={toggleProjectSidebar}
                     />
@@ -106,8 +150,9 @@ export const InnerWorkspace: Component = () => {
                 >
                     <WorkspaceProjectSidebar
                         collapsed={projectSidebarCollapsed()}
-                        configuration={configuration}
+                        configuration={dirtyAwareConfiguration}
                         customComponents={controller.customComponents}
+                        onDirty={markWorkspaceDirty}
                         persistence={controller.persistence}
                         toggleCollapsed={toggleProjectSidebar}
                     />
@@ -140,7 +185,7 @@ export const InnerWorkspace: Component = () => {
                             <div onClick={(event) => event.stopPropagation()}>
                                 <WorkspaceSettingsPanel
                                     activeCategoryId={activeSettingsCategoryId}
-                                    configuration={configuration}
+                                    configuration={dirtyAwareConfiguration}
                                     onClose={closeSettings}
                                     setActiveCategoryId={setActiveSettingsCategoryId}
                                     simulation={controller.simulation}
@@ -160,6 +205,7 @@ export const InnerWorkspace: Component = () => {
                     {controller.simulation.isBusy ? "simulation running" : "simulation idle"}
                 </span>
                 <span>{controller.getSelectionCount()} selected</span>
+                <span>{workspaceDirty() ? "unsaved changes" : "saved"}</span>
                 <span>{settingsOpen() ? "settings open" : "circuit canvas"}</span>
                 <span>{uiEngine.state.activeNavigationPath().join(" / ") || "no circuit"}</span>
             </div>

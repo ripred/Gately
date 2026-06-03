@@ -1,5 +1,6 @@
 import type { Graph } from "@antv/x6";
 import type { CinabonoClient } from "@cnbn/engine-worker";
+import type { AppConfigurationController } from "@gately/app/providers/AppConfigurationProvider";
 import type { ArduinoHardwareController } from "@gately/features/arduino-hardware";
 import type { BooleanAnalysisController } from "@gately/features/boolean-analysis";
 import type { OptimizedCircuitRoutingConfig } from "@gately/features/boolean-analysis/model/optimizedCircuitLayout";
@@ -59,6 +60,9 @@ export type WorkspaceUIEngine = Pick<UIEnginePublicApi, "commands" | "debug" | "
 export type WorkspaceControllerDeps = {
     uiEngine: WorkspaceUIEngine;
     logicEngine: CinabonoClient;
+    configuration: AppConfigurationController;
     getActiveTabId: () => string | undefined;
     getRoutingConfig: () => OptimizedCircuitRoutingConfig;
+    onDirty?: () => void;
+    onClean?: () => void;
 };

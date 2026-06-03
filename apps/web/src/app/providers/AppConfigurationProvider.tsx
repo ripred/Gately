@@ -1,6 +1,5 @@
 import {
     createContext,
-    createEffect,
     createSignal,
     ParentComponent,
     useContext,
@@ -11,7 +10,6 @@ import {
     type OptimizedCircuitRoutingConfig,
 } from "@gately/features/boolean-analysis/model/optimizedCircuitLayout";
 
-const STORAGE_KEY = "gately.app.configuration.v1";
 const CONFIG_VERSION = 1;
 const UI_SCALE_MIN = 0.75;
 const UI_SCALE_MAX = 1.5;
@@ -85,12 +83,12 @@ export const DEFAULT_WORKBENCH_CONFIG: WorkbenchConfig = {
     },
 };
 
-type StoredAppConfiguration = {
+export type AppConfigurationSnapshot = {
     version: typeof CONFIG_VERSION;
     uiScale: number;
-    routingConfig?: Partial<OptimizedCircuitRoutingConfig>;
-    signalPathColors?: Partial<SignalPathColorConfig>;
-    workbenchConfig?: WorkbenchConfigPatch;
+    routingConfig: OptimizedCircuitRoutingConfig;
+    signalPathColors: SignalPathColorConfig;
+    workbenchConfig: WorkbenchConfig;
 };
 
 export type AppConfigurationController = {
@@ -109,6 +107,8 @@ export type AppConfigurationController = {
     resetRoutingConfig: () => void;
     resetSignalPathColors: () => void;
     resetWorkbenchConfig: () => void;
+    exportSnapshot: () => AppConfigurationSnapshot;
+    importSnapshot: (snapshot?: Partial<AppConfigurationSnapshot>) => void;
 };
 
 const AppConfigurationContext = createContext<AppConfigurationController>();
@@ -205,43 +205,29 @@ export const normalizeWorkbenchConfig = (
     },
 });
 
-const readStoredConfiguration = (): StoredAppConfiguration | undefined => {
-    let raw: string | null;
-    try {
-        raw = window.localStorage.getItem(STORAGE_KEY);
-    } catch {
-        return;
-    }
-    if (!raw) return;
-
-    try {
-        const parsed = JSON.parse(raw) as Partial<StoredAppConfiguration>;
-        if (parsed.version !== CONFIG_VERSION || typeof parsed.uiScale !== "number") return;
-        return {
-            version: CONFIG_VERSION,
-            uiScale: normalizeUiScale(parsed.uiScale),
-            routingConfig: normalizeOptimizedCircuitRoutingConfig(parsed.routingConfig),
-            signalPathColors: normalizeSignalPathColorConfig(parsed.signalPathColors),
-            workbenchConfig: normalizeWorkbenchConfig(parsed.workbenchConfig),
-        };
-    } catch {
-        return;
-    }
-};
+export const normalizeAppConfigurationSnapshot = (
+    snapshot?: Partial<AppConfigurationSnapshot>,
+): AppConfigurationSnapshot => ({
+    version: CONFIG_VERSION,
+    uiScale: normalizeUiScale(snapshot?.uiScale ?? 1),
+    routingConfig: normalizeOptimizedCircuitRoutingConfig(snapshot?.routingConfig),
+    signalPathColors: normalizeSignalPathColorConfig(snapshot?.signalPathColors),
+    workbenchConfig: normalizeWorkbenchConfig(snapshot?.workbenchConfig),
+});
 
 const createAppConfiguration = (): AppConfigurationController => {
-    const stored = readStoredConfiguration();
-    const [uiScale, setUiScaleSignal] = createSignal(stored?.uiScale ?? 1);
+    const initial = normalizeAppConfigurationSnapshot();
+    const [uiScale, setUiScaleSignal] = createSignal(initial.uiScale);
     const [routingConfig, setRoutingConfigSignal] =
         createSignal<OptimizedCircuitRoutingConfig>(
-            normalizeOptimizedCircuitRoutingConfig(stored?.routingConfig),
+            normalizeOptimizedCircuitRoutingConfig(initial.routingConfig),
         );
     const [signalPathColors, setSignalPathColorsSignal] =
         createSignal<SignalPathColorConfig>(
-            normalizeSignalPathColorConfig(stored?.signalPathColors),
+            normalizeSignalPathColorConfig(initial.signalPathColors),
         );
     const [workbenchConfig, setWorkbenchConfigSignal] = createSignal<WorkbenchConfig>(
-        normalizeWorkbenchConfig(stored?.workbenchConfig),
+        normalizeWorkbenchConfig(initial.workbenchConfig),
     );
 
     const setUiScale = (scale: number) => {
@@ -280,20 +266,21 @@ const createAppConfiguration = (): AppConfigurationController => {
         );
     };
 
-    createEffect(() => {
-        const snapshot: StoredAppConfiguration = {
-            version: CONFIG_VERSION,
-            uiScale: uiScale(),
-            routingConfig: routingConfig(),
-            signalPathColors: signalPathColors(),
-            workbenchConfig: workbenchConfig(),
-        };
-        try {
-            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
-        } catch {
-            // UI scaling is an accessibility preference; storage failure should not break editing.
-        }
+    const exportSnapshot = (): AppConfigurationSnapshot => ({
+        version: CONFIG_VERSION,
+        uiScale: uiScale(),
+        routingConfig: routingConfig(),
+        signalPathColors: signalPathColors(),
+        workbenchConfig: workbenchConfig(),
     });
+
+    const importSnapshot = (snapshot?: Partial<AppConfigurationSnapshot>) => {
+        const normalized = normalizeAppConfigurationSnapshot(snapshot);
+        setUiScaleSignal(normalized.uiScale);
+        setRoutingConfigSignal(normalized.routingConfig);
+        setSignalPathColorsSignal(normalized.signalPathColors);
+        setWorkbenchConfigSignal(normalized.workbenchConfig);
+    };
 
     return {
         uiScale,
@@ -313,6 +300,8 @@ const createAppConfiguration = (): AppConfigurationController => {
         resetSignalPathColors: () =>
             setSignalPathColorsSignal(DEFAULT_SIGNAL_PATH_COLOR_CONFIG),
         resetWorkbenchConfig: () => setWorkbenchConfigSignal(DEFAULT_WORKBENCH_CONFIG),
+        exportSnapshot,
+        importSnapshot,
     };
 };
 

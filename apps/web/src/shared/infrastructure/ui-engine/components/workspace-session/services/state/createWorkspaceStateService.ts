@@ -116,7 +116,7 @@ export const createWorkspaceStateService = (): WorkspaceStateService => {
         const scope: UIEngineScope = {
             id: tabId,
             kind: "tab",
-            name: data.name ?? "Untitled",
+            name: data.name ?? "untitled",
             path: [],
             childrenIds: data.childrenIds ?? [],
             contentJson: data.contentJson ?? "",

@@ -45,7 +45,11 @@ export const useWorkspaceController = (deps: WorkspaceControllerDeps): Workspace
     const persistence = createWorkspacePersistence({
         logicEngine: deps.logicEngine,
         uiEngine: deps.uiEngine,
+        configuration: deps.configuration,
         onAfterLoad: customComponents.refresh,
+        onAfterProjectLoad: deps.onClean,
+        onAfterSave: deps.onClean,
+        onDirty: deps.onDirty,
     });
     signalEventHandlers.add(hardware.handleSignalEvents);
 
@@ -65,7 +69,32 @@ export const useWorkspaceController = (deps: WorkspaceControllerDeps): Workspace
         const selected = graph.getSelectedCells();
         if (!selected.length) return;
         graph.removeCells(selected);
+        deps.onDirty?.();
     };
+
+    createEffect(() => {
+        const graph = deps.uiEngine.debug.graph();
+        if (!graph) return;
+
+        const markDirty = () => deps.onDirty?.();
+        const dirtyEvents = [
+            "cell:added",
+            "cell:removed",
+            "node:change:data",
+            "node:change:position",
+            "node:change:size",
+            "edge:change:data",
+            "edge:change:source",
+            "edge:change:target",
+            "edge:change:vertices",
+            "edge:connected",
+        ];
+        dirtyEvents.forEach((eventName) => graph.on(eventName, markDirty));
+
+        onCleanup(() => {
+            dirtyEvents.forEach((eventName) => graph.off(eventName, markDirty));
+        });
+    });
 
     createEffect(() => {
         const graph = deps.uiEngine.debug.graph();
