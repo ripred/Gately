@@ -90,7 +90,7 @@ export const createWorkspacePersistence = (
     };
 
     const createTab = async () => {
-        await deps.uiEngine.commands.createTab({ name: "New Tab" });
+        await deps.uiEngine.commands.createTab({ name: "Untitled" });
     };
 
     return {

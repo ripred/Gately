@@ -563,15 +563,12 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
 
     const ScopeTreeNode: Component<{
         depth: number;
-        forceDirectory?: boolean;
         scope: UIEngineScope;
         tabId?: string;
         withClose?: boolean;
     }> = (nodeProps) => {
         const children = () => scopeChildren(nodeProps.scope.id);
         const hasChildren = () => children().length > 0;
-        const isDirectory = () =>
-            Boolean(nodeProps.forceDirectory) || nodeProps.scope.kind === "tab" || hasChildren();
         const expanded = () => scopeExpanded(nodeProps.scope);
         const rowIsActive = () => {
             const entryId = scopeExplorerEntryId(nodeProps.scope.id);
@@ -652,7 +649,7 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                                 onDblClick={() => openTreeScope(nodeProps.scope, nodeProps.tabId)}
                             >
                                 <TreeNodeIcon
-                                    kind={isDirectory() ? "folder" : "circuit"}
+                                    kind="circuit"
                                     expanded={expanded()}
                                 />
                                 <ScopeNameCell
@@ -664,7 +661,7 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                     >
                         <div class={treeLabelButtonClass}>
                             <TreeNodeIcon
-                                kind={isDirectory() ? "folder" : "circuit"}
+                                kind="circuit"
                                 expanded={expanded()}
                             />
                             <ScopeNameCell name={nodeProps.scope.name} scopeId={nodeProps.scope.id} />
@@ -890,37 +887,6 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
 
                     <ExplorerTreeSection
                         configuration={props.configuration}
-                        sectionKey="circuits"
-                        title="Open Circuits"
-                    >
-                        <Show
-                            when={uiEngine.state.tabs().length > 0}
-                            fallback={
-                                <p class="px-3 py-2 text-xs text-gray-9">No open circuits.</p>
-                            }
-                        >
-                            <For each={uiEngine.state.tabs()}>
-                                {(tab) => (
-                                    <Show when={uiEngine.state.getScopeById(tab.id)}>
-                                        {(scope) => (
-                                            <div role="tree" aria-label={`${tab.name} scope tree`}>
-                                                <ScopeTreeNode
-                                                    depth={0}
-                                                    forceDirectory
-                                                    scope={scope()}
-                                                    tabId={tab.id}
-                                                    withClose
-                                                />
-                                            </div>
-                                        )}
-                                    </Show>
-                                )}
-                            </For>
-                        </Show>
-                    </ExplorerTreeSection>
-
-                    <ExplorerTreeSection
-                        configuration={props.configuration}
                         sectionKey="navigation"
                         title="Current Circuit Tree"
                     >
@@ -931,7 +897,6 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                             <div role="tree" aria-label="Current circuit scope tree">
                                 <ScopeTreeNode
                                     depth={0}
-                                    forceDirectory
                                     scope={activeRootScope()!}
                                     tabId={activeTabId()}
                                 />

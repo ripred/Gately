@@ -53,6 +53,38 @@ describe("createWorkspaceTabService", () => {
         });
     });
 
+    it("uses Untitled as the default tab name", async () => {
+        await createRoot(async (dispose) => {
+            const state = createWorkspaceStateService();
+            const openTab = vi.fn();
+            const emit = vi.fn();
+            const logicEngine = {
+                call: vi.fn().mockResolvedValue({ tabId: "tab-1" }),
+            } as unknown as UIEngineLogicEngine;
+            const { services: sharedServices, getService: getSharedService } = buildSharedServices();
+            vi.spyOn(sharedServices.eventBus, "emit").mockImplementation(emit);
+            const navigation = { openTab, openScope: vi.fn() };
+            const ctx: WorkspaceSessionServiceContext = {
+                external: { logicEngine },
+                getSharedService,
+                getService: createUninitializedGetter("[test] workspace service getter is not initialized"),
+            };
+            ctx.getService = ((name) => {
+                if (name === "state") return state;
+                if (name === "navigation") return navigation;
+                throw new Error(`[test] unexpected service: ${String(name)}`);
+            }) as WorkspaceSessionServiceContext["getService"];
+
+            const tab = createWorkspaceTabService(ctx);
+
+            await tab.createTab();
+
+            expect(state.tabs()).toEqual([{ id: "tab-1", name: "Untitled" }]);
+
+            dispose();
+        });
+    });
+
     it("closes the active tab, opens the next tab and emits an event", async () => {
         await createRoot(async (dispose) => {
             const state = createWorkspaceStateService();
