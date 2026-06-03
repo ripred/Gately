@@ -23,7 +23,7 @@
     "scripts": {
         "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json --resolve-full-paths",
         "lint": "eslint \"**/*.ts\"",
-        "test": "vitest"
+        "test": "vitest run --passWithNoTests"
     },
     "dependencies": {
         "@cnbn/engine": "workspace:*",
@@ -32,6 +32,7 @@
         "@cnbn/entities-runtime": "workspace:*"
     },
     "devDependencies": {
-        "@cnbn/typescript-config": "workspace:*"
+        "@cnbn/typescript-config": "workspace:*",
+        "vitest": "^3.2.4"
     }
 }

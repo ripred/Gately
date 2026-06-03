@@ -1,6 +1,6 @@
 import { getItemDelay, pinOps } from "@cnbn/helpers/item";
 import { isDisplayItem } from "@cnbn/schema";
-import { ItemOfKind, LogicValue, PinIndex } from "@cnbn/schema/shared";
+import { ItemOfKind, LogicValue } from "@cnbn/schema/shared";
 import { TargetParams } from "@sim/helpers/circuit-resolving";
 import { SimulationCtx } from "@sim/model";
 

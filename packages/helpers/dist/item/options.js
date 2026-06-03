@@ -1,4 +1,4 @@
-export {};
+"use strict";
 // export const defaultAutoTriggers = (
 //   arg: TemplateOfKind | ItemOfKind
 // ): AutoTriggers => {

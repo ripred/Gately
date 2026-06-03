@@ -12,7 +12,7 @@ export const mkMockTimeWheel = () =>
         advance: vi.fn(),
         reset: vi.fn(),
         size: 1,
-    }) as WithDeepMocks<StepSimulatorDeps["timeWheel"]>;
+    }) as unknown as WithDeepMocks<StepSimulatorDeps["timeWheel"]>;
 
 export const mkMockGenTracker = () =>
     ({

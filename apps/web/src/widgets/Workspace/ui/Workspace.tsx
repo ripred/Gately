@@ -2,7 +2,7 @@ import { BooleanAnalysisPanel } from "@gately/features/boolean-analysis";
 import { useAppConfiguration } from "@gately/app/providers/AppConfigurationProvider";
 import { useUIEngine } from "@gately/shared/infrastructure";
 import { useLogicEngine } from "@gately/shared/infrastructure/LogicEngine";
-import { Component, createSignal, Show } from "solid-js";
+import { Component, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { useWorkspaceController } from "../lib";
 import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
 import { WorkspaceProjectSidebar } from "./WorkspaceProjectSidebar";
@@ -30,6 +30,37 @@ export const InnerWorkspace: Component = () => {
         getActiveTabId: uiEngine.state.activeTabId,
         getRoutingConfig: configuration.routingConfig,
     });
+    const shouldIgnoreShortcut = (event: KeyboardEvent) => {
+        const target = event.target as HTMLElement | null;
+        if (!target) return false;
+        const tag = target.tagName?.toLowerCase();
+        if (tag === "input" || tag === "textarea" || tag === "select") return true;
+        return target.isContentEditable;
+    };
+    const handleWorkspaceShortcut = (event: KeyboardEvent) => {
+        if (shouldIgnoreShortcut(event)) return;
+        if (!event.metaKey && !event.ctrlKey) return;
+        if (!uiEngine.state.activeScopeId()) return;
+
+        switch (event.key) {
+            case "+":
+            case "=":
+                event.preventDefault();
+                uiEngine.commands.zoomIn();
+                break;
+            case "0":
+                event.preventDefault();
+                uiEngine.commands.resetZoom();
+                break;
+            case "-":
+                event.preventDefault();
+                uiEngine.commands.zoomOut();
+                break;
+        }
+    };
+
+    onMount(() => window.addEventListener("keydown", handleWorkspaceShortcut));
+    onCleanup(() => window.removeEventListener("keydown", handleWorkspaceShortcut));
 
     return (
         <div class="flex h-full w-full flex-col overflow-hidden">

@@ -31,7 +31,7 @@ type WorkspaceToolbarProps = Pick<
 };
 
 const toolbarButton =
-    "rounded border border-gray-5 bg-gray-2 px-2 py-1 text-xs text-gray-12 hover:bg-gray-3 data-disabled:text-gray-8 data-disabled:hover:bg-gray-2";
+    "inline-flex h-7 items-center justify-center rounded border border-gray-5 bg-gray-2 px-2 text-xs leading-none text-gray-12 hover:bg-gray-3 data-disabled:text-gray-8 data-disabled:hover:bg-gray-2";
 
 const toolbarGroup = "flex flex-wrap items-center gap-1 border-r border-gray-4 pr-2";
 
@@ -133,7 +133,7 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                         Step
                     </Pusher>
                     <select
-                        class="rounded border border-gray-5 bg-gray-2 px-2 py-1 text-xs text-gray-12"
+                        class="h-7 rounded border border-gray-5 bg-gray-2 px-2 text-xs leading-none text-gray-12"
                         value={props.simulation.mode}
                         disabled={props.simulation.isDisabled || props.simulation.isBusy}
                         onChange={(event) =>
@@ -153,7 +153,10 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
 
             <Show when={toolbarGroupVisible("hardware")}>
                 <div class={toolbarGroup}>
-                    <ArduinoHardwarePanel hardware={props.hardware} />
+                    <ArduinoHardwarePanel
+                        hardware={props.hardware}
+                        triggerClass={toolbarButton}
+                    />
                     <Pusher
                         class={toolbarButton}
                         onClick={props.booleanAnalysis.analyze}
@@ -195,27 +198,6 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
 
             <Show when={toolbarGroupVisible("canvas")}>
                 <div class={toolbarGroup}>
-                    <Pusher
-                        class={toolbarButton}
-                        onClick={() => uiEngine.commands.zoomOut()}
-                        disabled={disabled()}
-                    >
-                        Canvas -
-                    </Pusher>
-                    <Pusher
-                        class={toolbarButton}
-                        onClick={() => uiEngine.commands.resetZoom()}
-                        disabled={disabled()}
-                    >
-                        100%
-                    </Pusher>
-                    <Pusher
-                        class={toolbarButton}
-                        onClick={() => uiEngine.commands.zoomIn()}
-                        disabled={disabled()}
-                    >
-                        Canvas +
-                    </Pusher>
                     <Pusher
                         class={toolbarButton}
                         onClick={props.autoLayout.applySelection}
@@ -260,7 +242,7 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                     </Pusher>
                     <Show when={props.customComponents.components().length > 0}>
                         <select
-                            class="rounded border border-gray-5 bg-gray-2 px-2 py-1 text-xs text-gray-12"
+                            class="h-7 rounded border border-gray-5 bg-gray-2 px-2 text-xs leading-none text-gray-12"
                             value={selectedCustomHash() ?? ""}
                             disabled={props.customComponents.isBusy}
                             onChange={(event) =>

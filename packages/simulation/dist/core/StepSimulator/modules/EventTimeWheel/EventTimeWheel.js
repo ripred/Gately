@@ -35,7 +35,8 @@ export class DefaultEventTimeWheel {
         const bucketKey = this._bucketKey({ ...ev, delta });
         this._buckets[slot].set(bucketKey, ev);
         this._pending.set(pendingKey, ev);
-        !oldEvent && this._size++;
+        if (!oldEvent)
+            this._size++;
         return ev;
     }
     advance() {

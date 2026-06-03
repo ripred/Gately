@@ -1,6 +1,7 @@
 import { pinOps } from "@cnbn/helpers";
 import { mkSimOutputEvent } from "@sim/__tests__/features/simEvent";
 import {
+    InOutHandlerDeps,
     DefaultOutputHandler,
     OutputHandlerContract,
 } from "@sim/core/StepSimulator/modules/InOutHandlers";
@@ -40,7 +41,7 @@ describe("OutputHandler", () => {
     let handler: OutputHandlerContract;
 
     beforeEach(() => {
-        handler = new DefaultOutputHandler(mockCtx as any);
+        handler = new DefaultOutputHandler(mockCtx as unknown as InOutHandlerDeps);
     });
 
     it("returns false for old gen of output", () => {

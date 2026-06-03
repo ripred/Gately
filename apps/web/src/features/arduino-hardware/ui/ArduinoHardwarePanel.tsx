@@ -4,6 +4,7 @@ import type { ArduinoHardwareController, HardwareDirection } from "..";
 
 type ArduinoHardwarePanelProps = {
     hardware: ArduinoHardwareController;
+    triggerClass?: string;
 };
 
 const DIRECTION_OPTIONS: Array<{ value: HardwareDirection; label: string }> = [
@@ -61,7 +62,10 @@ export const ArduinoHardwarePanel: Component<ArduinoHardwarePanelProps> = (props
     return (
         <div class="relative">
             <Pusher
-                class="px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4"
+                class={
+                    props.triggerClass ??
+                    "px-2 py-1 bg-gray-3 rounded text-gray-12 hover:bg-gray-4"
+                }
                 onClick={() => setOpen((value) => !value)}
             >
                 Arduino

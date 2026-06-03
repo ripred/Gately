@@ -1,5 +1,3 @@
-import { AutoTriggers, isItem, isTemplate, ItemOfKind, TemplateOfKind } from "@cnbn/schema";
-
 // export const defaultAutoTriggers = (
 //   arg: TemplateOfKind | ItemOfKind
 // ): AutoTriggers => {

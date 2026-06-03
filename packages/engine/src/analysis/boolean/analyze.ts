@@ -7,7 +7,6 @@ import {
     isLogicItem,
     ItemLink,
     ItemOfKind,
-    LogicValue,
     PinIndex,
     Scope,
 } from "@cnbn/schema";
@@ -51,10 +50,6 @@ const FIXED_GENERATORS = new Map<string, BooleanBit>([
 ]);
 const SUPPORTED_LOGIC = new Set(["BUFFER", "NOT", "AND", "OR", "NOR", "NAND", "XOR", "XNOR"]);
 const SYMBOLS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-
-const asBit = (value: LogicValue | undefined): BooleanBit | undefined => {
-    return value === "0" || value === "1" ? value : undefined;
-};
 
 const buildOutputId = (itemId: Id, pin: PinIndex): string => `${itemId}:${pin}`;
 
@@ -212,7 +207,6 @@ const evaluateAssignment = (
     assignment: BooleanBit[]
 ): EvaluationResult => {
     const issues: BooleanAnalysisIssue[] = [];
-    const itemById = new Map(items.map((item) => [item.id, item]));
     const fanout = buildFanout(links);
     const incoming = buildIncoming(links);
     const outputValues = new Map<string, BooleanBit>();

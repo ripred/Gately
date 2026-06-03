@@ -2,6 +2,7 @@ import { pinOps } from "@cnbn/helpers";
 import { mkSimInputEvent } from "@sim/__tests__/features/simEvent";
 import {
     DefaultInputHandler,
+    InOutHandlerDeps,
     InputHandlerContract,
 } from "@sim/core/StepSimulator/modules/InOutHandlers";
 import { describe, it, vi, expect, beforeEach, Mock } from "vitest";
@@ -40,7 +41,7 @@ describe("InputHandler", () => {
     let handler: InputHandlerContract;
 
     beforeEach(() => {
-        handler = new DefaultInputHandler(mockCtx as any);
+        handler = new DefaultInputHandler(mockCtx as unknown as InOutHandlerDeps);
     });
 
     it("returns false for old gen of input", () => {

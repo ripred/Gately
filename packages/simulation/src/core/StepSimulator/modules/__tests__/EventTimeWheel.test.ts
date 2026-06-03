@@ -1,13 +1,11 @@
-import { mkSimInputEvent } from "@sim/__tests__/features/simEvent";
 import {
     DefaultEventTimeWheel,
     EventTimeWheelContract,
 } from "@sim/core/StepSimulator/modules/EventTimeWheel";
-import { inspect } from "util";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@cnbn/utils", () => ({
-    uniqueKeyByData: (...args: any[]) => args.join(":"),
+    uniqueKeyByData: (...args: unknown[]) => args.join(":"),
 }));
 
 describe("DefaultEventTimeWheel", () => {

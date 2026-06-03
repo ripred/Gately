@@ -1,9 +1,7 @@
 import {
-    hasProps,
     Id,
     isDisplayItem,
     isGeneratorItem,
-    ItemArgsOfKind,
     ItemOfKind,
     KindKey,
     Read,

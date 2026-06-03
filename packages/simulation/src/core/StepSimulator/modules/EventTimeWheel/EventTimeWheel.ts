@@ -60,7 +60,7 @@ export class DefaultEventTimeWheel implements EventTimeWheelContract {
         this._buckets[slot].set(bucketKey, ev);
         this._pending.set(pendingKey, ev);
 
-        !oldEvent && this._size++;
+        if (!oldEvent) this._size++;
 
         return ev;
     }
