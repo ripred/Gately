@@ -29,6 +29,7 @@ export type UIEngineCommandApi = {
     createTab: (input?: UIEngineCreateTabCommandInput) => Promise<{ tabId: string }>;
     openTab: (tabId?: string) => void;
     openScope: (scopeId: string, tabId?: string) => void;
+    renameScope: (scopeId: string, name: string) => void;
     canCloseTab: (tabId: string, conditions?: UIEngineCloseTabCommandConditions) => boolean;
     closeTab: (
         tabId: string,

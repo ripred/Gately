@@ -6,7 +6,7 @@ import { Component, createSignal, Show } from "solid-js";
 import { useWorkspaceController } from "../lib";
 import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
 import { WorkspaceProjectSidebar } from "./WorkspaceProjectSidebar";
-import { WorkspaceSettingsPanel } from "./WorkspaceSettingsPanel";
+import { WorkspaceSettingsPanel, type SettingsCategoryId } from "./WorkspaceSettingsPanel";
 import { WorkspaceToolbar } from "./WorkspaceToolbar";
 import type { WorkspaceViewMode } from "./workbenchTypes";
 
@@ -15,9 +15,15 @@ export const InnerWorkspace: Component = () => {
     const logicEngine = useLogicEngine();
     const configuration = useAppConfiguration();
     const [viewMode, setViewMode] = createSignal<WorkspaceViewMode>("circuit");
+    const [activeSettingsCategoryId, setActiveSettingsCategoryId] =
+        createSignal<SettingsCategoryId>("accessibility");
     const projectSidebarCollapsed = () => configuration.workbenchConfig().explorerCollapsed;
     const toggleProjectSidebar = () =>
         configuration.setWorkbenchConfig({ explorerCollapsed: !projectSidebarCollapsed() });
+    const openSettings = (categoryId: SettingsCategoryId = "accessibility") => {
+        setActiveSettingsCategoryId(categoryId);
+        setViewMode("settings");
+    };
     const controller = useWorkspaceController({
         uiEngine,
         logicEngine,
@@ -39,6 +45,7 @@ export const InnerWorkspace: Component = () => {
                         customComponents={controller.customComponents}
                         hardware={controller.hardware}
                         mode={viewMode()}
+                        openSettings={openSettings}
                         persistence={controller.persistence}
                         projectSidebarCollapsed={projectSidebarCollapsed()}
                         configuration={configuration}
@@ -66,6 +73,7 @@ export const InnerWorkspace: Component = () => {
                         configuration={configuration}
                         customComponents={controller.customComponents}
                         mode={viewMode()}
+                        openSettings={openSettings}
                         persistence={controller.persistence}
                         setMode={setViewMode}
                         toggleCollapsed={toggleProjectSidebar}
@@ -106,7 +114,9 @@ export const InnerWorkspace: Component = () => {
                             }}
                         >
                             <WorkspaceSettingsPanel
+                                activeCategoryId={activeSettingsCategoryId}
                                 configuration={configuration}
+                                setActiveCategoryId={setActiveSettingsCategoryId}
                                 simulation={controller.simulation}
                             />
                         </div>

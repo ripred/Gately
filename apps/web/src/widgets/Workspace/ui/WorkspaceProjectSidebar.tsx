@@ -4,15 +4,27 @@ import {
     type WorkbenchExplorerSectionKey,
 } from "@gately/app/providers/AppConfigurationProvider";
 import { useUIEngine, type UIEngineScope } from "@gately/shared/infrastructure";
-import { Pusher } from "@gately/shared/ui";
+import { EditableText } from "@gately/shared/ui";
+import { contextMenuStyles } from "@gately/shared/ui/ContextMenu/styles";
 import type { WorkspaceController } from "../lib/types";
 import {
     buildProjectExplorerTree,
     type ProjectExplorerNode,
     type ProjectExplorerNodeKind,
 } from "./projectExplorerTree";
+import type { SettingsCategoryId } from "./WorkspaceSettingsPanel";
 import type { WorkspaceViewMode } from "./workbenchTypes";
-import { Component, createMemo, createSignal, For, JSX, onCleanup, Show } from "solid-js";
+import {
+    Component,
+    createMemo,
+    createSignal,
+    For,
+    JSX,
+    onCleanup,
+    onMount,
+    Show,
+    type Setter,
+} from "solid-js";
 
 type WorkspaceProjectSidebarProps = Pick<
     WorkspaceController,
@@ -21,6 +33,7 @@ type WorkspaceProjectSidebarProps = Pick<
     collapsed: boolean;
     configuration: AppConfigurationController;
     mode: WorkspaceViewMode;
+    openSettings: (categoryId?: SettingsCategoryId) => void;
     setMode: (mode: WorkspaceViewMode) => void;
     toggleCollapsed: () => void;
 };
@@ -31,8 +44,18 @@ const treeLabelButtonClass =
 const projectTreeLabelButtonClass =
     "flex min-w-0 flex-1 items-center gap-2 py-1.5 pr-2 text-left text-xs";
 
-const miniButtonClass =
-    "rounded border border-gray-5 bg-gray-3 px-2 py-1 text-[11px] text-gray-12 hover:bg-gray-4 data-disabled:text-gray-8 data-disabled:hover:bg-gray-3";
+type EntryMenuItem = {
+    disabled?: boolean;
+    label: string;
+    onSelect?: () => void;
+    separatorBefore?: boolean;
+};
+
+type EntryMenuState = {
+    items: EntryMenuItem[];
+    x: number;
+    y: number;
+};
 
 const TreeChevron: Component<{ expanded?: boolean; visible: boolean }> = (props) => (
     <svg
@@ -143,6 +166,9 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
     const [collapsedProjectNodeIds, setCollapsedProjectNodeIds] = createSignal<
         Record<string, boolean>
     >({});
+    const [renamingScopeId, setRenamingScopeId] = createSignal<string>();
+    const [selectedExplorerEntryId, setSelectedExplorerEntryId] = createSignal<string>();
+    const [entryMenu, setEntryMenu] = createSignal<EntryMenuState>();
     const [resizePreviewWidth, setResizePreviewWidth] = createSignal<number>();
     let resizeStartX = 0;
     let resizeStartWidth = 0;
@@ -164,6 +190,18 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         }),
     );
     const canCloseCircuit = (tabId: string) => uiEngine.commands.canCloseTab(tabId);
+    const isRenamingScope = (scopeId: string) => renamingScopeId() === scopeId;
+    const renameScope = (scopeId: string, name: string) => {
+        uiEngine.commands.renameScope(scopeId, name);
+    };
+    const setScopeRenaming =
+        (scopeId: string): Setter<boolean> =>
+        (value) => {
+            const current = isRenamingScope(scopeId);
+            const next = typeof value === "function" ? value(current) : value;
+            setRenamingScopeId(next ? scopeId : undefined);
+            return next;
+        };
     const sidebarWidth = () =>
         resizePreviewWidth() ?? props.configuration.workbenchConfig().explorerWidth;
     const clampExplorerWidth = (width: number) =>
@@ -175,6 +213,29 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         scope.childrenIds.length > 0 && !collapsedScopeIds()[scope.id];
     const projectNodeExpanded = (node: ProjectExplorerNode) =>
         Boolean(node.children?.length) && !collapsedProjectNodeIds()[node.id];
+    const settingsExplorerEntryId = "project:settings";
+    const scopeExplorerEntryId = (scopeId: string) => `scope:${scopeId}`;
+    const componentExplorerEntryId = (hash: string) => `component:${hash}`;
+    const explorerSelectionIsActive = (entryId: string) => {
+        const selectedEntryId = selectedExplorerEntryId();
+        return selectedEntryId ? selectedEntryId === entryId : false;
+    };
+    const settingsEntryIsActive = () =>
+        explorerSelectionIsActive(settingsExplorerEntryId) ||
+        (!selectedExplorerEntryId() && props.mode === "settings");
+    const selectScopeEntry = (scopeId: string) => {
+        setSelectedExplorerEntryId(scopeExplorerEntryId(scopeId));
+    };
+    const selectProjectEntry = (nodeId: string) => {
+        setSelectedExplorerEntryId(nodeId);
+        if (nodeId.startsWith("component:")) {
+            props.customComponents.setSelectedHash(nodeId.slice("component:".length));
+        }
+    };
+    const selectComponentEntry = (hash: string) => {
+        props.customComponents.setSelectedHash(hash);
+        setSelectedExplorerEntryId(componentExplorerEntryId(hash));
+    };
     const toggleScopeExpanded = (scopeId: string) => {
         setCollapsedScopeIds((current) => ({
             ...current,
@@ -188,10 +249,12 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         }));
     };
     const openCircuit = (tabId: string) => {
+        selectScopeEntry(tabId);
         uiEngine.commands.openTab(tabId);
         props.setMode("circuit");
     };
     const openScope = (scopeId: string, tabId?: string) => {
+        selectScopeEntry(scopeId);
         uiEngine.commands.openScope(scopeId, tabId);
         props.setMode("circuit");
     };
@@ -203,6 +266,28 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
             window.alert(error instanceof Error ? error.message : "Unable to close circuit.");
         }
     };
+    const closeEntryMenu = () => setEntryMenu(undefined);
+    const isLeftMouseButton = (event: MouseEvent | PointerEvent) => event.button === 0;
+    const openEntryMenu = (
+        event: MouseEvent | PointerEvent,
+        selectEntry: () => void,
+        items: EntryMenuItem[],
+    ) => {
+        if (event.type !== "contextmenu") return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        selectEntry();
+        setEntryMenu({
+            items,
+            x: event.clientX,
+            y: event.clientY,
+        });
+    };
+    const handleEntryMenuKeyDown = (event: KeyboardEvent) => {
+        if (event.key === "Escape") closeEntryMenu();
+    };
+    onMount(() => window.addEventListener("keydown", handleEntryMenuKeyDown));
     const handleSidebarResizeMove = (event: PointerEvent) => {
         const scaledDelta = (event.clientX - resizeStartX) / props.configuration.uiScale();
         const nextWidth = Math.round(resizeStartWidth + scaledDelta);
@@ -269,6 +354,8 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         openScope(scope.id, tabId);
     };
     const activateProjectNode = (node: ProjectExplorerNode) => {
+        selectProjectEntry(node.id);
+
         if (node.scopeId) {
             if (node.scopeId === node.tabId) {
                 openCircuit(node.tabId);
@@ -279,7 +366,7 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         }
 
         if (node.kind === "settings") {
-            props.setMode("settings");
+            props.openSettings("workbench");
             return;
         }
 
@@ -293,10 +380,236 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         }
     };
     const projectNodeIsActive = (node: ProjectExplorerNode) => {
+        const selectedEntryId = selectedExplorerEntryId();
+        if (selectedEntryId) return selectedEntryId === node.id;
+
         if (node.kind === "settings") return props.mode === "settings";
         if (!node.scopeId) return false;
         return props.mode === "circuit" && node.scopeId === activeScopeId();
     };
+
+    const ScopeNameCell: Component<{
+        name: string;
+        scopeId: string;
+    }> = (cellProps) => {
+        const startRename = (event: MouseEvent) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setRenamingScopeId(cellProps.scopeId);
+        };
+
+        return (
+            <Show
+                when={isRenamingScope(cellProps.scopeId)}
+                fallback={
+                    <span
+                        class="min-w-0 flex-1 truncate"
+                        onDblClick={startRename}
+                        title="Double-click to rename"
+                    >
+                        {cellProps.name}
+                    </span>
+                }
+            >
+                <span
+                    class="min-w-0 flex-1"
+                    onClick={(event) => event.stopPropagation()}
+                    onDblClick={(event) => event.stopPropagation()}
+                    onPointerDown={(event) => event.stopPropagation()}
+                >
+                    <EditableText
+                        inputClass="min-w-0 rounded bg-gray-1 px-1 text-xs text-gray-12 ring-1 ring-primary-7"
+                        isEditing={() => isRenamingScope(cellProps.scopeId)}
+                        setIsEditing={setScopeRenaming(cellProps.scopeId)}
+                        title={() => cellProps.name}
+                        updateTitle={(name) => renameScope(cellProps.scopeId, name)}
+                    />
+                </span>
+            </Show>
+        );
+    };
+
+    const scopeEntryMenuItems = (
+        scope: UIEngineScope,
+        tabId: string | undefined,
+        hasChildren: boolean,
+        expanded: boolean,
+        withClose?: boolean,
+    ): EntryMenuItem[] => {
+        const items: EntryMenuItem[] = [
+            {
+                label: "Open",
+                onSelect: () => openTreeScope(scope, tabId),
+            },
+            {
+                label: "Rename",
+                onSelect: () => setRenamingScopeId(scope.id),
+            },
+        ];
+
+        if (hasChildren) {
+            items.push({
+                label: expanded ? "Collapse" : "Expand",
+                onSelect: () => toggleScopeExpanded(scope.id),
+                separatorBefore: true,
+            });
+        }
+
+        if (withClose) {
+            const canClose = canCloseCircuit(scope.id);
+            items.push({
+                disabled: !canClose,
+                label: "Close Circuit",
+                onSelect: () => {
+                    if (canClose) void closeCircuit(scope.id);
+                },
+                separatorBefore: true,
+            });
+        }
+
+        return items;
+    };
+
+    const projectEntryMenuItems = (
+        node: ProjectExplorerNode,
+        hasChildren: boolean,
+        expanded: boolean,
+    ): EntryMenuItem[] => {
+        const items: EntryMenuItem[] = [];
+        const isWorkspaceRoot = node.id === "project:gately-workspace";
+        const isCircuitsFolder = node.id === "project:circuits";
+        const isWorkspaceStorage = node.id === "project:workspace-storage";
+
+        if (isWorkspaceRoot || isCircuitsFolder) {
+            items.push({
+                disabled: props.persistence.isBusy,
+                label: "New Circuit",
+                onSelect: () => {
+                    if (!props.persistence.isBusy) props.persistence.createTab();
+                },
+            });
+        }
+
+        if (isWorkspaceRoot || isWorkspaceStorage) {
+            items.push(
+                {
+                    disabled: props.persistence.isBusy,
+                    label: "Save Workspace",
+                    onSelect: () => {
+                        if (!props.persistence.isBusy) void props.persistence.saveWorkspace();
+                    },
+                    separatorBefore: items.length > 0,
+                },
+                {
+                    disabled: props.persistence.isBusy || !props.persistence.hasSavedWorkspace(),
+                    label: "Load Workspace",
+                    onSelect: () => {
+                        if (
+                            !props.persistence.isBusy &&
+                            props.persistence.hasSavedWorkspace()
+                        ) {
+                            void props.persistence.loadWorkspace();
+                        }
+                    },
+                },
+            );
+        }
+
+        if (node.scopeId) {
+            items.push(
+                {
+                    label: "Open",
+                    onSelect: () => activateProjectNode(node),
+                    separatorBefore: items.length > 0,
+                },
+                {
+                    label: "Rename",
+                    onSelect: () => setRenamingScopeId(node.scopeId),
+                },
+            );
+        }
+
+        if (node.kind === "component" && node.hash) {
+            items.push({
+                label: "Insert Component",
+                onSelect: () => {
+                    if (node.hash) void props.customComponents.addComponent(node.hash);
+                },
+                separatorBefore: items.length > 0,
+            });
+        }
+
+        if (node.kind === "settings") {
+            items.push({
+                label: "Open Settings",
+                onSelect: () => props.openSettings("workbench"),
+                separatorBefore: items.length > 0,
+            });
+        }
+
+        if (hasChildren) {
+            items.push({
+                label: expanded ? "Collapse" : "Expand",
+                onSelect: () => toggleProjectNodeExpanded(node.id),
+                separatorBefore: items.length > 0,
+            });
+        }
+
+        if (node.scopeId && node.scopeId === node.tabId) {
+            const canClose = Boolean(node.tabId && canCloseCircuit(node.tabId));
+            items.push({
+                disabled: !canClose,
+                label: "Close Circuit",
+                onSelect: () => {
+                    if (canClose && node.tabId) void closeCircuit(node.tabId);
+                },
+                separatorBefore: true,
+            });
+        }
+
+        return items.length > 0 ? items : [{ disabled: true, label: "No Actions Available" }];
+    };
+
+    const componentEntryMenuItems = (component: {
+        hash: string;
+        name: string;
+    }): EntryMenuItem[] => [
+        {
+            disabled: props.customComponents.isBusy,
+            label: "Insert Component",
+            onSelect: () => {
+                if (props.customComponents.isBusy) return;
+                selectComponentEntry(component.hash);
+                void props.customComponents.addComponent(component.hash);
+            },
+        },
+        {
+            disabled: props.customComponents.isBusy,
+            label: "Rename Component",
+            onSelect: () => {
+                if (props.customComponents.isBusy) return;
+                selectComponentEntry(component.hash);
+                void props.customComponents.renameSelected();
+            },
+            separatorBefore: true,
+        },
+        {
+            disabled: props.customComponents.isBusy,
+            label: "Delete Component",
+            onSelect: () => {
+                if (props.customComponents.isBusy) return;
+                selectComponentEntry(component.hash);
+                void props.customComponents.removeSelected();
+            },
+        },
+    ];
+
+    const settingsEntryMenuItems = (): EntryMenuItem[] => [
+        {
+            label: "Open Settings",
+            onSelect: () => props.openSettings("workbench"),
+        },
+    ];
 
     const ScopeTreeNode: Component<{
         depth: number;
@@ -310,19 +623,67 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         const isDirectory = () =>
             Boolean(nodeProps.forceDirectory) || nodeProps.scope.kind === "tab" || hasChildren();
         const expanded = () => scopeExpanded(nodeProps.scope);
-        const rowIsActive = () =>
-            props.mode === "circuit" && nodeProps.scope.id === activeScopeId();
+        const rowIsActive = () => {
+            const entryId = scopeExplorerEntryId(nodeProps.scope.id);
+            if (selectedExplorerEntryId()) return explorerSelectionIsActive(entryId);
+
+            return props.mode === "circuit" && nodeProps.scope.id === activeScopeId();
+        };
+        const openScopeRowMenu = (event: MouseEvent | PointerEvent) =>
+            openEntryMenu(
+                event,
+                () => selectScopeEntry(nodeProps.scope.id),
+                scopeEntryMenuItems(
+                    nodeProps.scope,
+                    nodeProps.tabId,
+                    hasChildren(),
+                    expanded(),
+                    nodeProps.withClose,
+                ),
+            );
+        const handleScopeRowKeyDown = (event: KeyboardEvent) => {
+            switch (event.key) {
+                case "Enter":
+                    event.preventDefault();
+                    openTreeScope(nodeProps.scope, nodeProps.tabId);
+                    break;
+                case "ArrowRight":
+                    if (hasChildren() && !expanded()) {
+                        event.preventDefault();
+                        toggleScopeExpanded(nodeProps.scope.id);
+                    }
+                    break;
+                case "ArrowLeft":
+                    if (hasChildren() && expanded()) {
+                        event.preventDefault();
+                        toggleScopeExpanded(nodeProps.scope.id);
+                    }
+                    break;
+                case "F2":
+                    event.preventDefault();
+                    setRenamingScopeId(nodeProps.scope.id);
+                    break;
+            }
+        };
 
         return (
             <div>
                 <div
                     role="treeitem"
                     aria-expanded={hasChildren() ? expanded() : undefined}
+                    aria-level={nodeProps.depth + 1}
+                    aria-selected={rowIsActive()}
                     class={[
                         "group flex min-w-0 items-center hover:bg-gray-3",
                         rowIsActive() ? "bg-primary-3 text-primary-11" : "text-gray-11",
                     ].join(" ")}
+                    onClick={(event) => {
+                        if (isLeftMouseButton(event)) selectScopeEntry(nodeProps.scope.id);
+                    }}
+                    onContextMenu={openScopeRowMenu}
+                    onKeyDown={handleScopeRowKeyDown}
                     style={{ "padding-left": `${10 + nodeProps.depth * 14}px` }}
+                    tabIndex={0}
                 >
                     <button
                         class="flex h-7 w-5 shrink-0 items-center justify-center rounded text-gray-9 hover:bg-gray-4 hover:text-gray-12 disabled:hover:bg-transparent"
@@ -332,29 +693,32 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                     >
                         <TreeChevron visible={hasChildren()} expanded={expanded()} />
                     </button>
-                    <button
-                        class={treeLabelButtonClass}
-                        onClick={() => openTreeScope(nodeProps.scope, nodeProps.tabId)}
+                    <Show
+                        when={isRenamingScope(nodeProps.scope.id)}
+                        fallback={
+                            <button
+                                class={treeLabelButtonClass}
+                                onContextMenu={openScopeRowMenu}
+                                onDblClick={() => openTreeScope(nodeProps.scope, nodeProps.tabId)}
+                            >
+                                <TreeNodeIcon
+                                    kind={isDirectory() ? "folder" : "circuit"}
+                                    expanded={expanded()}
+                                />
+                                <ScopeNameCell
+                                    name={nodeProps.scope.name}
+                                    scopeId={nodeProps.scope.id}
+                                />
+                            </button>
+                        }
                     >
-                        <TreeNodeIcon kind={isDirectory() ? "folder" : "circuit"} expanded={expanded()} />
-                        <span class="truncate">{nodeProps.scope.name}</span>
-                    </button>
-                    <Show when={nodeProps.withClose}>
-                        <button
-                            class="mx-1 rounded px-1.5 py-0.5 text-[11px] text-gray-9 hover:bg-gray-4 hover:text-gray-12 disabled:cursor-not-allowed disabled:text-gray-7 disabled:hover:bg-transparent"
-                            disabled={!canCloseCircuit(nodeProps.scope.id)}
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                void closeCircuit(nodeProps.scope.id);
-                            }}
-                            title={
-                                canCloseCircuit(nodeProps.scope.id)
-                                    ? "Close circuit"
-                                    : "Keep at least one circuit open"
-                            }
-                        >
-                            X
-                        </button>
+                        <div class={treeLabelButtonClass}>
+                            <TreeNodeIcon
+                                kind={isDirectory() ? "folder" : "circuit"}
+                                expanded={expanded()}
+                            />
+                            <ScopeNameCell name={nodeProps.scope.name} scopeId={nodeProps.scope.id} />
+                        </div>
                     </Show>
                 </div>
                 <Show when={hasChildren() && expanded()}>
@@ -382,21 +746,78 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         const hasChildren = () => children().length > 0;
         const expanded = () => projectNodeExpanded(nodeProps.node);
         const rowIsActive = () => projectNodeIsActive(nodeProps.node);
-        const isClosableTab = () =>
-            Boolean(nodeProps.node.scopeId && nodeProps.node.scopeId === nodeProps.node.tabId);
-        const closeTabId = () => nodeProps.node.tabId;
+        const nodeIsRenaming = () =>
+            Boolean(nodeProps.node.scopeId && isRenamingScope(nodeProps.node.scopeId));
+        const openProjectRowMenu = (event: MouseEvent | PointerEvent) =>
+            openEntryMenu(
+                event,
+                () => selectProjectEntry(nodeProps.node.id),
+                projectEntryMenuItems(nodeProps.node, hasChildren(), expanded()),
+            );
+        const handleProjectRowKeyDown = (event: KeyboardEvent) => {
+            switch (event.key) {
+                case "Enter":
+                    event.preventDefault();
+                    activateProjectNode(nodeProps.node);
+                    break;
+                case "ArrowRight":
+                    if (hasChildren() && !expanded()) {
+                        event.preventDefault();
+                        toggleProjectNodeExpanded(nodeProps.node.id);
+                    }
+                    break;
+                case "ArrowLeft":
+                    if (hasChildren() && expanded()) {
+                        event.preventDefault();
+                        toggleProjectNodeExpanded(nodeProps.node.id);
+                    }
+                    break;
+                case "F2":
+                    if (nodeProps.node.scopeId) {
+                        event.preventDefault();
+                        setRenamingScopeId(nodeProps.node.scopeId);
+                    }
+                    break;
+            }
+        };
+
+        const ProjectNodeLabel: Component = () => (
+            <>
+                <TreeNodeIcon kind={nodeProps.node.kind} expanded={expanded()} />
+                <Show
+                    when={nodeProps.node.scopeId}
+                    fallback={<span class="min-w-0 flex-1 truncate">{nodeProps.node.label}</span>}
+                >
+                    {(scopeId) => (
+                        <ScopeNameCell name={nodeProps.node.label} scopeId={scopeId()} />
+                    )}
+                </Show>
+                <Show when={nodeProps.node.detail}>
+                    <span class="shrink-0 truncate text-[10px] text-gray-8">
+                        {nodeProps.node.detail}
+                    </span>
+                </Show>
+            </>
+        );
 
         return (
             <div>
                 <div
                     role="treeitem"
                     aria-expanded={hasChildren() ? expanded() : undefined}
+                    aria-level={nodeProps.depth + 1}
                     aria-selected={rowIsActive()}
                     class={[
                         "group flex min-w-0 items-center hover:bg-gray-3",
                         rowIsActive() ? "bg-primary-3 text-primary-11" : "text-gray-11",
                     ].join(" ")}
+                    onClick={(event) => {
+                        if (isLeftMouseButton(event)) selectProjectEntry(nodeProps.node.id);
+                    }}
+                    onContextMenu={openProjectRowMenu}
+                    onKeyDown={handleProjectRowKeyDown}
                     style={{ "padding-left": `${10 + nodeProps.depth * 14}px` }}
+                    tabIndex={0}
                 >
                     <button
                         class="flex h-7 w-5 shrink-0 items-center justify-center rounded text-gray-9 hover:bg-gray-4 hover:text-gray-12 disabled:hover:bg-transparent"
@@ -406,36 +827,23 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                     >
                         <TreeChevron visible={hasChildren()} expanded={expanded()} />
                     </button>
-                    <button
-                        class={projectTreeLabelButtonClass}
-                        disabled={nodeProps.node.kind === "status"}
-                        onClick={() => activateProjectNode(nodeProps.node)}
-                        title={nodeProps.node.detail}
+                    <Show
+                        when={nodeIsRenaming()}
+                        fallback={
+                            <button
+                                class={projectTreeLabelButtonClass}
+                                disabled={nodeProps.node.kind === "status"}
+                                onContextMenu={openProjectRowMenu}
+                                onDblClick={() => activateProjectNode(nodeProps.node)}
+                                title={nodeProps.node.detail}
+                            >
+                                <ProjectNodeLabel />
+                            </button>
+                        }
                     >
-                        <TreeNodeIcon kind={nodeProps.node.kind} expanded={expanded()} />
-                        <span class="min-w-0 flex-1 truncate">{nodeProps.node.label}</span>
-                        <Show when={nodeProps.node.detail}>
-                            <span class="shrink-0 truncate text-[10px] text-gray-8">
-                                {nodeProps.node.detail}
-                            </span>
-                        </Show>
-                    </button>
-                    <Show when={isClosableTab()}>
-                        <button
-                            class="mx-1 rounded px-1.5 py-0.5 text-[11px] text-gray-9 hover:bg-gray-4 hover:text-gray-12 disabled:cursor-not-allowed disabled:text-gray-7 disabled:hover:bg-transparent"
-                            disabled={!canCloseCircuit(closeTabId()!)}
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                void closeCircuit(closeTabId()!);
-                            }}
-                            title={
-                                canCloseCircuit(closeTabId()!)
-                                    ? "Close circuit"
-                                    : "Keep at least one circuit open"
-                            }
-                        >
-                            X
-                        </button>
+                        <div class={projectTreeLabelButtonClass}>
+                            <ProjectNodeLabel />
+                        </div>
                     </Show>
                 </div>
                 <Show when={hasChildren() && expanded()}>
@@ -449,7 +857,10 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
         );
     };
 
-    onCleanup(() => stopSidebarResize(false));
+    onCleanup(() => {
+        stopSidebarResize(false);
+        window.removeEventListener("keydown", handleEntryMenuKeyDown);
+    });
 
     return (
         <aside
@@ -502,7 +913,7 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                         </button>
                         <button
                             class="rounded px-2 py-1 hover:bg-gray-3"
-                            onClick={() => props.setMode("settings")}
+                            onClick={() => props.openSettings("workbench")}
                             title="Settings"
                         >
                             S
@@ -525,32 +936,6 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                     >
                         <div role="tree" aria-label="Project workspace tree">
                             <ProjectTreeNode depth={0} node={projectTree()} />
-                        </div>
-                        <div class="flex flex-wrap gap-1 px-3 pb-2">
-                            <Pusher
-                                class={miniButtonClass}
-                                onClick={props.persistence.createTab}
-                                disabled={props.persistence.isBusy}
-                            >
-                                New
-                            </Pusher>
-                            <Pusher
-                                class={miniButtonClass}
-                                onClick={props.persistence.saveWorkspace}
-                                disabled={props.persistence.isBusy}
-                            >
-                                Save
-                            </Pusher>
-                            <Pusher
-                                class={miniButtonClass}
-                                onClick={props.persistence.loadWorkspace}
-                                disabled={
-                                    props.persistence.isBusy ||
-                                    !props.persistence.hasSavedWorkspace()
-                                }
-                            >
-                                Load
-                            </Pusher>
                         </div>
                     </ExplorerTreeSection>
 
@@ -614,19 +999,61 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                             when={customComponents().length > 0}
                             fallback={<p class="px-3 py-2 text-xs text-gray-9">No saved parts.</p>}
                         >
-                            <For each={customComponents()}>
-                                {(component) => (
-                                    <button
-                                        class="flex w-full items-center gap-2 px-3 py-1 text-left text-xs text-gray-11 hover:bg-gray-3"
-                                        onClick={() =>
-                                            props.customComponents.addComponent(component.hash)
-                                        }
-                                    >
-                                        <span class="text-gray-9">[]</span>
-                                        <span class="truncate">{component.name}</span>
-                                    </button>
-                                )}
-                            </For>
+                            <div role="tree" aria-label="Saved component tree">
+                                <For each={customComponents()}>
+                                    {(component) => {
+                                        const entryId = () =>
+                                            componentExplorerEntryId(component.hash);
+                                        const rowIsActive = () =>
+                                            explorerSelectionIsActive(entryId());
+                                        const openComponentMenu = (
+                                            event: MouseEvent | PointerEvent,
+                                        ) =>
+                                            openEntryMenu(
+                                                event,
+                                                () => selectComponentEntry(component.hash),
+                                                componentEntryMenuItems(component),
+                                            );
+
+                                        return (
+                                            <div
+                                                role="treeitem"
+                                                aria-selected={rowIsActive()}
+                                                class={[
+                                                    "flex min-w-0 items-center gap-2 px-3 py-1 text-xs hover:bg-gray-3",
+                                                    rowIsActive()
+                                                        ? "bg-primary-3 text-primary-11"
+                                                        : "text-gray-11",
+                                                ].join(" ")}
+                                                onClick={(event) => {
+                                                    if (isLeftMouseButton(event)) {
+                                                        selectComponentEntry(component.hash);
+                                                    }
+                                                }}
+                                                onContextMenu={openComponentMenu}
+                                                tabIndex={0}
+                                                title={component.name}
+                                            >
+                                                <span class="shrink-0 text-gray-9">[]</span>
+                                                <span class="min-w-0 flex-1 truncate">
+                                                    {component.name}
+                                                </span>
+                                                <Show
+                                                    when={
+                                                        component.inputCount !== undefined &&
+                                                        component.outputCount !== undefined
+                                                    }
+                                                >
+                                                    <span class="shrink-0 text-[10px] text-gray-8">
+                                                        {component.inputCount} in,{" "}
+                                                        {component.outputCount} out
+                                                    </span>
+                                                </Show>
+                                            </div>
+                                        );
+                                    }}
+                                </For>
+                            </div>
                         </Show>
                     </ExplorerTreeSection>
 
@@ -635,28 +1062,89 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                         sectionKey="workbench"
                         title="Workbench"
                     >
-                        <button
-                            class={[
-                                "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-3",
-                                props.mode === "settings" ? "bg-primary-3 text-primary-11" : "",
-                            ].join(" ")}
-                            onClick={() => props.setMode("settings")}
-                        >
-                            <span class="text-gray-9">-</span>
-                            <span>Settings</span>
-                        </button>
+                        <div role="tree" aria-label="Workbench tree">
+                            <div
+                                role="treeitem"
+                                aria-selected={settingsEntryIsActive()}
+                                class={[
+                                    "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-3",
+                                    settingsEntryIsActive()
+                                        ? "bg-primary-3 text-primary-11"
+                                        : "text-gray-11",
+                                ].join(" ")}
+                                onClick={(event) => {
+                                    if (isLeftMouseButton(event)) {
+                                        selectProjectEntry(settingsExplorerEntryId);
+                                    }
+                                }}
+                                onContextMenu={(event) =>
+                                    openEntryMenu(
+                                        event,
+                                        () => selectProjectEntry(settingsExplorerEntryId),
+                                        settingsEntryMenuItems(),
+                                    )
+                                }
+                                onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                        event.preventDefault();
+                                        props.openSettings("workbench");
+                                    }
+                                }}
+                                tabIndex={0}
+                            >
+                                <span class="text-gray-9">-</span>
+                                <span>Settings</span>
+                            </div>
+                        </div>
                     </ExplorerTreeSection>
                 </div>
 
-                <div class="border-t border-gray-4 p-2">
-                    <Pusher
-                        class="w-full rounded border border-gray-5 bg-gray-3 px-2 py-1 text-xs text-gray-12 hover:bg-gray-4"
-                        onClick={props.persistence.createTab}
-                        disabled={props.persistence.isBusy}
+            </Show>
+            <Show when={entryMenu()}>
+                {(menu) => (
+                    <div
+                        class="fixed inset-0 z-[100]"
+                        onClick={closeEntryMenu}
+                        onContextMenu={(event) => {
+                            event.preventDefault();
+                            closeEntryMenu();
+                        }}
                     >
-                        New Circuit
-                    </Pusher>
-                </div>
+                        <div
+                            class={contextMenuStyles.content()}
+                            onClick={(event) => event.stopPropagation()}
+                            style={{
+                                left: `${menu().x}px`,
+                                position: "fixed",
+                                top: `${menu().y}px`,
+                            }}
+                        >
+                            <For each={menu().items}>
+                                {(item) => (
+                                    <>
+                                        <Show when={item.separatorBefore}>
+                                            <div class={contextMenuStyles.separator()} />
+                                        </Show>
+                                        <button
+                                            class={`${contextMenuStyles.item()} w-full`}
+                                            disabled={item.disabled}
+                                            onClick={() => {
+                                                if (item.disabled) return;
+                                                closeEntryMenu();
+                                                item.onSelect?.();
+                                            }}
+                                            type="button"
+                                        >
+                                            <span class={contextMenuStyles.itemLabel()}>
+                                                {item.label}
+                                            </span>
+                                        </button>
+                                    </>
+                                )}
+                            </For>
+                        </div>
+                    </div>
+                )}
             </Show>
         </aside>
     );

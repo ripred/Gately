@@ -37,6 +37,7 @@ export type WorkspaceSessionApi = {
     createTab: (data?: WorkspaceSessionCreateTabInput) => Promise<{ tabId: string }>;
     openTab: (tabId?: string) => void;
     openScope: (scopeId: string, tabId?: string) => void;
+    renameScope: (scopeId: string, name: string) => void;
     canCloseTab: (tabId: string, conditions?: WorkspaceSessionCloseTabConditions) => boolean;
     closeTab: (tabId: string, conditions?: WorkspaceSessionCloseTabConditions) => Promise<boolean>;
     syncRuntimeSnapshot: () => void;

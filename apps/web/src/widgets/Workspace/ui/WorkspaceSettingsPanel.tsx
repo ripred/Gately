@@ -4,7 +4,7 @@ import {
 } from "@gately/app/providers/AppConfigurationProvider";
 import type { WorkspaceSimulationMode } from "@gately/shared/types";
 import type { WorkspaceSimulationController } from "../lib/types";
-import { Component, createMemo, createSignal, For, JSX, Show } from "solid-js";
+import { Component, createMemo, createSignal, For, JSX, Show, type Accessor } from "solid-js";
 import {
     EXPLORER_SECTION_SETTINGS,
     ROUTING_SETTINGS,
@@ -19,11 +19,13 @@ import {
 } from "./settingsSchema";
 
 type WorkspaceSettingsPanelProps = {
+    activeCategoryId: Accessor<SettingsCategoryId>;
     configuration: AppConfigurationController;
+    setActiveCategoryId: (categoryId: SettingsCategoryId) => void;
     simulation: WorkspaceSimulationController;
 };
 
-type SettingsCategoryId =
+export type SettingsCategoryId =
     | "accessibility"
     | "workbench"
     | "simulation"
@@ -47,9 +49,14 @@ const inputClass =
 const normalizeSearch = (value: string): string => value.trim().toLowerCase();
 
 export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (props) => {
-    const [activeCategoryId, setActiveCategoryId] =
-        createSignal<SettingsCategoryId>("accessibility");
     const [searchQuery, setSearchQuery] = createSignal("");
+    const showAllToolbarGroups = () => {
+        props.configuration.setWorkbenchConfig({
+            visibleToolbarGroups: Object.fromEntries(
+                TOOLBAR_GROUP_SETTINGS.map((setting) => [setting.key, true]),
+            ),
+        });
+    };
 
     const categories: SettingsCategory[] = [
         {
@@ -184,6 +191,9 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                                 )}
                             </For>
                         </div>
+                        <button class={`${buttonClass} mt-3`} onClick={showAllToolbarGroups}>
+                            Show All Toolbar Groups
+                        </button>
                     </div>
                     <div>
                         <button
@@ -328,7 +338,7 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
     const activeCategory = createMemo(() => {
         const visible = visibleCategories();
         return (
-            visible.find((category) => category.id === activeCategoryId()) ??
+            visible.find((category) => category.id === props.activeCategoryId()) ??
             visible[0]
         );
     });
@@ -374,7 +384,7 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                                     ].join(" ")}
                                     id={`settings-tab-${category.id}`}
                                     role="tab"
-                                    onClick={() => setActiveCategoryId(category.id)}
+                                    onClick={() => props.setActiveCategoryId(category.id)}
                                 >
                                     <span class="text-sm font-medium">{category.label}</span>
                                     <span class="text-xs leading-4 text-gray-9">

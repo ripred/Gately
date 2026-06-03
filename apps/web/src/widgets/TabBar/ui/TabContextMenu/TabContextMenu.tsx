@@ -16,7 +16,7 @@ export const TabContextMenu: ParentComponent = (props) => {
                         closeOnSelect
                         onSelect={() => ctx.setIsTitleEditing(true)}
                     >
-                        <span class={styles.itemLabel()}>Rename File</span>
+                        <span class={styles.itemLabel()}>Rename Tab</span>
                     </ContextMenu.Item>
 
                     <ContextMenu.Separator class={`${styles.separator()}`} />

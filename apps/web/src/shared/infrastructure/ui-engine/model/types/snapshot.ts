@@ -14,4 +14,5 @@ export type UIScopeSnapshot = {
 
 export type UIEngineScopePersistPatch = Partial<UIScopeSnapshot> & {
     _updatedAt?: number;
+    name?: string;
 };

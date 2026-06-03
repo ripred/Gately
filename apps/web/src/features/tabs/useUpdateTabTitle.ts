@@ -1,11 +1,10 @@
-// import { useTabsActions } from "@gately/entities/model/tabss/hooks";
+import { useUIEngine } from "@gately/shared/infrastructure";
 
 export const useUpdateTabTitle = () => {
-    // const actions = useTabsActions();
+    const uiEngine = useUIEngine();
 
-    const updateTabTitle = (_tabId: string, _title: string) => {
-        // const updated = actions.update(tabId, { title });
-        // return updated;
+    const updateTabTitle = (tabId: string, title: string) => {
+        uiEngine.commands.renameScope(tabId, title);
     };
 
     return { updateTabTitle };

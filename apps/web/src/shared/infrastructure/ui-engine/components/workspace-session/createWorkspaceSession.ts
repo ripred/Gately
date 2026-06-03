@@ -18,12 +18,19 @@ export const createWorkspaceSession = (deps: WorkspaceSessionDeps): WorkspaceSes
         getNavigationPath: services.state.getNavigationPath,
         getNavigationScopes: services.state.getNavigationScopes,
     };
+    const renameScope = (scopeId: string, name: string): void => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+
+        services.state.updateScope(scopeId, { name: trimmed });
+    };
 
     return {
         state,
         createTab: services.tab.createTab,
         openTab: services.navigation.openTab,
         openScope: services.navigation.openScope,
+        renameScope,
         canCloseTab: services.tab.canCloseTab,
         closeTab: services.tab.closeTab,
         syncRuntimeSnapshot: services.snapshot.syncRuntimeSnapshot,

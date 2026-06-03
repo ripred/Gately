@@ -52,6 +52,9 @@ export const createUIEngineCommands = ({
         openScope(scopeId, tabId) {
             workspace.openScope(scopeId, tabId);
         },
+        renameScope(scopeId, name) {
+            workspace.renameScope(scopeId, name);
+        },
         canCloseTab(tabId, conditions) {
             return workspace.canCloseTab(tabId, conditions);
         },

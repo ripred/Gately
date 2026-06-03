@@ -116,4 +116,28 @@ describe("createWorkspaceSession", () => {
             dispose();
         });
     });
+
+    it("renames scopes through the public session API", async () => {
+        await createRoot(async (dispose) => {
+            const { getSharedService } = createSharedGetter();
+            const workspaceSession = createWorkspaceSession({
+                getSharedService,
+                external: {
+                    logicEngine: {
+                        call: vi.fn().mockResolvedValue({ tabId: "tab-1" }),
+                    } as unknown as UIEngineLogicEngine,
+                },
+            });
+
+            await workspaceSession.createTab({ name: "Before" });
+
+            workspaceSession.renameScope("tab-1", "After");
+            workspaceSession.renameScope("tab-1", "   ");
+
+            expect(workspaceSession.state.tabs()).toEqual([{ id: "tab-1", name: "After" }]);
+            expect(workspaceSession.state.getScope("tab-1")?.name).toBe("After");
+
+            dispose();
+        });
+    });
 });
