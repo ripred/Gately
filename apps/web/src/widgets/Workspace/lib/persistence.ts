@@ -30,6 +30,7 @@ type FileSystemWritableFileStream = {
 type FileSystemFileHandle = {
     createWritable: () => Promise<FileSystemWritableFileStream>;
     getFile: () => Promise<File>;
+    name: string;
 };
 
 type FilePickerAcceptType = {
@@ -66,6 +67,16 @@ type WorkspacePersistenceDeps = {
     onAfterProjectLoad?: () => void;
     onAfterSave?: () => void;
     onDirty?: () => void;
+};
+
+type ProjectFileSelection = {
+    file: File;
+    handle?: FileSystemFileHandle;
+};
+
+type ProjectFileWriteResult = {
+    handle?: FileSystemFileHandle;
+    saved: boolean;
 };
 
 const parseProject = (raw: string): GatelyProjectSnapshot => {
@@ -112,17 +123,18 @@ const projectFileName = (deps: WorkspacePersistenceDeps): string => {
     return `${sanitizeFileName(activeTab?.name ?? "gately-workspace")}${PROJECT_FILE_EXTENSION}`;
 };
 
-const chooseProjectFile = async (): Promise<File | undefined> => {
+const chooseProjectFile = async (): Promise<ProjectFileSelection | undefined> => {
     if (window.showOpenFilePicker) {
         const [handle] = await window.showOpenFilePicker({
             excludeAcceptAllOption: false,
             multiple: false,
             types: projectFilePickerTypes(),
         });
-        return handle?.getFile();
+        const file = await handle?.getFile();
+        return file ? { file, handle } : undefined;
     }
 
-    return new Promise<File | undefined>((resolve) => {
+    return new Promise<ProjectFileSelection | undefined>((resolve) => {
         const input = document.createElement("input");
         input.type = "file";
         input.accept = `${PROJECT_FILE_EXTENSION},.json`;
@@ -132,7 +144,7 @@ const chooseProjectFile = async (): Promise<File | undefined> => {
             () => {
                 const [file] = Array.from(input.files ?? []);
                 input.remove();
-                resolve(file);
+                resolve(file ? { file } : undefined);
             },
             { once: true },
         );
@@ -152,10 +164,18 @@ const chooseProjectFile = async (): Promise<File | undefined> => {
 const writeProjectFile = async (
     project: GatelyProjectSnapshot,
     suggestedName: string,
-): Promise<boolean> => {
+    existingHandle?: FileSystemFileHandle,
+): Promise<ProjectFileWriteResult> => {
     const blob = new Blob([`${JSON.stringify(project, null, 2)}\n`], {
         type: PROJECT_FILE_TYPE,
     });
+
+    if (existingHandle) {
+        const writable = await existingHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return { handle: existingHandle, saved: true };
+    }
 
     if (window.showSaveFilePicker) {
         const handle = await window.showSaveFilePicker({
@@ -165,7 +185,7 @@ const writeProjectFile = async (
         const writable = await handle.createWritable();
         await writable.write(blob);
         await writable.close();
-        return true;
+        return { handle, saved: true };
     }
 
     const url = window.URL.createObjectURL(blob);
@@ -177,13 +197,15 @@ const writeProjectFile = async (
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
-    return true;
+    return { saved: true };
 };
 
 export const createWorkspacePersistence = (
     deps: WorkspacePersistenceDeps,
 ): WorkspacePersistenceController => {
     const [busy, setBusy] = createSignal(false);
+    let currentProjectFileHandle: FileSystemFileHandle | undefined;
+    let currentProjectFileName: string | undefined;
 
     const buildProjectSnapshot = async (): Promise<GatelyProjectSnapshot> => ({
         version: PROJECT_VERSION,
@@ -204,8 +226,16 @@ export const createWorkspacePersistence = (
     const saveWorkspace = async () => {
         setBusy(true);
         try {
-            const saved = await writeProjectFile(await buildProjectSnapshot(), projectFileName(deps));
-            if (saved) deps.onAfterSave?.();
+            const result = await writeProjectFile(
+                await buildProjectSnapshot(),
+                currentProjectFileName ?? projectFileName(deps),
+                currentProjectFileHandle,
+            );
+            if (result.handle) {
+                currentProjectFileHandle = result.handle;
+                currentProjectFileName = result.handle.name;
+            }
+            if (result.saved) deps.onAfterSave?.();
         } catch (error) {
             if (!userCanceledFilePicker(error)) {
                 window.alert(error instanceof Error ? error.message : "Unable to save workspace.");
@@ -218,10 +248,12 @@ export const createWorkspacePersistence = (
     const loadWorkspace = async () => {
         setBusy(true);
         try {
-            const file = await chooseProjectFile();
-            if (!file) return;
+            const selection = await chooseProjectFile();
+            if (!selection) return;
 
-            await importProjectSnapshot(parseProject(await file.text()));
+            await importProjectSnapshot(parseProject(await selection.file.text()));
+            currentProjectFileHandle = selection.handle;
+            currentProjectFileName = selection.handle?.name ?? selection.file.name;
         } catch (error) {
             if (!userCanceledFilePicker(error)) {
                 window.alert(error instanceof Error ? error.message : "Unable to load workspace file.");
