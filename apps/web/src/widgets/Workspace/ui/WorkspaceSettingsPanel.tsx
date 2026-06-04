@@ -309,9 +309,19 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                                         )
                                     }
                                 />
-                                <span class="font-mono text-[11px] text-gray-10">
-                                    {props.configuration.signalPathColors()[setting.key]}
-                                </span>
+                                <input
+                                    aria-label={`${setting.label} hex color`}
+                                    class={`${inputClass} w-28 font-mono text-[11px]`}
+                                    type="text"
+                                    value={props.configuration.signalPathColors()[setting.key]}
+                                    onInput={(event) =>
+                                        setSignalPathColor(
+                                            props.configuration,
+                                            setting.key,
+                                            event.currentTarget.value,
+                                        )
+                                    }
+                                />
                             </label>
                         )}
                     </For>
@@ -345,15 +355,15 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
     });
 
     return (
-        <div class="flex h-[min(44rem,calc(100vh-6rem))] w-[min(62rem,calc(100vw-4rem))] overflow-hidden rounded border border-gray-4 bg-gray-1 text-gray-12 shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
+        <div class="flex h-full min-h-0 w-full overflow-hidden rounded border border-gray-4 bg-gray-1 text-gray-12 shadow-[0_18px_42px_rgba(0,0,0,0.20)]">
             <div class="flex h-full min-h-0 flex-1 flex-col">
-                <header class="shrink-0 border-b border-gray-4 px-6 py-4">
+                <header class="shrink-0 border-b border-gray-4 px-5 py-3">
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <p class="text-xs font-bold uppercase tracking-wide text-gray-10">
                                 Gately Preferences
                             </p>
-                            <h1 class="mt-2 text-2xl font-semibold text-gray-12">Settings</h1>
+                            <h1 class="mt-1 text-xl font-semibold text-gray-12">Settings</h1>
                         </div>
                         <button
                             aria-label="Close settings"
@@ -376,7 +386,7 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                             </svg>
                         </button>
                     </div>
-                    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
                         <label class="min-w-[16rem] flex-1 max-w-sm">
                             <span class="sr-only">Search settings</span>
                             <input
@@ -390,7 +400,7 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                     </div>
                 </header>
 
-                <div class="grid min-h-0 flex-1 grid-cols-[16rem_minmax(0,1fr)]">
+                <div class="grid min-h-0 flex-1 grid-cols-[14rem_minmax(0,1fr)]">
                     <nav
                         aria-label="Settings categories"
                         class="min-h-0 overflow-auto border-r border-gray-4 bg-gray-2 py-2"
@@ -420,7 +430,7 @@ export const WorkspaceSettingsPanel: Component<WorkspaceSettingsPanelProps> = (p
                         </For>
                     </nav>
 
-                    <main class="min-h-0 overflow-auto px-8 py-7">
+                    <main class="min-h-0 overflow-auto px-6 py-5">
                         <Show
                             when={activeCategory()}
                             fallback={

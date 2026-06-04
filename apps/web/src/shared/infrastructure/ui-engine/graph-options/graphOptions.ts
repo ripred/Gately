@@ -19,7 +19,7 @@ export const makeGraphOptions = (
     autoResize: true,
     mousewheel: {
         enabled: true,
-        minScale: 0.2,
+        minScale: 0.1,
         maxScale: 4,
         zoomAtMousePosition: true,
     },

@@ -1,0 +1,890 @@
+{
+  "version": 1,
+  "savedAt": 1760000000000,
+  "engine": {
+    "version": 1,
+    "templates": [],
+    "tabs": [
+      {
+        "id": "example-unoptimized-complex-fan-in",
+        "items": [
+          [
+            "input_a",
+            {
+              "id": "input_a",
+              "hash": "TOGGLE",
+              "name": "A",
+              "outputPins": {
+                "0": {
+                  "value": "0"
+                }
+              },
+              "meta": {
+                "autoTriggers": {
+                  "0": {
+                    "initialValue": "0"
+                  }
+                },
+                "numOfOutputs": 1
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:generator"
+            }
+          ],
+          [
+            "input_b",
+            {
+              "id": "input_b",
+              "hash": "TOGGLE",
+              "name": "B",
+              "outputPins": {
+                "0": {
+                  "value": "0"
+                }
+              },
+              "meta": {
+                "autoTriggers": {
+                  "0": {
+                    "initialValue": "0"
+                  }
+                },
+                "numOfOutputs": 1
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:generator"
+            }
+          ],
+          [
+            "input_c",
+            {
+              "id": "input_c",
+              "hash": "TOGGLE",
+              "name": "C",
+              "outputPins": {
+                "0": {
+                  "value": "0"
+                }
+              },
+              "meta": {
+                "autoTriggers": {
+                  "0": {
+                    "initialValue": "0"
+                  }
+                },
+                "numOfOutputs": 1
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:generator"
+            }
+          ],
+          [
+            "input_d",
+            {
+              "id": "input_d",
+              "hash": "TOGGLE",
+              "name": "D",
+              "outputPins": {
+                "0": {
+                  "value": "0"
+                }
+              },
+              "meta": {
+                "autoTriggers": {
+                  "0": {
+                    "initialValue": "0"
+                  }
+                },
+                "numOfOutputs": 1
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:generator"
+            }
+          ],
+          [
+            "input_e",
+            {
+              "id": "input_e",
+              "hash": "TOGGLE",
+              "name": "E",
+              "outputPins": {
+                "0": {
+                  "value": "0"
+                }
+              },
+              "meta": {
+                "autoTriggers": {
+                  "0": {
+                    "initialValue": "0"
+                  }
+                },
+                "numOfOutputs": 1
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:generator"
+            }
+          ],
+          [
+            "input_f",
+            {
+              "id": "input_f",
+              "hash": "TOGGLE",
+              "name": "F",
+              "outputPins": {
+                "0": {
+                  "value": "0"
+                }
+              },
+              "meta": {
+                "autoTriggers": {
+                  "0": {
+                    "initialValue": "0"
+                  }
+                },
+                "numOfOutputs": 1
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:generator"
+            }
+          ],
+          [
+            "input_g",
+            {
+              "id": "input_g",
+              "hash": "TOGGLE",
+              "name": "G",
+              "outputPins": {
+                "0": {
+                  "value": "0"
+                }
+              },
+              "meta": {
+                "autoTriggers": {
+                  "0": {
+                    "initialValue": "0"
+                  }
+                },
+                "numOfOutputs": 1
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:generator"
+            }
+          ],
+          [
+            "input_h",
+            {
+              "id": "input_h",
+              "hash": "TOGGLE",
+              "name": "H",
+              "outputPins": {
+                "0": {
+                  "value": "0"
+                }
+              },
+              "meta": {
+                "autoTriggers": {
+                  "0": {
+                    "initialValue": "0"
+                  }
+                },
+                "numOfOutputs": 1
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:generator"
+            }
+          ],
+          [
+            "not_e",
+            {
+              "id": "not_e",
+              "hash": "NOT",
+              "name": "E'",
+              "inputPins": {
+                "0": {
+                  "value": "X"
+                }
+              },
+              "outputPins": {
+                "0": {
+                  "value": "X"
+                }
+              },
+              "meta": {
+                "numOfInputs": 1
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:logic"
+            }
+          ],
+          [
+            "not_f",
+            {
+              "id": "not_f",
+              "hash": "NOT",
+              "name": "F'",
+              "inputPins": {
+                "0": {
+                  "value": "X"
+                }
+              },
+              "outputPins": {
+                "0": {
+                  "value": "X"
+                }
+              },
+              "meta": {
+                "numOfInputs": 1
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:logic"
+            }
+          ],
+          [
+            "and_abc",
+            {
+              "id": "and_abc",
+              "hash": "AND",
+              "name": "ABC",
+              "inputPins": {
+                "0": {
+                  "value": "X"
+                },
+                "1": {
+                  "value": "X"
+                },
+                "2": {
+                  "value": "X"
+                }
+              },
+              "outputPins": {
+                "0": {
+                  "value": "X"
+                }
+              },
+              "meta": {
+                "isSymmetric": true,
+                "numOfInputs": 3
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:logic"
+            }
+          ],
+          [
+            "and_a_not_e_h",
+            {
+              "id": "and_a_not_e_h",
+              "hash": "AND",
+              "name": "AE'H",
+              "inputPins": {
+                "0": {
+                  "value": "X"
+                },
+                "1": {
+                  "value": "X"
+                },
+                "2": {
+                  "value": "X"
+                }
+              },
+              "outputPins": {
+                "0": {
+                  "value": "X"
+                }
+              },
+              "meta": {
+                "isSymmetric": true,
+                "numOfInputs": 3
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:logic"
+            }
+          ],
+          [
+            "and_dg",
+            {
+              "id": "and_dg",
+              "hash": "AND",
+              "name": "DG",
+              "inputPins": {
+                "0": {
+                  "value": "X"
+                },
+                "1": {
+                  "value": "X"
+                }
+              },
+              "outputPins": {
+                "0": {
+                  "value": "X"
+                }
+              },
+              "meta": {
+                "isSymmetric": true,
+                "numOfInputs": 2
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:logic"
+            }
+          ],
+          [
+            "and_b_not_f_h",
+            {
+              "id": "and_b_not_f_h",
+              "hash": "AND",
+              "name": "BF'H",
+              "inputPins": {
+                "0": {
+                  "value": "X"
+                },
+                "1": {
+                  "value": "X"
+                },
+                "2": {
+                  "value": "X"
+                }
+              },
+              "outputPins": {
+                "0": {
+                  "value": "X"
+                }
+              },
+              "meta": {
+                "isSymmetric": true,
+                "numOfInputs": 3
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:logic"
+            }
+          ],
+          [
+            "or_out",
+            {
+              "id": "or_out",
+              "hash": "OR",
+              "name": "OUT sum",
+              "inputPins": {
+                "0": {
+                  "value": "X"
+                },
+                "1": {
+                  "value": "X"
+                },
+                "2": {
+                  "value": "X"
+                },
+                "3": {
+                  "value": "X"
+                },
+                "4": {
+                  "value": "X"
+                },
+                "5": {
+                  "value": "X"
+                },
+                "6": {
+                  "value": "X"
+                }
+              },
+              "outputPins": {
+                "0": {
+                  "value": "X"
+                }
+              },
+              "meta": {
+                "isSymmetric": true,
+                "numOfInputs": 7
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:logic"
+            }
+          ],
+          [
+            "output_lamp",
+            {
+              "id": "output_lamp",
+              "hash": "LAMP",
+              "name": "OUT",
+              "inputPins": {
+                "0": {
+                  "value": "X"
+                }
+              },
+              "meta": {
+                "numOfInputs": 1
+              },
+              "path": [
+                "example-unoptimized-complex-fan-in"
+              ],
+              "kind": "base:display"
+            }
+          ]
+        ],
+        "links": [
+          [
+            "input_e:0:not_e:0",
+            {
+              "fromItemId": "input_e",
+              "fromPin": "0",
+              "toItemId": "not_e",
+              "toPin": "0"
+            }
+          ],
+          [
+            "input_f:0:not_f:0",
+            {
+              "fromItemId": "input_f",
+              "fromPin": "0",
+              "toItemId": "not_f",
+              "toPin": "0"
+            }
+          ],
+          [
+            "input_a:0:and_abc:0",
+            {
+              "fromItemId": "input_a",
+              "fromPin": "0",
+              "toItemId": "and_abc",
+              "toPin": "0"
+            }
+          ],
+          [
+            "input_b:0:and_abc:1",
+            {
+              "fromItemId": "input_b",
+              "fromPin": "0",
+              "toItemId": "and_abc",
+              "toPin": "1"
+            }
+          ],
+          [
+            "input_c:0:and_abc:2",
+            {
+              "fromItemId": "input_c",
+              "fromPin": "0",
+              "toItemId": "and_abc",
+              "toPin": "2"
+            }
+          ],
+          [
+            "input_a:0:and_a_not_e_h:0",
+            {
+              "fromItemId": "input_a",
+              "fromPin": "0",
+              "toItemId": "and_a_not_e_h",
+              "toPin": "0"
+            }
+          ],
+          [
+            "not_e:0:and_a_not_e_h:1",
+            {
+              "fromItemId": "not_e",
+              "fromPin": "0",
+              "toItemId": "and_a_not_e_h",
+              "toPin": "1"
+            }
+          ],
+          [
+            "input_h:0:and_a_not_e_h:2",
+            {
+              "fromItemId": "input_h",
+              "fromPin": "0",
+              "toItemId": "and_a_not_e_h",
+              "toPin": "2"
+            }
+          ],
+          [
+            "input_d:0:and_dg:0",
+            {
+              "fromItemId": "input_d",
+              "fromPin": "0",
+              "toItemId": "and_dg",
+              "toPin": "0"
+            }
+          ],
+          [
+            "input_g:0:and_dg:1",
+            {
+              "fromItemId": "input_g",
+              "fromPin": "0",
+              "toItemId": "and_dg",
+              "toPin": "1"
+            }
+          ],
+          [
+            "input_b:0:and_b_not_f_h:0",
+            {
+              "fromItemId": "input_b",
+              "fromPin": "0",
+              "toItemId": "and_b_not_f_h",
+              "toPin": "0"
+            }
+          ],
+          [
+            "not_f:0:and_b_not_f_h:1",
+            {
+              "fromItemId": "not_f",
+              "fromPin": "0",
+              "toItemId": "and_b_not_f_h",
+              "toPin": "1"
+            }
+          ],
+          [
+            "input_h:0:and_b_not_f_h:2",
+            {
+              "fromItemId": "input_h",
+              "fromPin": "0",
+              "toItemId": "and_b_not_f_h",
+              "toPin": "2"
+            }
+          ],
+          [
+            "and_abc:0:or_out:0",
+            {
+              "fromItemId": "and_abc",
+              "fromPin": "0",
+              "toItemId": "or_out",
+              "toPin": "0"
+            }
+          ],
+          [
+            "input_c:0:or_out:1",
+            {
+              "fromItemId": "input_c",
+              "fromPin": "0",
+              "toItemId": "or_out",
+              "toPin": "1"
+            }
+          ],
+          [
+            "and_a_not_e_h:0:or_out:2",
+            {
+              "fromItemId": "and_a_not_e_h",
+              "fromPin": "0",
+              "toItemId": "or_out",
+              "toPin": "2"
+            }
+          ],
+          [
+            "input_e:0:or_out:3",
+            {
+              "fromItemId": "input_e",
+              "fromPin": "0",
+              "toItemId": "or_out",
+              "toPin": "3"
+            }
+          ],
+          [
+            "and_dg:0:or_out:4",
+            {
+              "fromItemId": "and_dg",
+              "fromPin": "0",
+              "toItemId": "or_out",
+              "toPin": "4"
+            }
+          ],
+          [
+            "and_b_not_f_h:0:or_out:5",
+            {
+              "fromItemId": "and_b_not_f_h",
+              "fromPin": "0",
+              "toItemId": "or_out",
+              "toPin": "5"
+            }
+          ],
+          [
+            "input_g:0:or_out:6",
+            {
+              "fromItemId": "input_g",
+              "fromPin": "0",
+              "toItemId": "or_out",
+              "toPin": "6"
+            }
+          ],
+          [
+            "or_out:0:output_lamp:0",
+            {
+              "fromItemId": "or_out",
+              "fromPin": "0",
+              "toItemId": "output_lamp",
+              "toPin": "0"
+            }
+          ]
+        ],
+        "scopes": [
+          [
+            "example-unoptimized-complex-fan-in",
+            {
+              "id": "example-unoptimized-complex-fan-in",
+              "kind": "tab",
+              "path": [],
+              "storedScopes": [],
+              "storedItems": [
+                [
+                  "input_a",
+                  {
+                    "outputLinks": {
+                      "0": [
+                        "input_a:0:and_abc:0",
+                        "input_a:0:and_a_not_e_h:0"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "input_b",
+                  {
+                    "outputLinks": {
+                      "0": [
+                        "input_b:0:and_abc:1",
+                        "input_b:0:and_b_not_f_h:0"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "input_c",
+                  {
+                    "outputLinks": {
+                      "0": [
+                        "input_c:0:and_abc:2",
+                        "input_c:0:or_out:1"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "input_d",
+                  {
+                    "outputLinks": {
+                      "0": [
+                        "input_d:0:and_dg:0"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "input_e",
+                  {
+                    "outputLinks": {
+                      "0": [
+                        "input_e:0:not_e:0",
+                        "input_e:0:or_out:3"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "input_f",
+                  {
+                    "outputLinks": {
+                      "0": [
+                        "input_f:0:not_f:0"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "input_g",
+                  {
+                    "outputLinks": {
+                      "0": [
+                        "input_g:0:and_dg:1",
+                        "input_g:0:or_out:6"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "input_h",
+                  {
+                    "outputLinks": {
+                      "0": [
+                        "input_h:0:and_a_not_e_h:2",
+                        "input_h:0:and_b_not_f_h:2"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "not_e",
+                  {
+                    "inputLinks": {
+                      "0": "input_e:0:not_e:0"
+                    },
+                    "outputLinks": {
+                      "0": [
+                        "not_e:0:and_a_not_e_h:1"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "not_f",
+                  {
+                    "inputLinks": {
+                      "0": "input_f:0:not_f:0"
+                    },
+                    "outputLinks": {
+                      "0": [
+                        "not_f:0:and_b_not_f_h:1"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "and_abc",
+                  {
+                    "inputLinks": {
+                      "0": "input_a:0:and_abc:0",
+                      "1": "input_b:0:and_abc:1",
+                      "2": "input_c:0:and_abc:2"
+                    },
+                    "outputLinks": {
+                      "0": [
+                        "and_abc:0:or_out:0"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "and_a_not_e_h",
+                  {
+                    "inputLinks": {
+                      "0": "input_a:0:and_a_not_e_h:0",
+                      "1": "not_e:0:and_a_not_e_h:1",
+                      "2": "input_h:0:and_a_not_e_h:2"
+                    },
+                    "outputLinks": {
+                      "0": [
+                        "and_a_not_e_h:0:or_out:2"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "and_dg",
+                  {
+                    "inputLinks": {
+                      "0": "input_d:0:and_dg:0",
+                      "1": "input_g:0:and_dg:1"
+                    },
+                    "outputLinks": {
+                      "0": [
+                        "and_dg:0:or_out:4"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "and_b_not_f_h",
+                  {
+                    "inputLinks": {
+                      "0": "input_b:0:and_b_not_f_h:0",
+                      "1": "not_f:0:and_b_not_f_h:1",
+                      "2": "input_h:0:and_b_not_f_h:2"
+                    },
+                    "outputLinks": {
+                      "0": [
+                        "and_b_not_f_h:0:or_out:5"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "or_out",
+                  {
+                    "inputLinks": {
+                      "0": "and_abc:0:or_out:0",
+                      "1": "input_c:0:or_out:1",
+                      "2": "and_a_not_e_h:0:or_out:2",
+                      "3": "input_e:0:or_out:3",
+                      "4": "and_dg:0:or_out:4",
+                      "5": "and_b_not_f_h:0:or_out:5",
+                      "6": "input_g:0:or_out:6"
+                    },
+                    "outputLinks": {
+                      "0": [
+                        "or_out:0:output_lamp:0"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "output_lamp",
+                  {
+                    "inputLinks": {
+                      "0": "or_out:0:output_lamp:0"
+                    }
+                  }
+                ]
+              ]
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "workspace": {
+    "version": 1,
+    "scopes": [
+      {
+        "id": "example-unoptimized-complex-fan-in",
+        "kind": "tab",
+        "name": "Unoptimized Boolean Demo",
+        "path": [],
+        "childrenIds": [],
+        "contentJson": "{\"cells\":[{\"id\":\"input_a\",\"shape\":\"Toggle\",\"x\":80,\"y\":64,\"width\":34,\"height\":34,\"attrs\":{\"body\":{\"width\":32,\"height\":32}},\"data\":{\"hash\":\"TOGGLE\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:generator\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}}]}},{\"id\":\"input_b\",\"shape\":\"Toggle\",\"x\":80,\"y\":144,\"width\":34,\"height\":34,\"attrs\":{\"body\":{\"width\":32,\"height\":32}},\"data\":{\"hash\":\"TOGGLE\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:generator\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}}]}},{\"id\":\"input_c\",\"shape\":\"Toggle\",\"x\":80,\"y\":224,\"width\":34,\"height\":34,\"attrs\":{\"body\":{\"width\":32,\"height\":32}},\"data\":{\"hash\":\"TOGGLE\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:generator\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}}]}},{\"id\":\"input_d\",\"shape\":\"Toggle\",\"x\":80,\"y\":304,\"width\":34,\"height\":34,\"attrs\":{\"body\":{\"width\":32,\"height\":32}},\"data\":{\"hash\":\"TOGGLE\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:generator\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}}]}},{\"id\":\"input_e\",\"shape\":\"Toggle\",\"x\":80,\"y\":384,\"width\":34,\"height\":34,\"attrs\":{\"body\":{\"width\":32,\"height\":32}},\"data\":{\"hash\":\"TOGGLE\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:generator\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}}]}},{\"id\":\"input_f\",\"shape\":\"Toggle\",\"x\":80,\"y\":464,\"width\":34,\"height\":34,\"attrs\":{\"body\":{\"width\":32,\"height\":32}},\"data\":{\"hash\":\"TOGGLE\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:generator\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}}]}},{\"id\":\"input_g\",\"shape\":\"Toggle\",\"x\":80,\"y\":544,\"width\":34,\"height\":34,\"attrs\":{\"body\":{\"width\":32,\"height\":32}},\"data\":{\"hash\":\"TOGGLE\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:generator\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}}]}},{\"id\":\"input_h\",\"shape\":\"Toggle\",\"x\":80,\"y\":624,\"width\":34,\"height\":34,\"attrs\":{\"body\":{\"width\":32,\"height\":32}},\"data\":{\"hash\":\"TOGGLE\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:generator\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}}]}},{\"id\":\"not_e\",\"shape\":\"NOT\",\"x\":260,\"y\":384,\"width\":66,\"height\":34,\"attrs\":{\"body\":{\"width\":64,\"height\":32}},\"data\":{\"hash\":\"NOT\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:logic\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-x\"}}}]}},{\"id\":\"not_f\",\"shape\":\"NOT\",\"x\":260,\"y\":464,\"width\":66,\"height\":34,\"attrs\":{\"body\":{\"width\":64,\"height\":32}},\"data\":{\"hash\":\"NOT\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:logic\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-x\"}}}]}},{\"id\":\"and_abc\",\"shape\":\"AND\",\"x\":470,\"y\":112,\"width\":66,\"height\":66,\"attrs\":{\"body\":{\"width\":64,\"height\":64}},\"data\":{\"hash\":\"AND\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:logic\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"L:1\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"L:2\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-x\"}}}]}},{\"id\":\"and_a_not_e_h\",\"shape\":\"AND\",\"x\":470,\"y\":288,\"width\":66,\"height\":66,\"attrs\":{\"body\":{\"width\":64,\"height\":64}},\"data\":{\"hash\":\"AND\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:logic\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"L:1\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"L:2\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-x\"}}}]}},{\"id\":\"and_dg\",\"shape\":\"AND\",\"x\":470,\"y\":456,\"width\":66,\"height\":50,\"attrs\":{\"body\":{\"width\":64,\"height\":48}},\"data\":{\"hash\":\"AND\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:logic\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"L:1\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-x\"}}}]}},{\"id\":\"and_b_not_f_h\",\"shape\":\"AND\",\"x\":470,\"y\":608,\"width\":66,\"height\":66,\"attrs\":{\"body\":{\"width\":64,\"height\":64}},\"data\":{\"hash\":\"AND\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:logic\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"L:1\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"L:2\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-x\"}}}]}},{\"id\":\"or_out\",\"shape\":\"OR\",\"x\":710,\"y\":312,\"width\":66,\"height\":130,\"attrs\":{\"body\":{\"width\":64,\"height\":128}},\"data\":{\"hash\":\"OR\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:logic\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"L:1\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"L:2\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"L:3\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"L:4\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"L:5\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"L:6\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}},{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-x\"}}}]}},{\"id\":\"output_lamp\",\"shape\":\"Lamp\",\"x\":965,\"y\":350,\"width\":34,\"height\":50,\"attrs\":{\"body\":{\"width\":32,\"height\":48}},\"data\":{\"hash\":\"LAMP\",\"path\":[\"example-unoptimized-complex-fan-in\"],\"kind\":\"base:display\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"bottom\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-x\"}}}]}},{\"id\":\"edge_1\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_e\",\"port\":\"R:0\"},\"target\":{\"cell\":\"not_e\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_e:0:not_e:0\"}},{\"id\":\"edge_2\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_f\",\"port\":\"R:0\"},\"target\":{\"cell\":\"not_f\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_f:0:not_f:0\"}},{\"id\":\"edge_3\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_a\",\"port\":\"R:0\"},\"target\":{\"cell\":\"and_abc\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_a:0:and_abc:0\"}},{\"id\":\"edge_4\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_b\",\"port\":\"R:0\"},\"target\":{\"cell\":\"and_abc\",\"port\":\"L:1\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_b:0:and_abc:1\"}},{\"id\":\"edge_5\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_c\",\"port\":\"R:0\"},\"target\":{\"cell\":\"and_abc\",\"port\":\"L:2\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_c:0:and_abc:2\"}},{\"id\":\"edge_6\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_a\",\"port\":\"R:0\"},\"target\":{\"cell\":\"and_a_not_e_h\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_a:0:and_a_not_e_h:0\"}},{\"id\":\"edge_7\",\"shape\":\"edge\",\"source\":{\"cell\":\"not_e\",\"port\":\"R:0\"},\"target\":{\"cell\":\"and_a_not_e_h\",\"port\":\"L:1\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"not_e:0:and_a_not_e_h:1\"}},{\"id\":\"edge_8\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_h\",\"port\":\"R:0\"},\"target\":{\"cell\":\"and_a_not_e_h\",\"port\":\"L:2\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_h:0:and_a_not_e_h:2\"}},{\"id\":\"edge_9\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_d\",\"port\":\"R:0\"},\"target\":{\"cell\":\"and_dg\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_d:0:and_dg:0\"}},{\"id\":\"edge_10\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_g\",\"port\":\"R:0\"},\"target\":{\"cell\":\"and_dg\",\"port\":\"L:1\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_g:0:and_dg:1\"}},{\"id\":\"edge_11\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_b\",\"port\":\"R:0\"},\"target\":{\"cell\":\"and_b_not_f_h\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_b:0:and_b_not_f_h:0\"}},{\"id\":\"edge_12\",\"shape\":\"edge\",\"source\":{\"cell\":\"not_f\",\"port\":\"R:0\"},\"target\":{\"cell\":\"and_b_not_f_h\",\"port\":\"L:1\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"not_f:0:and_b_not_f_h:1\"}},{\"id\":\"edge_13\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_h\",\"port\":\"R:0\"},\"target\":{\"cell\":\"and_b_not_f_h\",\"port\":\"L:2\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_h:0:and_b_not_f_h:2\"}},{\"id\":\"edge_14\",\"shape\":\"edge\",\"source\":{\"cell\":\"and_abc\",\"port\":\"R:0\"},\"target\":{\"cell\":\"or_out\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"and_abc:0:or_out:0\"}},{\"id\":\"edge_15\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_c\",\"port\":\"R:0\"},\"target\":{\"cell\":\"or_out\",\"port\":\"L:1\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_c:0:or_out:1\"}},{\"id\":\"edge_16\",\"shape\":\"edge\",\"source\":{\"cell\":\"and_a_not_e_h\",\"port\":\"R:0\"},\"target\":{\"cell\":\"or_out\",\"port\":\"L:2\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"and_a_not_e_h:0:or_out:2\"}},{\"id\":\"edge_17\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_e\",\"port\":\"R:0\"},\"target\":{\"cell\":\"or_out\",\"port\":\"L:3\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_e:0:or_out:3\"}},{\"id\":\"edge_18\",\"shape\":\"edge\",\"source\":{\"cell\":\"and_dg\",\"port\":\"R:0\"},\"target\":{\"cell\":\"or_out\",\"port\":\"L:4\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"and_dg:0:or_out:4\"}},{\"id\":\"edge_19\",\"shape\":\"edge\",\"source\":{\"cell\":\"and_b_not_f_h\",\"port\":\"R:0\"},\"target\":{\"cell\":\"or_out\",\"port\":\"L:5\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"and_b_not_f_h:0:or_out:5\"}},{\"id\":\"edge_20\",\"shape\":\"edge\",\"source\":{\"cell\":\"input_g\",\"port\":\"R:0\"},\"target\":{\"cell\":\"or_out\",\"port\":\"L:6\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"input_g:0:or_out:6\"}},{\"id\":\"edge_21\",\"shape\":\"edge\",\"source\":{\"cell\":\"or_out\",\"port\":\"R:0\"},\"target\":{\"cell\":\"output_lamp\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"or_out:0:output_lamp:0\"}}]}",
+        "viewport": {
+          "zoom": 0.72,
+          "tx": 28,
+          "ty": 32
+        },
+        "_createdAt": 1760000000000,
+        "_updatedAt": 1760000000000
+      }
+    ],
+    "tabSessions": [
+      {
+        "tabId": "example-unoptimized-complex-fan-in",
+        "rootScopeId": "example-unoptimized-complex-fan-in",
+        "navigationPath": [
+          "example-unoptimized-complex-fan-in"
+        ]
+      }
+    ],
+    "orderedTabIds": [
+      "example-unoptimized-complex-fan-in"
+    ],
+    "activeTabId": "example-unoptimized-complex-fan-in",
+    "activeScopeId": "example-unoptimized-complex-fan-in"
+  }
+}

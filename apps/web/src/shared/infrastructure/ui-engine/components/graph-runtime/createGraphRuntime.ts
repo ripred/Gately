@@ -7,10 +7,11 @@ import { applyPlugins } from "../../plugins";
 import type { UIEngineContext, PinUpdate, UIScopeSnapshot } from "../../model/types";
 import type { CustomComponentVisualInput } from "../../model/nodes-spec";
 
-const MIN_ZOOM = 0.2;
+const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 1.2;
 const TOOLBAR_ZOOM_CENTER = { x: 0, y: 0 } as const;
+const FIT_CONTENT_PADDING = 72;
 
 const clampZoom = (zoom: number): number => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
 
@@ -18,6 +19,16 @@ export const createGraphRuntime = (container: HTMLDivElement, ctx: UIEngineConte
     const graph = new Graph(makeGraphOptions(container, ctx));
     const services = buildGraphServices(graph, ctx);
     const disposers = applyPlugins(graph, ctx);
+    const syncSignalPathValuesAfterPaint = () => {
+        const sync = () => services.edges.syncEdgeValueClasses();
+
+        if (typeof requestAnimationFrame === "function") {
+            requestAnimationFrame(() => requestAnimationFrame(sync));
+            return;
+        }
+
+        setTimeout(sync, 0);
+    };
 
     const dispose = () => {
         disposers.reverse().forEach((fn) => {
@@ -55,6 +66,10 @@ export const createGraphRuntime = (container: HTMLDivElement, ctx: UIEngineConte
         },
         importScopeSnapshot(snapshot?: Partial<UIScopeSnapshot> | null): void {
             services.snapshot.importScopeSnapshot(snapshot);
+            syncSignalPathValuesAfterPaint();
+        },
+        syncSignalPathValues(): void {
+            services.edges.syncEdgeValueClasses();
         },
         applyPinPatch(patch: PinUpdate | PinUpdate[]): void {
             services.signals.applyPinPatch(patch);
@@ -78,6 +93,14 @@ export const createGraphRuntime = (container: HTMLDivElement, ctx: UIEngineConte
         resetZoom(): number {
             graph.zoomTo(1, { center: TOOLBAR_ZOOM_CENTER });
             return 1;
+        },
+        fitContent(options: { padding?: number; minScale?: number; maxScale?: number } = {}): number {
+            graph.zoomToFit({
+                padding: options.padding ?? FIT_CONTENT_PADDING,
+                minScale: options.minScale ?? MIN_ZOOM,
+                maxScale: options.maxScale ?? 1,
+            });
+            return graph.zoom();
         },
         getSelectionCount(): number {
             return graph.getSelectedCellCount?.() ?? 0;

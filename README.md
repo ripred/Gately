@@ -14,6 +14,14 @@ _A key part of the project is Arduino integration_: an Arduino UNO can act as a 
 
 ## What Works Today
 
+### Work in an IDE-style circuit workspace
+
+Gately now opens into a conventional workbench: a toolbar across the top, a collapsible project explorer on the left, and the circuit canvas as the main editing surface. Workspaces can be saved and loaded as `.gately.json` project files, so examples and active circuits do not need to be recreated from scratch.
+
+The app includes an example unoptimized Boolean workspace at `examples/unoptimized-boolean-demo.gately.json`.
+
+![Load the unoptimized example workspace](docs/images/load_unoptimized_workspace.gif)
+
 ### Build and edit circuits
 
 ![Gately elements](docs/images/types_of_elements.gif)
@@ -28,6 +36,20 @@ Circuits are built by placing elements, connecting ports, and editing wires dire
 
 ![Gately connecting and editing](docs/images/connecting_and_editing.gif)
 
+### Analyze and optimize Boolean logic
+
+Boolean analysis can derive a truth table from the active circuit, build Karnaugh maps for the outputs, and synthesize an optimized circuit back into the workspace.
+
+![Truth table analysis](docs/images/truth_table.gif)
+
+Karnaugh map groups can be inspected individually, then viewed together to understand how the minimized expression is formed.
+
+![Karnaugh map grouping](docs/images/karnaugh_map_groups.gif)
+
+The optimizer creates a new circuit tab, lays out the synthesized gates, applies deterministic routing, and preserves live signal coloring on the optimized result.
+
+![Optimized circuit creation](docs/images/optimized_circuit_creation.gif)
+
 ### Read signal states
 
 ![Gately signal states](docs/images/gately-signal-states.png)
@@ -38,6 +60,8 @@ Gately supports four signal states:
 - `False / 0` - gray.
 - `Z / Hi-Z` - blue, used for disconnected inputs.
 - `X / error` - pink, used when an output value is unknown or invalid.
+
+Signal colors are configurable from the settings dialog and repaint the currently displayed circuit immediately.
 
 ### Run the simulation
 
@@ -81,10 +105,7 @@ The default agent URL is `ws://localhost:8787`. Full setup guides live in the [d
 
 ## Current Limitations
 
-- No project persistence.
-- No import/export workflow.
 - No copy/paste workflow.
-- No tab renaming.
 - No editable element names or properties.
 - Arduino integration is experimental.
 - Not intended for production hardware control.

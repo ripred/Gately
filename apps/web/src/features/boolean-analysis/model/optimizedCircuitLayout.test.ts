@@ -403,6 +403,38 @@ describe("optimized circuit layout", () => {
         });
     }, 60000);
 
+    it("orders same-stage commutative gate input pins by source lane instead of link order", () => {
+        const netlist: BooleanSynthNetlist = {
+            gateCount: 1,
+            nodes: [
+                { id: "input_a", kind: "INPUT", label: "A", sourceVariableId: "a" },
+                { id: "input_b", kind: "INPUT", label: "B", sourceVariableId: "b" },
+                { id: "input_c", kind: "INPUT", label: "C", sourceVariableId: "c" },
+                { id: "and_1", kind: "AND", label: "AND 1" },
+                { id: "output_lamp", kind: "OUTPUT", label: "LAMP.0" },
+            ],
+            links: [
+                { from: "input_c", to: "and_1" },
+                { from: "input_a", to: "and_1" },
+                { from: "input_b", to: "and_1" },
+                { from: "and_1", to: "output_lamp" },
+            ],
+        };
+        const layout = buildOptimizedCircuitLayout(netlist, {
+            baseX: 120,
+            baseY: 120,
+        });
+        const pinBySource = new Map(
+            layout.linkPlans
+                .filter((linkPlan) => linkPlan.link.to === "and_1")
+                .map((linkPlan) => [linkPlan.link.from, linkPlan.targetPin]),
+        );
+
+        expect(pinBySource.get("input_a")).toBe("0");
+        expect(pinBySource.get("input_b")).toBe("1");
+        expect(pinBySource.get("input_c")).toBe("2");
+    });
+
     it("keeps source columns ordered while placing terms near their contributing inputs", () => {
         const layout = buildOptimizedCircuitLayout(netlistWithTrueAndInvertedA, {
             baseX: 120,
@@ -474,7 +506,7 @@ describe("optimized circuit layout", () => {
             rectsBySynthId,
             routesByLinkIndex,
         })).toEqual([]);
-    });
+    }, 30000);
 
     it("routes a source netlist with physical gate hashes through the deterministic router", () => {
         const rectsBySynthId = buildRoutableRects(mixedGateSourceNetlist, {

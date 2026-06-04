@@ -1213,6 +1213,31 @@ const linkSortY = (
     termLaneYByRouteKey.get(termRouteKey(link.from, link.to)) ??
     layoutSourcePortY(link.from, positionsBySynthId);
 
+type IndexedSynthLink = { link: BooleanSynthLink; index: number };
+
+const isCommutativeSynthGate = (node?: BooleanSynthNode): node is BooleanSynthNode =>
+    node?.kind === "AND" || node?.kind === "OR";
+
+const compareCommutativeInputPins = (
+    target: BooleanSynthNode,
+    a: IndexedSynthLink,
+    b: IndexedSynthLink,
+    positionsBySynthId: Map<string, OptimizedCircuitPoint>,
+    termLaneYByRouteKey: Map<string, number>,
+): number => {
+    const aSourceX = positionsBySynthId.get(a.link.from)?.x ?? 0;
+    const bSourceX = positionsBySynthId.get(b.link.from)?.x ?? 0;
+    const xDelta = bSourceX - aSourceX;
+    if (target.kind === "AND" && xDelta !== 0) return xDelta;
+
+    const yDelta =
+        linkSortY(a.link, positionsBySynthId, termLaneYByRouteKey) -
+        linkSortY(b.link, positionsBySynthId, termLaneYByRouteKey);
+    if (yDelta !== 0) return yDelta;
+
+    return xDelta || a.index - b.index;
+};
+
 const buildLinkPlans = (
     links: BooleanSynthLink[],
     nodesById: Map<string, BooleanSynthNode>,
@@ -1220,7 +1245,7 @@ const buildLinkPlans = (
     termLaneYByRouteKey: Map<string, number>,
 ): OptimizedCircuitLinkPlan[] => {
     const indexed = links.map((link, index) => ({ link, index }));
-    const linksByTarget = new Map<string, Array<{ link: BooleanSynthLink; index: number }>>();
+    const linksByTarget = new Map<string, IndexedSynthLink[]>();
     indexed.forEach((linkData) => {
         linksByTarget.set(linkData.link.to, [...(linksByTarget.get(linkData.link.to) ?? []), linkData]);
     });
@@ -1228,27 +1253,17 @@ const buildLinkPlans = (
     const targetPinsByIndex = new Map<number, string>();
     for (const [targetId, targetLinks] of linksByTarget) {
         const target = nodesById.get(targetId);
-        const ordered =
-            target?.kind === "AND"
-                ? [...targetLinks].sort((a, b) => {
-                      const aSourceX = positionsBySynthId.get(a.link.from)?.x ?? 0;
-                      const bSourceX = positionsBySynthId.get(b.link.from)?.x ?? 0;
-                      const xDelta = bSourceX - aSourceX;
-                      if (xDelta !== 0) return xDelta;
-
-                      const yDelta =
-                          linkSortY(a.link, positionsBySynthId, termLaneYByRouteKey) -
-                          linkSortY(b.link, positionsBySynthId, termLaneYByRouteKey);
-                      return yDelta || a.index - b.index;
-                  })
-                : target?.kind === "OR"
-                ? [...targetLinks].sort((a, b) => {
-                      const yDelta =
-                          linkSortY(a.link, positionsBySynthId, termLaneYByRouteKey) -
-                          linkSortY(b.link, positionsBySynthId, termLaneYByRouteKey);
-                      return yDelta || a.index - b.index;
-                  })
-                : targetLinks;
+        const ordered = isCommutativeSynthGate(target)
+            ? [...targetLinks].sort((a, b) =>
+                  compareCommutativeInputPins(
+                      target,
+                      a,
+                      b,
+                      positionsBySynthId,
+                      termLaneYByRouteKey,
+                  ),
+              )
+            : targetLinks;
 
         ordered.forEach((linkData, targetPin) => {
             targetPinsByIndex.set(linkData.index, String(targetPin));
@@ -1648,6 +1663,58 @@ const buildRouteCandidates = (args: {
         },
         { x: sourceLeftGutter, y: args.targetPoint.y },
     ]);
+    const buildGutterObstacleDetours = (
+        name: string,
+        gutterX: number,
+    ): RouteCandidate[] => {
+        const gutterBlockers = [...args.rectsBySynthId.values()].filter((rect) => {
+            if (rect.id === args.sourceNode.id || rect.id === args.targetNode.id) return false;
+            const blocksSourceRow = segmentIntersectsRect(
+                { x: sourceFanoutX, y: args.sourcePoint.y },
+                { x: gutterX, y: args.sourcePoint.y },
+                rect,
+                routingConfig.minClearance,
+            );
+            const blocksTargetGutter = segmentIntersectsRect(
+                { x: gutterX, y: args.sourcePoint.y },
+                { x: gutterX, y: args.targetPoint.y },
+                rect,
+                routingConfig.minClearance,
+            );
+            return blocksSourceRow || blocksTargetGutter;
+        });
+        if (gutterBlockers.length === 0) return [];
+
+        const upperY =
+            Math.min(...gutterBlockers.map((rect) => rect.y)) -
+            routingConfig.minClearance;
+        const lowerY =
+            Math.max(...gutterBlockers.map(rectBottom)) +
+            routingConfig.minClearance;
+        const preferredFirst =
+            args.sourcePoint.y <= args.targetPoint.y
+                ? (["lower", lowerY] as const)
+                : (["upper", upperY] as const);
+        const preferredSecond =
+            args.sourcePoint.y <= args.targetPoint.y
+                ? (["upper", upperY] as const)
+                : (["lower", lowerY] as const);
+
+        return [preferredFirst, preferredSecond].map(([suffix, detourY]) => ({
+            name: `${name}-obstacle-${suffix}`,
+            vertices: normalizeVertices([
+                { x: sourceFanoutX, y: args.sourcePoint.y },
+                { x: sourceFanoutX, y: detourY },
+                { x: gutterX, y: detourY },
+                { x: gutterX, y: args.targetPoint.y },
+            ]),
+        }));
+    };
+    const gutterObstacleDetours = [
+        ...buildGutterObstacleDetours("target-gutter", targetGutter),
+        ...buildGutterObstacleDetours("far-target-gutter", farTargetGutter),
+        ...buildGutterObstacleDetours("near-target-gutter", nearTargetGutter),
+    ];
 
     const straight = normalizeVertices([]);
     const sourceLaneCandidates: RouteCandidate[] =
@@ -1677,6 +1744,7 @@ const buildRouteCandidates = (args: {
 
     return [
         ...sourceLaneCandidates,
+        ...gutterObstacleDetours,
         { name: "straight", vertices: straight },
         { name: "target-gutter", vertices: directDogleg },
         { name: "near-target-gutter", vertices: nearTargetDogleg },
@@ -2541,8 +2609,10 @@ export const buildOptimizedEdgeRoutes = (
                 }),
             };
 
-            if (nextCount >= currentCount) continue;
-            if (comparator(candidateRoute, currentRoute) >= 0) continue;
+            if (nextCount > currentCount) continue;
+            if (nextCount === currentCount && comparator(candidateRoute, currentRoute) >= 0) {
+                continue;
+            }
 
             routesByLinkIndex.set(linkIndex, candidateVertices);
             improved = true;

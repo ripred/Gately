@@ -11,6 +11,8 @@ const AppContent: Component = () => {
     const signalPathStyle = (): JSX.CSSProperties => ({
         "--color-signal-high": configuration.signalPathColors().high,
         "--color-signal-low": configuration.signalPathColors().low,
+        "--color-true": configuration.signalPathColors().high,
+        "--color-false": configuration.signalPathColors().low,
     });
 
     return (

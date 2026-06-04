@@ -1,18 +1,22 @@
 import { createSignal } from "solid-js";
 import type { EngineSessionSnapshot } from "@cnbn/engine";
 import type { CinabonoClient } from "@cnbn/engine-worker";
+import type { LogicValue } from "@cnbn/schema";
 import type {
     AppConfigurationController,
     AppConfigurationSnapshot,
 } from "@gately/app/providers/AppConfigurationProvider";
 import type {
+    PinUpdate,
     UIEngineWorkspaceSnapshot,
-} from "@gately/shared/infrastructure/ui-engine/model/types";
+} from "@gately/shared/infrastructure/ui-engine";
 import type { WorkspaceUIEngine } from "./types";
 
 const PROJECT_VERSION = 1;
 const PROJECT_FILE_EXTENSION = ".gately.json";
 const PROJECT_FILE_TYPE = "application/json";
+const LOAD_SETTLE_MAX_BATCHES = 16;
+const LOAD_SETTLE_BATCH_TICKS = 512;
 
 type GatelyProjectSnapshot = {
     version: typeof PROJECT_VERSION;
@@ -79,6 +83,19 @@ type ProjectFileWriteResult = {
     saved: boolean;
 };
 
+type EngineTabSnapshot = EngineSessionSnapshot["tabs"][number];
+type EngineItemSnapshot = EngineTabSnapshot["items"][number][1];
+
+const waitForPaint = (): Promise<void> =>
+    new Promise((resolve) => {
+        if (typeof requestAnimationFrame === "function") {
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+            return;
+        }
+
+        setTimeout(resolve, 0);
+    });
+
 const parseProject = (raw: string): GatelyProjectSnapshot => {
     let parsed: Partial<GatelyProjectSnapshot>;
     try {
@@ -121,6 +138,128 @@ const projectFileName = (deps: WorkspacePersistenceDeps): string => {
         ? deps.uiEngine.state.tabs().find((tab) => tab.id === activeTabId)
         : undefined;
     return `${sanitizeFileName(activeTab?.name ?? "gately-workspace")}${PROJECT_FILE_EXTENSION}`;
+};
+
+const getOutputPinValue = (
+    item: EngineItemSnapshot | undefined,
+    pin: string,
+): LogicValue | undefined => {
+    if (!item || !("outputPins" in item)) return undefined;
+
+    return item.outputPins?.[pin]?.value;
+};
+
+const differentLogicValue = (value: LogicValue): LogicValue => {
+    switch (value) {
+        case "0":
+            return "1";
+        case "1":
+            return "0";
+        case "Z":
+            return "X";
+        default:
+            return "Z";
+    }
+};
+
+const collectPinPatches = (tab: EngineTabSnapshot | undefined): PinUpdate[] => {
+    if (!tab) return [];
+
+    const patches: PinUpdate[] = [];
+    tab.items.forEach(([entryId, item]) => {
+        const elementId = item.id ?? entryId;
+
+        if ("inputPins" in item) {
+            Object.entries(item.inputPins ?? {}).forEach(([index, pin]) => {
+                patches.push({
+                    elementId,
+                    pinRef: { side: "input", index },
+                    value: pin.value,
+                });
+            });
+        }
+
+        if ("outputPins" in item) {
+            Object.entries(item.outputPins ?? {}).forEach(([index, pin]) => {
+                patches.push({
+                    elementId,
+                    pinRef: { side: "output", index },
+                    value: pin.value,
+                });
+            });
+        }
+    });
+
+    return patches;
+};
+
+const seedLinkedInputValues = async (
+    deps: WorkspacePersistenceDeps,
+    tab: EngineTabSnapshot,
+): Promise<void> => {
+    const itemsById = new Map(tab.items);
+
+    for (const [, link] of tab.links) {
+        const value = getOutputPinValue(itemsById.get(link.fromItemId), link.fromPin);
+        if (value === undefined) continue;
+
+        await deps.logicEngine.call("/item/updateInput", {
+            tabId: tab.id,
+            itemId: link.toItemId,
+            pin: link.toPin,
+            t: 0,
+            value: differentLogicValue(value),
+        });
+        await deps.logicEngine.call("/item/updateInput", {
+            tabId: tab.id,
+            itemId: link.toItemId,
+            pin: link.toPin,
+            t: 1,
+            value,
+        });
+    }
+};
+
+const settleTabSignals = async (
+    deps: WorkspacePersistenceDeps,
+    tabId: string,
+): Promise<void> => {
+    for (let batch = 0; batch < LOAD_SETTLE_MAX_BATCHES; batch += 1) {
+        const status = await deps.logicEngine.call("/simulation/status", { tabId });
+        if (status.status?.isFinished) return;
+
+        await deps.logicEngine.call("/simulation/simulate", {
+            tabId,
+            runCfg: { maxBatchTicks: LOAD_SETTLE_BATCH_TICKS },
+        });
+    }
+
+    console.warn("[workspace-persistence] loaded workspace simulation did not settle", { tabId });
+};
+
+const hydrateLoadedSignalState = async (
+    deps: WorkspacePersistenceDeps,
+    project: GatelyProjectSnapshot,
+): Promise<void> => {
+    for (const tab of project.engine.tabs) {
+        await seedLinkedInputValues(deps, tab);
+        await settleTabSignals(deps, tab.id);
+    }
+
+    const activeTabId = deps.uiEngine.state.activeTabId() ?? project.workspace.activeTabId;
+    const currentProject = (await deps.logicEngine.call(
+        "/session/export",
+        undefined,
+    )) as EngineSessionSnapshot;
+    const activeTab = currentProject.tabs.find((tab) => tab.id === activeTabId);
+    const patches = collectPinPatches(activeTab);
+
+    if (!patches.length) return;
+
+    await waitForPaint();
+    deps.uiEngine.commands.applyPinPatch(patches);
+    await waitForPaint();
+    deps.uiEngine.commands.syncSignalPathValues();
 };
 
 const chooseProjectFile = async (): Promise<ProjectFileSelection | undefined> => {
@@ -220,6 +359,7 @@ export const createWorkspacePersistence = (
         await deps.onAfterLoad?.();
         deps.uiEngine.commands.importWorkspaceSnapshot(project.workspace);
         deps.configuration.importSnapshot(project.configuration);
+        await hydrateLoadedSignalState(deps, project);
         deps.onAfterProjectLoad?.();
     };
 

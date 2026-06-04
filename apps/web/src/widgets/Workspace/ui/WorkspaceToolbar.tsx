@@ -179,6 +179,30 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
             <Show when={toolbarGroupVisible("canvas")}>
                 <div class={toolbarGroup}>
                     <Pusher
+                        ariaLabel="Zoom out"
+                        class={`${toolbarButton} w-7 px-0`}
+                        onClick={() => uiEngine.commands.zoomOut()}
+                        disabled={disabled() || commandDisabled()}
+                    >
+                        -
+                    </Pusher>
+                    <Pusher
+                        ariaLabel="Reset zoom"
+                        class={`${toolbarButton} w-10 px-0`}
+                        onClick={() => uiEngine.commands.resetZoom()}
+                        disabled={disabled() || commandDisabled()}
+                    >
+                        100%
+                    </Pusher>
+                    <Pusher
+                        ariaLabel="Zoom in"
+                        class={`${toolbarButton} w-7 px-0`}
+                        onClick={() => uiEngine.commands.zoomIn()}
+                        disabled={disabled() || commandDisabled()}
+                    >
+                        +
+                    </Pusher>
+                    <Pusher
                         class={toolbarButton}
                         onClick={props.autoLayout.applySelection}
                         disabled={disabled() || commandDisabled() || props.autoLayout.isDisabled}

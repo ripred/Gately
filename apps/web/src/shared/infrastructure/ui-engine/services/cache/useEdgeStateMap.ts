@@ -2,6 +2,7 @@ import { Edge } from "@antv/x6";
 import { getValueClassFromElement } from "../../lib/logic-values";
 import type { LogicValueClass } from "../../model/types";
 import { setValueClassToEdge } from "../../lib/logic-values/set-value";
+import { removeLogicValueClass } from "../../lib/logic-values/remove-value";
 import type { EdgeStateMapContract } from "./types";
 
 export const createEdgeStateMap = (): EdgeStateMapContract => {
@@ -27,10 +28,12 @@ export const createEdgeStateMap = (): EdgeStateMapContract => {
         const state = get(edge);
 
         if (!state) return;
-        if (state.lastValue === valueClass) return;
+        if (state.lastValue === valueClass && state.path.classList.contains(valueClass)) return;
 
         setValueClassToEdge({ edge, valueClass });
 
+        const base = removeLogicValueClass(state.path.getAttribute("class") ?? "");
+        state.path.setAttribute("class", `${base} ${valueClass}`.trim());
         state.lastValue = valueClass;
     };
 

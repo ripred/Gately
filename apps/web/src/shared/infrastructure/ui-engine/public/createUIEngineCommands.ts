@@ -94,6 +94,9 @@ export const createUIEngineCommands = ({
         resetZoom() {
             return graphRuntimeHost.requireRuntime().resetZoom();
         },
+        fitContent(input) {
+            return graphRuntimeHost.requireRuntime().fitContent(input);
+        },
         exportScopeSnapshot() {
             const activeScopeId = workspace.state.activeScopeId();
             const activeScope = activeScopeId ? workspace.state.getScope(activeScopeId) : undefined;
@@ -115,6 +118,9 @@ export const createUIEngineCommands = ({
         },
         importScopeSnapshot(snapshot) {
             ctx.getSharedService("snapshotHub").importScopeSnapshot(snapshot);
+        },
+        syncSignalPathValues() {
+            graphRuntimeHost.requireRuntime().syncSignalPathValues();
         },
         exportWorkspaceSnapshot() {
             return workspace.exportWorkspaceSnapshot();

@@ -25,6 +25,12 @@ export type UIEngineCreateTabCommandInput = UIEngineTabCreateInput;
 
 export type UIEngineCloseTabCommandConditions = UIEngineTabCloseConditions;
 
+export type UIEngineFitContentCommandInput = {
+    padding?: number;
+    minScale?: number;
+    maxScale?: number;
+};
+
 export type UIEngineCommandApi = {
     createTab: (input?: UIEngineCreateTabCommandInput) => Promise<{ tabId: string }>;
     openTab: (tabId?: string) => void;
@@ -40,8 +46,10 @@ export type UIEngineCommandApi = {
     zoomIn: () => number;
     zoomOut: () => number;
     resetZoom: () => number;
+    fitContent: (input?: UIEngineFitContentCommandInput) => number;
     exportScopeSnapshot: () => UIScopeSnapshot;
     importScopeSnapshot: (snapshot?: Partial<UIScopeSnapshot> | null) => void;
+    syncSignalPathValues: () => void;
     exportWorkspaceSnapshot: () => UIEngineWorkspaceSnapshot;
     importWorkspaceSnapshot: (snapshot: UIEngineWorkspaceSnapshot) => void;
     applyPinPatch: (patch: PinUpdate | PinUpdate[]) => void;

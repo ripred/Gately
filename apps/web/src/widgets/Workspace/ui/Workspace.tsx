@@ -113,7 +113,7 @@ export const InnerWorkspace: Component = () => {
     onCleanup(() => window.removeEventListener("beforeunload", handleBeforeUnload));
 
     return (
-        <div class="flex h-full w-full flex-col overflow-hidden">
+        <div class="relative flex h-full w-full flex-col overflow-hidden">
             <div class="relative z-10 shrink-0 border-b border-gray-4 bg-gray-1/95">
                 <div
                     style={{
@@ -172,27 +172,6 @@ export const InnerWorkspace: Component = () => {
                             removeSelected={controller.removeSelected}
                         />
                     </Show>
-                    <Show when={settingsOpen()}>
-                        <div
-                            aria-modal="true"
-                            class="absolute inset-0 z-20 flex items-start justify-center bg-black/20 px-8 py-8"
-                            role="dialog"
-                            style={{
-                                zoom: configuration.uiScale(),
-                            }}
-                            onClick={closeSettings}
-                        >
-                            <div onClick={(event) => event.stopPropagation()}>
-                                <WorkspaceSettingsPanel
-                                    activeCategoryId={activeSettingsCategoryId}
-                                    configuration={dirtyAwareConfiguration}
-                                    onClose={closeSettings}
-                                    setActiveCategoryId={setActiveSettingsCategoryId}
-                                    simulation={controller.simulation}
-                                />
-                            </div>
-                        </div>
-                    </Show>
                 </div>
             </div>
             <div
@@ -209,6 +188,27 @@ export const InnerWorkspace: Component = () => {
                 <span>{settingsOpen() ? "settings open" : "circuit canvas"}</span>
                 <span>{uiEngine.state.activeNavigationPath().join(" / ") || "no circuit"}</span>
             </div>
+            <Show when={settingsOpen()}>
+                <div
+                    aria-modal="true"
+                    class="absolute inset-0 z-50 flex min-h-0 items-stretch justify-center overflow-hidden bg-black/20 p-4"
+                    role="dialog"
+                    onClick={closeSettings}
+                >
+                    <div
+                        class="flex min-h-0 w-full max-w-[84rem]"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <WorkspaceSettingsPanel
+                            activeCategoryId={activeSettingsCategoryId}
+                            configuration={dirtyAwareConfiguration}
+                            onClose={closeSettings}
+                            setActiveCategoryId={setActiveSettingsCategoryId}
+                            simulation={controller.simulation}
+                        />
+                    </div>
+                </div>
+            </Show>
         </div>
     );
 };

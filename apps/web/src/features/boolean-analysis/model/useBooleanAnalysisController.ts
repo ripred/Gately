@@ -46,6 +46,15 @@ const waitForWorkspaceSwitch = (): Promise<void> =>
         window.setTimeout(resolve, 0);
     });
 
+const waitForGraphPaint = (): Promise<void> =>
+    new Promise((resolve) => {
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                window.setTimeout(resolve, 0);
+            });
+        });
+    });
+
 type NodeWithBBox = {
     getBBox: () => { x: number; y: number; width: number; height: number };
 };
@@ -279,6 +288,13 @@ export const useBooleanAnalysisController = (
                 } finally {
                     graphWithSilent.__bridgeSilent = false;
                 }
+            }
+
+            if (options.inNewTab) {
+                await waitForGraphPaint();
+                deps.uiEngine.commands.fitContent({ padding: 128, minScale: 0.12, maxScale: 1 });
+                await waitForGraphPaint();
+                deps.uiEngine.commands.fitContent({ padding: 128, minScale: 0.12, maxScale: 1 });
             }
         })()
             .catch((err) => setError(getErrorMessage(err)))

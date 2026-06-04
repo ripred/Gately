@@ -53,6 +53,8 @@ export const SIGNAL_PATH_COLOR_SETTINGS: SignalPathColorSetting[] = [
     { key: "low", label: "Low signal" },
 ];
 
+const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+
 export type ToolbarGroupSetting = {
     key: WorkbenchToolbarGroupKey;
     label: string;
@@ -118,7 +120,9 @@ export const setSignalPathColor = (
     key: keyof SignalPathColorConfig,
     value: string,
 ): void => {
-    configuration.setSignalPathColors({ [key]: value });
+    const color = value.trim();
+    if (!HEX_COLOR_PATTERN.test(color)) return;
+    configuration.setSignalPathColors({ [key]: color });
 };
 
 export const setExplorerSectionExpanded = (
