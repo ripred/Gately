@@ -1,0 +1,618 @@
+{
+  "version": 1,
+  "savedAt": 1760000001000,
+  "engine": {
+    "version": 1,
+    "templates": [],
+    "tabs": [
+      {
+        "id": "example-clocked-shift-register-8",
+        "items": [
+          [
+            "clock",
+            {
+              "id": "clock",
+              "hash": "CLOCK",
+              "name": "Clock",
+              "path": [
+                "example-clocked-shift-register-8"
+              ],
+              "kind": "base:generator",
+              "outputPins": {
+                "0": {
+                  "value": "0"
+                }
+              },
+              "meta": {
+                "numOfOutputs": 1
+              }
+            }
+          ],
+          [
+            "serial_toggle",
+            {
+              "id": "serial_toggle",
+              "hash": "TOGGLE",
+              "name": "Serial In",
+              "path": [
+                "example-clocked-shift-register-8"
+              ],
+              "kind": "base:generator",
+              "outputPins": {
+                "0": {
+                  "value": "0"
+                }
+              },
+              "meta": {
+                "autoTriggers": {
+                  "0": {
+                    "initialValue": "0"
+                  }
+                },
+                "numOfOutputs": 1
+              }
+            }
+          ],
+          [
+            "update_toggle",
+            {
+              "id": "update_toggle",
+              "hash": "TOGGLE",
+              "name": "Output Update",
+              "path": [
+                "example-clocked-shift-register-8"
+              ],
+              "kind": "base:generator",
+              "outputPins": {
+                "0": {
+                  "value": "0"
+                }
+              },
+              "meta": {
+                "autoTriggers": {
+                  "0": {
+                    "initialValue": "0"
+                  }
+                },
+                "numOfOutputs": 1
+              }
+            }
+          ],
+          [
+            "shift_register",
+            {
+              "id": "shift_register",
+              "hash": "SHIFT_REGISTER_8",
+              "name": "8-bit Shift Register",
+              "path": [
+                "example-clocked-shift-register-8"
+              ],
+              "kind": "base:logic",
+              "inputPins": {
+                "0": {
+                  "value": "0"
+                },
+                "1": {
+                  "value": "0"
+                },
+                "2": {
+                  "value": "0"
+                }
+              },
+              "outputPins": {
+                "0": {
+                  "value": "0"
+                },
+                "1": {
+                  "value": "0"
+                },
+                "2": {
+                  "value": "0"
+                },
+                "3": {
+                  "value": "0"
+                },
+                "4": {
+                  "value": "0"
+                },
+                "5": {
+                  "value": "0"
+                },
+                "6": {
+                  "value": "0"
+                },
+                "7": {
+                  "value": "0"
+                },
+                "8": {
+                  "value": "0"
+                }
+              },
+              "meta": {
+                "numOfInputs": 3,
+                "numOfOutputs": 9
+              },
+              "options": {
+                "shiftRegister8": {
+                  "shift": [
+                    "0",
+                    "0",
+                    "0",
+                    "0",
+                    "0",
+                    "0",
+                    "0",
+                    "0"
+                  ],
+                  "parallel": [
+                    "0",
+                    "0",
+                    "0",
+                    "0",
+                    "0",
+                    "0",
+                    "0",
+                    "0"
+                  ],
+                  "prevClock": "0",
+                  "prevUpdate": "0"
+                }
+              }
+            }
+          ],
+          [
+            "q0_lamp",
+            {
+              "id": "q0_lamp",
+              "hash": "LAMP",
+              "name": "Q0",
+              "path": [
+                "example-clocked-shift-register-8"
+              ],
+              "kind": "base:display",
+              "inputPins": {
+                "0": {
+                  "value": "0"
+                }
+              }
+            }
+          ],
+          [
+            "q1_lamp",
+            {
+              "id": "q1_lamp",
+              "hash": "LAMP",
+              "name": "Q1",
+              "path": [
+                "example-clocked-shift-register-8"
+              ],
+              "kind": "base:display",
+              "inputPins": {
+                "0": {
+                  "value": "0"
+                }
+              }
+            }
+          ],
+          [
+            "q2_lamp",
+            {
+              "id": "q2_lamp",
+              "hash": "LAMP",
+              "name": "Q2",
+              "path": [
+                "example-clocked-shift-register-8"
+              ],
+              "kind": "base:display",
+              "inputPins": {
+                "0": {
+                  "value": "0"
+                }
+              }
+            }
+          ],
+          [
+            "q3_lamp",
+            {
+              "id": "q3_lamp",
+              "hash": "LAMP",
+              "name": "Q3",
+              "path": [
+                "example-clocked-shift-register-8"
+              ],
+              "kind": "base:display",
+              "inputPins": {
+                "0": {
+                  "value": "0"
+                }
+              }
+            }
+          ],
+          [
+            "q4_lamp",
+            {
+              "id": "q4_lamp",
+              "hash": "LAMP",
+              "name": "Q4",
+              "path": [
+                "example-clocked-shift-register-8"
+              ],
+              "kind": "base:display",
+              "inputPins": {
+                "0": {
+                  "value": "0"
+                }
+              }
+            }
+          ],
+          [
+            "q5_lamp",
+            {
+              "id": "q5_lamp",
+              "hash": "LAMP",
+              "name": "Q5",
+              "path": [
+                "example-clocked-shift-register-8"
+              ],
+              "kind": "base:display",
+              "inputPins": {
+                "0": {
+                  "value": "0"
+                }
+              }
+            }
+          ],
+          [
+            "q6_lamp",
+            {
+              "id": "q6_lamp",
+              "hash": "LAMP",
+              "name": "Q6",
+              "path": [
+                "example-clocked-shift-register-8"
+              ],
+              "kind": "base:display",
+              "inputPins": {
+                "0": {
+                  "value": "0"
+                }
+              }
+            }
+          ],
+          [
+            "q7_lamp",
+            {
+              "id": "q7_lamp",
+              "hash": "LAMP",
+              "name": "Q7",
+              "path": [
+                "example-clocked-shift-register-8"
+              ],
+              "kind": "base:display",
+              "inputPins": {
+                "0": {
+                  "value": "0"
+                }
+              }
+            }
+          ],
+          [
+            "carry_lamp",
+            {
+              "id": "carry_lamp",
+              "hash": "LAMP",
+              "name": "Carry",
+              "path": [
+                "example-clocked-shift-register-8"
+              ],
+              "kind": "base:display",
+              "inputPins": {
+                "0": {
+                  "value": "0"
+                }
+              }
+            }
+          ]
+        ],
+        "links": [
+          [
+            "clock:0:shift_register:1",
+            {
+              "fromItemId": "clock",
+              "fromPin": "0",
+              "toItemId": "shift_register",
+              "toPin": "1"
+            }
+          ],
+          [
+            "serial_toggle:0:shift_register:0",
+            {
+              "fromItemId": "serial_toggle",
+              "fromPin": "0",
+              "toItemId": "shift_register",
+              "toPin": "0"
+            }
+          ],
+          [
+            "update_toggle:0:shift_register:2",
+            {
+              "fromItemId": "update_toggle",
+              "fromPin": "0",
+              "toItemId": "shift_register",
+              "toPin": "2"
+            }
+          ],
+          [
+            "shift_register:0:q0_lamp:0",
+            {
+              "fromItemId": "shift_register",
+              "fromPin": "0",
+              "toItemId": "q0_lamp",
+              "toPin": "0"
+            }
+          ],
+          [
+            "shift_register:1:q1_lamp:0",
+            {
+              "fromItemId": "shift_register",
+              "fromPin": "1",
+              "toItemId": "q1_lamp",
+              "toPin": "0"
+            }
+          ],
+          [
+            "shift_register:2:q2_lamp:0",
+            {
+              "fromItemId": "shift_register",
+              "fromPin": "2",
+              "toItemId": "q2_lamp",
+              "toPin": "0"
+            }
+          ],
+          [
+            "shift_register:3:q3_lamp:0",
+            {
+              "fromItemId": "shift_register",
+              "fromPin": "3",
+              "toItemId": "q3_lamp",
+              "toPin": "0"
+            }
+          ],
+          [
+            "shift_register:4:q4_lamp:0",
+            {
+              "fromItemId": "shift_register",
+              "fromPin": "4",
+              "toItemId": "q4_lamp",
+              "toPin": "0"
+            }
+          ],
+          [
+            "shift_register:5:q5_lamp:0",
+            {
+              "fromItemId": "shift_register",
+              "fromPin": "5",
+              "toItemId": "q5_lamp",
+              "toPin": "0"
+            }
+          ],
+          [
+            "shift_register:6:q6_lamp:0",
+            {
+              "fromItemId": "shift_register",
+              "fromPin": "6",
+              "toItemId": "q6_lamp",
+              "toPin": "0"
+            }
+          ],
+          [
+            "shift_register:7:q7_lamp:0",
+            {
+              "fromItemId": "shift_register",
+              "fromPin": "7",
+              "toItemId": "q7_lamp",
+              "toPin": "0"
+            }
+          ],
+          [
+            "shift_register:8:carry_lamp:0",
+            {
+              "fromItemId": "shift_register",
+              "fromPin": "8",
+              "toItemId": "carry_lamp",
+              "toPin": "0"
+            }
+          ]
+        ],
+        "scopes": [
+          [
+            "example-clocked-shift-register-8",
+            {
+              "id": "example-clocked-shift-register-8",
+              "kind": "tab",
+              "path": [],
+              "storedScopes": [],
+              "storedItems": [
+                [
+                  "clock",
+                  {
+                    "outputLinks": {
+                      "0": [
+                        "clock:0:shift_register:1"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "shift_register",
+                  {
+                    "inputLinks": {
+                      "0": "serial_toggle:0:shift_register:0",
+                      "1": "clock:0:shift_register:1",
+                      "2": "update_toggle:0:shift_register:2"
+                    },
+                    "outputLinks": {
+                      "0": [
+                        "shift_register:0:q0_lamp:0"
+                      ],
+                      "1": [
+                        "shift_register:1:q1_lamp:0"
+                      ],
+                      "2": [
+                        "shift_register:2:q2_lamp:0"
+                      ],
+                      "3": [
+                        "shift_register:3:q3_lamp:0"
+                      ],
+                      "4": [
+                        "shift_register:4:q4_lamp:0"
+                      ],
+                      "5": [
+                        "shift_register:5:q5_lamp:0"
+                      ],
+                      "6": [
+                        "shift_register:6:q6_lamp:0"
+                      ],
+                      "7": [
+                        "shift_register:7:q7_lamp:0"
+                      ],
+                      "8": [
+                        "shift_register:8:carry_lamp:0"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "serial_toggle",
+                  {
+                    "outputLinks": {
+                      "0": [
+                        "serial_toggle:0:shift_register:0"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "update_toggle",
+                  {
+                    "outputLinks": {
+                      "0": [
+                        "update_toggle:0:shift_register:2"
+                      ]
+                    }
+                  }
+                ],
+                [
+                  "q0_lamp",
+                  {
+                    "inputLinks": {
+                      "0": "shift_register:0:q0_lamp:0"
+                    }
+                  }
+                ],
+                [
+                  "q1_lamp",
+                  {
+                    "inputLinks": {
+                      "0": "shift_register:1:q1_lamp:0"
+                    }
+                  }
+                ],
+                [
+                  "q2_lamp",
+                  {
+                    "inputLinks": {
+                      "0": "shift_register:2:q2_lamp:0"
+                    }
+                  }
+                ],
+                [
+                  "q3_lamp",
+                  {
+                    "inputLinks": {
+                      "0": "shift_register:3:q3_lamp:0"
+                    }
+                  }
+                ],
+                [
+                  "q4_lamp",
+                  {
+                    "inputLinks": {
+                      "0": "shift_register:4:q4_lamp:0"
+                    }
+                  }
+                ],
+                [
+                  "q5_lamp",
+                  {
+                    "inputLinks": {
+                      "0": "shift_register:5:q5_lamp:0"
+                    }
+                  }
+                ],
+                [
+                  "q6_lamp",
+                  {
+                    "inputLinks": {
+                      "0": "shift_register:6:q6_lamp:0"
+                    }
+                  }
+                ],
+                [
+                  "q7_lamp",
+                  {
+                    "inputLinks": {
+                      "0": "shift_register:7:q7_lamp:0"
+                    }
+                  }
+                ],
+                [
+                  "carry_lamp",
+                  {
+                    "inputLinks": {
+                      "0": "shift_register:8:carry_lamp:0"
+                    }
+                  }
+                ]
+              ]
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "workspace": {
+    "version": 1,
+    "scopes": [
+      {
+        "id": "example-clocked-shift-register-8",
+        "kind": "tab",
+        "name": "Clocked 8-bit Shift Register Demo",
+        "path": [],
+        "childrenIds": [],
+        "contentJson": "{\"cells\":[{\"id\":\"serial_toggle\",\"shape\":\"Toggle\",\"x\":88,\"y\":80,\"width\":34,\"height\":34,\"attrs\":{\"body\":{\"width\":32,\"height\":32}},\"data\":{\"hash\":\"TOGGLE\",\"path\":[\"example-clocked-shift-register-8\"],\"kind\":\"base:generator\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}}]}},{\"id\":\"clock\",\"shape\":\"Clock\",\"x\":96,\"y\":184,\"width\":42,\"height\":42,\"attrs\":{\"body\":{\"width\":40,\"height\":40}},\"data\":{\"hash\":\"CLOCK\",\"path\":[\"example-clocked-shift-register-8\"],\"kind\":\"base:generator\",\"__ui\":{\"clockConfig\":{\"frequencyHz\":1,\"dutyCycle\":0.5,\"enabled\":true}}},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}}]}},{\"id\":\"update_toggle\",\"shape\":\"Toggle\",\"x\":88,\"y\":288,\"width\":34,\"height\":34,\"attrs\":{\"body\":{\"width\":32,\"height\":32}},\"data\":{\"hash\":\"TOGGLE\",\"path\":[\"example-clocked-shift-register-8\"],\"kind\":\"base:generator\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}}]}},{\"id\":\"shift_register\",\"shape\":\"Shift Register 8\",\"x\":288,\"y\":72,\"width\":106,\"height\":162,\"attrs\":{\"body\":{\"width\":104,\"height\":160}},\"data\":{\"hash\":\"SHIFT_REGISTER_8\",\"path\":[\"example-clocked-shift-register-8\"],\"kind\":\"base:logic\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-false\"}}},{\"id\":\"L:1\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-false\"}}},{\"id\":\"L:2\",\"group\":\"left\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-false\"}}},{\"id\":\"R:0\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}},{\"id\":\"R:1\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}},{\"id\":\"R:2\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}},{\"id\":\"R:3\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}},{\"id\":\"R:4\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}},{\"id\":\"R:5\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}},{\"id\":\"R:6\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}},{\"id\":\"R:7\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}},{\"id\":\"R:8\",\"group\":\"right\",\"attrs\":{\"circle\":{\"class\":\"port port-output value-false\"}}}]}},{\"id\":\"q0_lamp\",\"shape\":\"Lamp\",\"x\":576,\"y\":32,\"width\":34,\"height\":50,\"attrs\":{\"body\":{\"width\":32,\"height\":48}},\"data\":{\"hash\":\"LAMP\",\"path\":[\"example-clocked-shift-register-8\"],\"kind\":\"base:display\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"bottom\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-false\"}}}]}},{\"id\":\"q1_lamp\",\"shape\":\"Lamp\",\"x\":576,\"y\":88,\"width\":34,\"height\":50,\"attrs\":{\"body\":{\"width\":32,\"height\":48}},\"data\":{\"hash\":\"LAMP\",\"path\":[\"example-clocked-shift-register-8\"],\"kind\":\"base:display\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"bottom\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-false\"}}}]}},{\"id\":\"q2_lamp\",\"shape\":\"Lamp\",\"x\":576,\"y\":144,\"width\":34,\"height\":50,\"attrs\":{\"body\":{\"width\":32,\"height\":48}},\"data\":{\"hash\":\"LAMP\",\"path\":[\"example-clocked-shift-register-8\"],\"kind\":\"base:display\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"bottom\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-false\"}}}]}},{\"id\":\"q3_lamp\",\"shape\":\"Lamp\",\"x\":576,\"y\":200,\"width\":34,\"height\":50,\"attrs\":{\"body\":{\"width\":32,\"height\":48}},\"data\":{\"hash\":\"LAMP\",\"path\":[\"example-clocked-shift-register-8\"],\"kind\":\"base:display\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"bottom\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-false\"}}}]}},{\"id\":\"q4_lamp\",\"shape\":\"Lamp\",\"x\":576,\"y\":256,\"width\":34,\"height\":50,\"attrs\":{\"body\":{\"width\":32,\"height\":48}},\"data\":{\"hash\":\"LAMP\",\"path\":[\"example-clocked-shift-register-8\"],\"kind\":\"base:display\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"bottom\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-false\"}}}]}},{\"id\":\"q5_lamp\",\"shape\":\"Lamp\",\"x\":576,\"y\":312,\"width\":34,\"height\":50,\"attrs\":{\"body\":{\"width\":32,\"height\":48}},\"data\":{\"hash\":\"LAMP\",\"path\":[\"example-clocked-shift-register-8\"],\"kind\":\"base:display\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"bottom\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-false\"}}}]}},{\"id\":\"q6_lamp\",\"shape\":\"Lamp\",\"x\":576,\"y\":368,\"width\":34,\"height\":50,\"attrs\":{\"body\":{\"width\":32,\"height\":48}},\"data\":{\"hash\":\"LAMP\",\"path\":[\"example-clocked-shift-register-8\"],\"kind\":\"base:display\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"bottom\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-false\"}}}]}},{\"id\":\"q7_lamp\",\"shape\":\"Lamp\",\"x\":576,\"y\":424,\"width\":34,\"height\":50,\"attrs\":{\"body\":{\"width\":32,\"height\":48}},\"data\":{\"hash\":\"LAMP\",\"path\":[\"example-clocked-shift-register-8\"],\"kind\":\"base:display\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"bottom\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-false\"}}}]}},{\"id\":\"carry_lamp\",\"shape\":\"Lamp\",\"x\":576,\"y\":520,\"width\":34,\"height\":50,\"attrs\":{\"body\":{\"width\":32,\"height\":48}},\"data\":{\"hash\":\"LAMP\",\"path\":[\"example-clocked-shift-register-8\"],\"kind\":\"base:display\"},\"ports\":{\"groups\":{\"left\":{\"position\":{\"name\":\"logic-left\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}},\"right\":{\"position\":{\"name\":\"logic-right\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-output\"}}},\"bottom\":{\"position\":{\"name\":\"logic-bottom\"},\"attrs\":{\"circle\":{\"magnet\":true,\"class\":\"port port-input\"}}}},\"items\":[{\"id\":\"L:0\",\"group\":\"bottom\",\"attrs\":{\"circle\":{\"class\":\"port port-input value-false\"}}}]}},{\"id\":\"edge_1\",\"shape\":\"edge\",\"source\":{\"cell\":\"clock\",\"port\":\"R:0\"},\"target\":{\"cell\":\"shift_register\",\"port\":\"L:1\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"clock:0:shift_register:1\"}},{\"id\":\"edge_2\",\"shape\":\"edge\",\"source\":{\"cell\":\"serial_toggle\",\"port\":\"R:0\"},\"target\":{\"cell\":\"shift_register\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"serial_toggle:0:shift_register:0\"}},{\"id\":\"edge_3\",\"shape\":\"edge\",\"source\":{\"cell\":\"update_toggle\",\"port\":\"R:0\"},\"target\":{\"cell\":\"shift_register\",\"port\":\"L:2\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"update_toggle:0:shift_register:2\"}},{\"id\":\"edge_4\",\"shape\":\"edge\",\"source\":{\"cell\":\"shift_register\",\"port\":\"R:0\"},\"target\":{\"cell\":\"q0_lamp\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"shift_register:0:q0_lamp:0\"}},{\"id\":\"edge_5\",\"shape\":\"edge\",\"source\":{\"cell\":\"shift_register\",\"port\":\"R:1\"},\"target\":{\"cell\":\"q1_lamp\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"shift_register:1:q1_lamp:0\"}},{\"id\":\"edge_6\",\"shape\":\"edge\",\"source\":{\"cell\":\"shift_register\",\"port\":\"R:2\"},\"target\":{\"cell\":\"q2_lamp\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"shift_register:2:q2_lamp:0\"}},{\"id\":\"edge_7\",\"shape\":\"edge\",\"source\":{\"cell\":\"shift_register\",\"port\":\"R:3\"},\"target\":{\"cell\":\"q3_lamp\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"shift_register:3:q3_lamp:0\"}},{\"id\":\"edge_8\",\"shape\":\"edge\",\"source\":{\"cell\":\"shift_register\",\"port\":\"R:4\"},\"target\":{\"cell\":\"q4_lamp\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"shift_register:4:q4_lamp:0\"}},{\"id\":\"edge_9\",\"shape\":\"edge\",\"source\":{\"cell\":\"shift_register\",\"port\":\"R:5\"},\"target\":{\"cell\":\"q5_lamp\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"shift_register:5:q5_lamp:0\"}},{\"id\":\"edge_10\",\"shape\":\"edge\",\"source\":{\"cell\":\"shift_register\",\"port\":\"R:6\"},\"target\":{\"cell\":\"q6_lamp\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"shift_register:6:q6_lamp:0\"}},{\"id\":\"edge_11\",\"shape\":\"edge\",\"source\":{\"cell\":\"shift_register\",\"port\":\"R:7\"},\"target\":{\"cell\":\"q7_lamp\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"shift_register:7:q7_lamp:0\"}},{\"id\":\"edge_12\",\"shape\":\"edge\",\"source\":{\"cell\":\"shift_register\",\"port\":\"R:8\"},\"target\":{\"cell\":\"carry_lamp\",\"port\":\"L:0\"},\"attrs\":{\"line\":{\"class\":\"connection\",\"strokeWidth\":2.5,\"targetMarker\":false,\"sourceMarker\":false}},\"zIndex\":0,\"data\":{\"linkId\":\"shift_register:8:carry_lamp:0\"}}]}",
+        "viewport": {
+          "zoom": 0.9,
+          "tx": 44,
+          "ty": 44
+        },
+        "_createdAt": 1760000001000,
+        "_updatedAt": 1760000001000
+      }
+    ],
+    "tabSessions": [
+      {
+        "tabId": "example-clocked-shift-register-8",
+        "rootScopeId": "example-clocked-shift-register-8",
+        "navigationPath": [
+          "example-clocked-shift-register-8"
+        ]
+      }
+    ],
+    "orderedTabIds": [
+      "example-clocked-shift-register-8"
+    ],
+    "activeTabId": "example-clocked-shift-register-8",
+    "activeScopeId": "example-clocked-shift-register-8"
+  }
+}

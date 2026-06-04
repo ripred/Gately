@@ -17,6 +17,7 @@ export type MetaMap = {
         logic: {
             isSymmetric?: boolean;
             numOfInputs?: number;
+            numOfOutputs?: number;
         };
         display: {
             numOfInputs?: number;

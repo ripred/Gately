@@ -15,5 +15,6 @@ export const defaultTemplatesMap = new Map([
     ["NOR", E.norEntry],
     ["XOR", E.xorEntry],
     ["XNOR", E.xnorEntry],
+    ["SHIFT_REGISTER_8", E.shiftRegister8Entry],
     ["RS-TRIGGER", E.rsTriggerEntry],
 ]);

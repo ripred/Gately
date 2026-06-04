@@ -11,7 +11,14 @@ export type WithOptions<K extends KindKey> = {
 export type OptionsMap = {
     base: {
         generator: {};
-        logic: {};
+        logic: {
+            shiftRegister8?: {
+                shift?: ("0" | "1")[];
+                parallel?: ("0" | "1")[];
+                prevClock?: "0" | "1";
+                prevUpdate?: "0" | "1";
+            };
+        };
         display: {};
     };
     circuit: { logic: { baked?: boolean } };

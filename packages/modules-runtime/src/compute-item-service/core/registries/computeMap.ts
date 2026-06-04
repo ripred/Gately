@@ -11,4 +11,5 @@ export const defaultComputeMap = new Map<Hash, ComputeFunction>([
     ["NAND", Fn.computeNAND],
     ["XOR", Fn.computeXOR],
     ["XNOR", Fn.computeXNOR],
+    ["SHIFT_REGISTER_8", Fn.computeSHIFT_REGISTER_8],
 ]);

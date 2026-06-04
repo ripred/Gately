@@ -74,12 +74,14 @@ export const createUIEngineCommands = ({
                 command: "/item/create",
                 payload: CreateItemPayload,
             ) => Promise<ItemBuilderResult>;
-            const result = await createItem("/item/create", {
+            const payload: CreateItemPayload = {
                 kind: input.kind ?? getNodeKindByHash(input.hash),
                 hash: input.hash,
                 path: [...activeScope.path, activeScope.id],
-                meta: input.meta,
-            });
+            };
+            if (input.meta !== undefined) payload.meta = input.meta;
+
+            const result = await createItem("/item/create", payload);
             return runtime.createBuiltNode(result, { position: input.position });
         },
         registerCustomComponents(inputs) {

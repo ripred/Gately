@@ -2,6 +2,7 @@ import { createEffect, createSignal, onCleanup } from "solid-js";
 import { useArduinoHardwareController } from "@gately/features/arduino-hardware";
 import { useBooleanAnalysisController } from "@gately/features/boolean-analysis";
 import { attachWorkspaceBridge } from "./bridge";
+import { createWorkspaceClockController } from "./clock-controller";
 import { attachWorkspaceGraphInteractions } from "./graph-interactions";
 import { useWorkspaceContextMenu } from "./context-menu";
 import { createWorkspaceAutoLayout } from "./auto-layout";
@@ -21,6 +22,13 @@ export const useWorkspaceController = (deps: WorkspaceControllerDeps): Workspace
         onSignalEvents: (events) => {
             signalEventHandlers.forEach((handler) => handler(events));
         },
+    });
+    const clock = createWorkspaceClockController({
+        logicEngine: deps.logicEngine,
+        uiEngine: deps.uiEngine,
+        getActiveTabId: deps.getActiveTabId,
+        isPaused: () => simulation.isPaused,
+        requestSimulationNow: simulation.requestNow,
     });
     const hardware = useArduinoHardwareController({
         logicEngine: deps.logicEngine,
@@ -100,6 +108,23 @@ export const useWorkspaceController = (deps: WorkspaceControllerDeps): Workspace
         const graph = deps.uiEngine.debug.graph();
         if (!graph) return;
 
+        const dispose = clock.attachGraph(graph);
+
+        onCleanup(dispose);
+    });
+
+    createEffect(() => {
+        const isPaused = simulation.isPaused;
+        const isDisabled = simulation.isDisabled;
+        const activeTabId = deps.uiEngine.state.activeTabId();
+        clock.refresh();
+        return { activeTabId, isDisabled, isPaused };
+    });
+
+    createEffect(() => {
+        const graph = deps.uiEngine.debug.graph();
+        if (!graph) return;
+
         const dispose = attachWorkspaceBridge({
             graph,
             uiEngine: deps.uiEngine,
@@ -136,6 +161,7 @@ export const useWorkspaceController = (deps: WorkspaceControllerDeps): Workspace
         getSelectionCount,
         removeSelected,
         simulation,
+        clock,
         hardware,
         booleanAnalysis,
         autoLayout,

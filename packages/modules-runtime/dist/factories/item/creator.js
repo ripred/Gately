@@ -40,14 +40,17 @@ export class DefaultItemCreator {
     }
     _buildLogic(args) {
         const defaultNum = this._get.logicInputsNum();
+        const numOfOutputs = args.meta?.numOfOutputs ?? 1;
         // BUFFER and NOT have only 1 input pin
         const numOfInputs = isOnePinBaseLogic(args) ? 1 : (args.meta?.numOfInputs ?? defaultNum);
         if (numOfInputs !== defaultNum)
             ensureMeta(args).numOfInputs = numOfInputs;
+        if (numOfOutputs !== 1)
+            ensureMeta(args).numOfOutputs = numOfOutputs;
         return {
             ...this._baseFields(args),
             inputPins: normalizeBasePin(numOfInputs, this._get.baseInputValue(), args.inputPins),
-            outputPins: normalizeBasePin(1, this._get.baseOutputValue(), args.outputPins),
+            outputPins: normalizeBasePin(numOfOutputs, this._get.baseOutputValue(), args.outputPins),
         };
     }
     _buildDisplay(args) {

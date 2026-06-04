@@ -46,7 +46,11 @@ export const _createSingleItemUC = ApiFactories.config((tokens) => ({
 
         const buildItemStep = (() => {
             const template = tools.global.getTemplate(payload.hash);
-            const args = Object.assign(template, payload);
+            const args: any = { ...template };
+            Object.entries(payload).forEach(([key, value]) => {
+                if (value === undefined) return;
+                (args as Record<string, unknown>)[key] = value;
+            });
 
             const res = tools.flow.addStep("Build item", () => deps.builders.item(args));
             return res;

@@ -12,7 +12,7 @@ export type WithMeta<K extends KindKey = KindKey> = {
 export type MetaMap = {
     base: {
         generator: { autoTriggers?: AutoTriggers; numOfOutputs?: number };
-        logic: { isSymmetric?: boolean; numOfInputs?: number };
+        logic: { isSymmetric?: boolean; numOfInputs?: number; numOfOutputs?: number };
         display: { numOfInputs?: number };
     };
     circuit: {

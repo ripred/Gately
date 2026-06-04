@@ -18,6 +18,9 @@ export const norEntry = makeBaseLogicEntry("NOR");
 export const nandEntry = makeBaseLogicEntry("NAND");
 export const xorEntry = makeBaseLogicEntry("XOR");
 export const xnorEntry = makeBaseLogicEntry("XNOR");
+export const shiftRegister8Entry = makeBaseLogicEntry("SHIFT_REGISTER_8", {
+    meta: { numOfInputs: 3, numOfOutputs: 9 },
+});
 export const rsTriggerEntry = {
     hash: "RS-TRIGGER",
     kind: "circuit:logic",

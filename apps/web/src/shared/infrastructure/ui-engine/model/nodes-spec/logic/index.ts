@@ -7,6 +7,8 @@ import { NOR_VISUAL } from "./nor";
 import { XOR_VISUAL } from "./xor";
 import { XNOR_VISUAL } from "./xnor";
 import { TOGGLE_VISUAL } from "./toggle";
+import { CLOCK_VISUAL } from "./clock";
+import { SHIFT_REGISTER_8_VISUAL } from "./shift-register-8";
 import { LAMP_VISUAL } from "./lamp/lamp";
 import type { AnyVisualBinding } from "../../visual";
 import { TRUE_CONSTANT_VISUAL } from "./true-constant";
@@ -22,7 +24,9 @@ export const LOGIC_VISUAL_PRESETS = [
     NOR_VISUAL,
     XOR_VISUAL,
     XNOR_VISUAL,
+    SHIFT_REGISTER_8_VISUAL,
     TOGGLE_VISUAL,
+    CLOCK_VISUAL,
     LAMP_VISUAL,
     SEVEN_SEG_DISPLAY_VISUAL,
     TRUE_CONSTANT_VISUAL,
@@ -43,8 +47,10 @@ export {
     NOR_VISUAL,
     XOR_VISUAL,
     XNOR_VISUAL,
+    SHIFT_REGISTER_8_VISUAL,
     LAMP_VISUAL,
     TOGGLE_VISUAL,
+    CLOCK_VISUAL,
     TRUE_CONSTANT_VISUAL,
     SEVEN_SEG_DISPLAY_VISUAL,
     FALSE_CONSTANT_VISUAL,

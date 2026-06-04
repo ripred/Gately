@@ -7,6 +7,7 @@ import { useUIEngine } from "@gately/shared/infrastructure";
 import { useLogicEngine } from "@gately/shared/infrastructure/LogicEngine";
 import { Component, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { useWorkspaceController } from "../lib";
+import { ClockConfigurationModal } from "./ClockConfigurationModal";
 import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
 import { WorkspaceProjectSidebar } from "./WorkspaceProjectSidebar";
 import { WorkspaceSettingsPanel, type SettingsCategoryId } from "./WorkspaceSettingsPanel";
@@ -167,6 +168,7 @@ export const InnerWorkspace: Component = () => {
                             class="absolute inset-0"
                         ></div>
                         <WorkspaceContextMenu
+                            clock={controller.clock}
                             contextMenu={controller.contextMenu}
                             getSelectionCount={controller.getSelectionCount}
                             removeSelected={controller.removeSelected}
@@ -209,6 +211,7 @@ export const InnerWorkspace: Component = () => {
                     </div>
                 </div>
             </Show>
+            <ClockConfigurationModal clock={controller.clock} />
         </div>
     );
 };

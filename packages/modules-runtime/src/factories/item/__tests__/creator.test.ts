@@ -52,6 +52,15 @@ describe("DefaultItemCreator", () => {
         expect(Object.keys(item.inputPins).length).toBe(4);
     });
 
+    it("should respect numOfOutputs in base:logic item", () => {
+        const item = creator.create<"base:logic">({
+            ...testItemArgs("base:logic"),
+            meta: { numOfOutputs: 9 },
+        });
+
+        expect(Object.keys(item.outputPins).length).toBe(9);
+    });
+
     it("should create base:display item with default input pins", () => {
         const item = creator.create<"base:display">({
             ...testItemArgs("base:display"),

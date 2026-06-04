@@ -65,3 +65,89 @@ export const computeXNOR: ComputeFunction = (item) => {
     const [val] = computeXOR(item);
     return val === "0" ? ["1"] : val === "1" ? ["0"] : [val];
 };
+
+type BinaryBit = "0" | "1";
+
+type ShiftRegister8Runtime = {
+    shift?: BinaryBit[];
+    parallel?: BinaryBit[];
+    prevClock?: BinaryBit;
+    prevUpdate?: BinaryBit;
+};
+
+const SHIFT_REGISTER_8_WIDTH = 8;
+
+const toBinaryBit = (value: LogicValue | undefined): BinaryBit => (value === "1" ? "1" : "0");
+
+const readInputBit = (inputPins: Record<PinIndex, Pin>, pin: PinIndex): BinaryBit =>
+    toBinaryBit(inputPins[pin]?.value);
+
+const readOutputBit = (outputPins: Record<PinIndex, Pin>, pin: PinIndex): BinaryBit =>
+    toBinaryBit(outputPins[pin]?.value);
+
+const readShiftRegister8Runtime = (item: Parameters<ComputeFunction>[0]): ShiftRegister8Runtime => {
+    const options = item.options as
+        | (NonNullable<typeof item.options> & { shiftRegister8?: ShiftRegister8Runtime })
+        | undefined;
+    return options?.shiftRegister8 ?? {};
+};
+
+const writeShiftRegister8Runtime = (
+    item: Parameters<ComputeFunction>[0],
+    runtime: Required<ShiftRegister8Runtime>,
+): void => {
+    const options = (item.options ??= {}) as NonNullable<typeof item.options> & {
+        shiftRegister8?: Required<ShiftRegister8Runtime>;
+    };
+    options.shiftRegister8 = runtime;
+};
+
+const readShiftRegister8State = (item: Parameters<ComputeFunction>[0]): BinaryBit[] => {
+    const runtime = readShiftRegister8Runtime(item);
+    if (Array.isArray(runtime.shift) && runtime.shift.length === SHIFT_REGISTER_8_WIDTH) {
+        return runtime.shift.map(toBinaryBit);
+    }
+
+    return Array.from({ length: SHIFT_REGISTER_8_WIDTH }, (_, index) =>
+        readOutputBit(item.outputPins, String(index)),
+    );
+};
+
+const readParallelOutputLatch = (item: Parameters<ComputeFunction>[0]): BinaryBit[] => {
+    const runtime = readShiftRegister8Runtime(item);
+    if (Array.isArray(runtime.parallel) && runtime.parallel.length === SHIFT_REGISTER_8_WIDTH) {
+        return runtime.parallel.map(toBinaryBit);
+    }
+
+    return Array.from({ length: SHIFT_REGISTER_8_WIDTH }, (_, index) =>
+        readOutputBit(item.outputPins, String(index)),
+    );
+};
+
+export const computeSHIFT_REGISTER_8: ComputeFunction = (item) => {
+    const serialInput = readInputBit(item.inputPins, "0");
+    const clock = readInputBit(item.inputPins, "1");
+    const update = readInputBit(item.inputPins, "2");
+    const runtime = readShiftRegister8Runtime(item);
+    const prevClock = runtime.prevClock ?? clock;
+    const prevUpdate = runtime.prevUpdate ?? update;
+    let shiftState = readShiftRegister8State(item);
+    let parallelLatch = readParallelOutputLatch(item);
+
+    if (prevClock === "0" && clock === "1") {
+        shiftState = [serialInput, ...shiftState.slice(0, SHIFT_REGISTER_8_WIDTH - 1)];
+    }
+
+    if (prevUpdate === "0" && update === "1") {
+        parallelLatch = [...shiftState];
+    }
+
+    writeShiftRegister8Runtime(item, {
+        shift: shiftState,
+        parallel: parallelLatch,
+        prevClock: clock,
+        prevUpdate: update,
+    });
+
+    return [...parallelLatch, shiftState[SHIFT_REGISTER_8_WIDTH - 1]];
+};

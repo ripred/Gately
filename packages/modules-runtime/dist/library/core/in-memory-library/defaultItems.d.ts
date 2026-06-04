@@ -14,5 +14,6 @@ export declare const norEntry: import("@cnbn/schema").LogicTemplate;
 export declare const nandEntry: import("@cnbn/schema").LogicTemplate;
 export declare const xorEntry: import("@cnbn/schema").LogicTemplate;
 export declare const xnorEntry: import("@cnbn/schema").LogicTemplate;
+export declare const shiftRegister8Entry: import("@cnbn/schema").LogicTemplate;
 export declare const rsTriggerEntry: TemplateOfKind<"circuit:logic">;
 //# sourceMappingURL=defaultItems.d.ts.map

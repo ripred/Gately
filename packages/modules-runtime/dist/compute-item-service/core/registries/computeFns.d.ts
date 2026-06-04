@@ -7,4 +7,5 @@ export declare const computeNOR: ComputeFunction;
 export declare const computeNAND: ComputeFunction;
 export declare const computeXOR: ComputeFunction;
 export declare const computeXNOR: ComputeFunction;
+export declare const computeSHIFT_REGISTER_8: ComputeFunction;
 //# sourceMappingURL=computeFns.d.ts.map

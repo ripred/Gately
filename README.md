@@ -18,7 +18,7 @@ _A key part of the project is Arduino integration_: an Arduino UNO can act as a 
 
 Gately now opens into a conventional workbench: a toolbar across the top, a collapsible project explorer on the left, and the circuit canvas as the main editing surface. Workspaces can be saved and loaded as `.gately.json` project files, so examples and active circuits do not need to be recreated from scratch.
 
-The app includes an example unoptimized Boolean workspace at `examples/unoptimized-boolean-demo.gately.json`.
+The app includes example workspaces at `examples/unoptimized-boolean-demo.gately.json` and `examples/clocked-shift-register-demo.gately.json`.
 
 ![Load the unoptimized example workspace](docs/images/load_unoptimized_workspace.gif)
 
@@ -41,7 +41,8 @@ Entry actions live in context menus instead of cluttering every row. The menus a
 The current element library is split into three groups:
 
 - basic logic gates (`Buffer`, `AND`, `OR`, `NOT`, `NAND`, `NOR`, `XOR`, `XNOR`)
-- signal generators (`Toggle`, `True Constant`, `False Constant`)
+- stateful logic components (`8-bit Shift Register`)
+- signal generators (`Toggle`, `Clock`, `True Constant`, `False Constant`)
 - output/display elements (`Lamp`, `7-segment display`)
 
 Circuits are built by placing elements, connecting ports, and editing wires directly on the canvas.

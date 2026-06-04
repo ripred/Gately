@@ -44,7 +44,9 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
         addNand,
         addXor,
         addXnor,
+        addShiftRegister8,
         addToggle,
+        addClock,
         addLamp,
         addTrueConstant,
         addFalseConstant,
@@ -61,6 +63,7 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
     const selectedCustomHash = () => props.customComponents.selectedHash();
     const builtInButtons = [
         { label: "TOGGLE", action: addToggle },
+        { label: "CLOCK", action: addClock },
         { label: "1", action: addTrueConstant },
         { label: "0", action: addFalseConstant },
         { label: "LAMP", action: addLamp },
@@ -73,6 +76,7 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
         { label: "NAND", action: addNand },
         { label: "XOR", action: addXor },
         { label: "XNOR", action: addXnor },
+        { label: "SHIFT-8", action: addShiftRegister8 },
     ];
 
     return (

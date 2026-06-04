@@ -12,4 +12,5 @@ export const LogicItemNameList = [
     "NAND",
     "XOR",
     "XNOR",
+    "SHIFT_REGISTER_8",
 ] as const;

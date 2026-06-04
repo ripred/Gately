@@ -8,6 +8,7 @@ import type { UIEnginePublicApi } from "@gately/shared/infrastructure/ui-engine"
 import type { WorkspaceSimulationMode, XYCoords } from "@gately/shared/types";
 import type { Accessor } from "solid-js";
 import type { WorkspaceAutoLayoutController } from "./auto-layout";
+import type { WorkspaceClockController } from "./clock-controller";
 import type { WorkspaceCustomComponentsController } from "./custom-components";
 import type { WorkspacePersistenceController } from "./persistence";
 
@@ -47,6 +48,7 @@ export type WorkspaceController = {
     hardware: ArduinoHardwareController;
     booleanAnalysis: BooleanAnalysisController;
     autoLayout: WorkspaceAutoLayoutController;
+    clock: WorkspaceClockController;
     customComponents: WorkspaceCustomComponentsController;
     persistence: WorkspacePersistenceController;
 };
