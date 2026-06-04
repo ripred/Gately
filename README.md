@@ -22,6 +22,18 @@ The app includes an example unoptimized Boolean workspace at `examples/unoptimiz
 
 ![Load the unoptimized example workspace](docs/images/load_unoptimized_workspace.gif)
 
+The project explorer behaves like a real file tree. Folders expand and collapse in place, circuit files use file-style entries, and selection stays separate from opening a circuit.
+
+![Project explorer navigation](docs/images/project_explorer_navigation.gif)
+
+Circuit entries can be opened from the tree when that is the natural action for the item, while folders keep normal tree behavior.
+
+![Open circuits from the project tree](docs/images/project_tree_open_circuit.gif)
+
+Entry actions live in context menus instead of cluttering every row. The menus are intentionally limited to actions that are actually implemented.
+
+![Project tree context menus](docs/images/project_tree_context_menus.gif)
+
 ### Build and edit circuits
 
 ![Gately elements](docs/images/types_of_elements.gif)
@@ -49,6 +61,20 @@ Karnaugh map groups can be inspected individually, then viewed together to under
 The optimizer creates a new circuit tab, lays out the synthesized gates, applies deterministic routing, and preserves live signal coloring on the optimized result.
 
 ![Optimized circuit creation](docs/images/optimized_circuit_creation.gif)
+
+### Configure the workspace
+
+Settings open as a full-page modal over the workbench, so configuration does not get trapped inside the canvas area.
+
+![Settings modal categories](docs/images/settings_modal_categories.gif)
+
+Workbench options control the project explorer, toolbar groups, and visible project sections without turning the main UI into a pile of one-off buttons.
+
+![Workbench customization controls](docs/images/workbench_customization_controls.gif)
+
+Routing and signal settings are grouped with the rest of configuration. Signal color changes apply to the current circuit immediately, which makes settings changes easy to verify.
+
+![Routing and signal settings](docs/images/routing_signal_settings.gif)
 
 ### Read signal states
 
