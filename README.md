@@ -76,6 +76,10 @@ Routing and signal settings are grouped with the rest of configuration. Signal c
 
 ![Routing and signal settings](docs/images/routing_signal_settings.gif)
 
+Changing a signal color is live configuration, not a deferred preference. When the high-signal color changes from green to red, the already-rendered circuit updates without reloading the file or restarting simulation.
+
+![Live high-signal color update](docs/images/high_signal_color_update.gif)
+
 ### Read signal states
 
 ![Gately signal states](docs/images/gately-signal-states.png)
