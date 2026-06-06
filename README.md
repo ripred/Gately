@@ -120,7 +120,7 @@ Gately is a pnpm/Turborepo monorepo with two applications and a set of shared pa
 For the web app, use a modern Node.js version supported by Vite. The project was tested with Node.js `24.11.1`.
 
 ```bash
-git clone https://github.com/markbrosalin/Gately.git
+git clone https://github.com/ripred/Gately.git
 cd Gately
 pnpm install
 pnpm --filter web dev
