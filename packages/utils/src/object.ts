@@ -31,11 +31,9 @@ export const processMany = <T, R>(items: T[] | T, fn: (item: T) => R): R[] | R =
     return fn(items);
 };
 
-const POLLUTION_KEYS = new Set(["__proto__", "prototype", "constructor"]);
-
 export const deepMerge = <T extends Record<PropertyKey, any>>(target: T, source: Partial<T>) => {
     for (const key of Object.keys(source)) {
-        if (POLLUTION_KEYS.has(key)) continue;
+        if (key === "__proto__" || key === "prototype" || key === "constructor") continue;
 
         const tVal = target[key];
         const sVal = source[key];
