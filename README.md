@@ -2,7 +2,7 @@
 
 **Browser-based digital logic simulation with an experimental Arduino I/O bridge.**
 
-[Live Demo](https://cinabono-engine-web.vercel.app/) · [Documentation](https://gately-web-documentation.vercel.app)
+[Live Demo](https://ripred.github.io/Gately/) · [Documentation](https://gately-web-documentation.vercel.app)
 
 ![Gately preview](docs/images/preview.gif)
 

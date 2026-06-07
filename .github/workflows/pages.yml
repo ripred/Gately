@@ -1,0 +1,71 @@
+name: Deploy GitHub Pages
+
+on:
+    push:
+        branches:
+            - main
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    pages: write
+    id-token: write
+
+concurrency:
+    group: github-pages
+    cancel-in-progress: false
+
+jobs:
+    build:
+        name: Build Pages artifact
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+              with:
+                  version: 10.15.0
+                  run_install: false
+
+            - name: Setup Node
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 24.11.1
+                  cache: pnpm
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Test
+              run: pnpm test
+
+            - name: Lint
+              run: pnpm lint
+
+            - name: Build
+              run: pnpm build
+              env:
+                  GATELY_BASE_PATH: /Gately/
+
+            - name: Setup Pages
+              uses: actions/configure-pages@v5
+
+            - name: Upload Pages artifact
+              uses: actions/upload-pages-artifact@v5
+              with:
+                  path: apps/web/dist
+
+    deploy:
+        name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        needs: build
+        runs-on: ubuntu-latest
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - name: Deploy
+              id: deployment
+              uses: actions/deploy-pages@v5

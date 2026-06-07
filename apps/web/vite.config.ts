@@ -4,7 +4,16 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
+const configuredBasePath = process.env.GATELY_BASE_PATH?.trim();
+const basePath =
+    configuredBasePath && configuredBasePath !== "/"
+        ? configuredBasePath.endsWith("/")
+            ? configuredBasePath
+            : `${configuredBasePath}/`
+        : "/";
+
 export default defineConfig({
+    base: basePath,
     plugins: [solidPlugin(), tsconfigPaths(), tailwindcss()],
     server: {
         port: 3000,

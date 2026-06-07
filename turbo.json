@@ -3,6 +3,7 @@
     "tasks": {
         "build": {
             "dependsOn": ["^build"],
+            "env": ["GATELY_BASE_PATH"],
             "inputs": ["$TURBO_DEFAULT$", ".env*"],
             "outputs": ["dist/**"]
         },
