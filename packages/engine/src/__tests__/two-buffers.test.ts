@@ -38,8 +38,11 @@ describe.skip("Playground_1", () => {
         const tabContext = Cinabono.deps.stores.tab.get(tabResult.tabId)?.ctx;
         const { itemStore, linkStore, scopeStore } = tabContext!;
 
-        console.log("ItemStore: ", itemStore.export()); // you'll see two buffers created
-        console.log("LinkStore: ", linkStore.export()); // you'll see one link created
-        console.log("ScopeStore: ", scopeStore.export()); // you'll see tab scope created
+        const stores = {
+            items: itemStore.export(),
+            links: linkStore.export(),
+            scopes: scopeStore.export(),
+        };
+        void stores;
     });
 });

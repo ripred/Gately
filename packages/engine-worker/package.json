@@ -27,12 +27,12 @@
     },
     "dependencies": {
         "@cnbn/engine": "workspace:*",
+        "@cnbn/entities-runtime": "workspace:*",
         "@cnbn/schema": "workspace:*",
-        "@cnbn/utils": "workspace:*",
-        "@cnbn/entities-runtime": "workspace:*"
+        "@cnbn/utils": "workspace:*"
     },
     "devDependencies": {
         "@cnbn/typescript-config": "workspace:*",
-        "vitest": "^3.2.4"
+        "vitest": "^4.1.8"
     }
 }

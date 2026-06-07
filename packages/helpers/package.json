@@ -50,13 +50,12 @@
         "lint": "eslint \"**/*.ts\""
     },
     "dependencies": {
+        "@cnbn/config": "workspace:*",
         "@cnbn/schema": "workspace:*",
-        "@cnbn/utils": "workspace:*",
-        "@cnbn/config": "workspace:*"
+        "@cnbn/utils": "workspace:*"
     },
     "devDependencies": {
         "@cnbn/typescript-config": "workspace:*",
-        "vite-tsconfig-paths": "^5.1.4",
-        "vitest": "^3.2.4"
+        "vitest": "^4.1.8"
     }
 }

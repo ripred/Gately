@@ -1,6 +1,5 @@
 import { defineConfig } from "vite";
 import solidPlugin from "vite-plugin-solid";
-import tsconfigPaths from "vite-tsconfig-paths";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
@@ -14,29 +13,16 @@ const basePath =
 
 export default defineConfig({
     base: basePath,
-    plugins: [solidPlugin(), tsconfigPaths(), tailwindcss()],
+    plugins: [solidPlugin(), tailwindcss()],
     server: {
         port: 3000,
     },
-    esbuild: {
-        tsconfigRaw: {
-            compilerOptions: {
-                experimentalDecorators: true,
-            },
-        },
-    },
     optimizeDeps: {
-        esbuildOptions: {
-            tsconfigRaw: {
-                compilerOptions: {
-                    experimentalDecorators: true,
-                },
-            },
-        },
         include: ["@cnbn/engine"],
     },
     build: {
         target: "esnext",
+        chunkSizeWarningLimit: 1000,
         rollupOptions: {
             output: {
                 manualChunks: undefined,
@@ -44,6 +30,7 @@ export default defineConfig({
         },
     },
     resolve: {
+        tsconfigPaths: true,
         alias: {
             "@": path.resolve(__dirname, "src"),
             "@gately": path.resolve(__dirname, "src"),

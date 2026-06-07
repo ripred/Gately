@@ -9,8 +9,7 @@ export const TabAdder: Component<{ class?: string }> = (props) => {
 
     const handleClick = async () => {
         try {
-            const newTab = await openNewTab({ options: { setActive: true } });
-            console.log("Tab created:", newTab);
+            await openNewTab({ options: { setActive: true } });
         } catch (err) {
             console.error("Failed to create tab:", err);
         }

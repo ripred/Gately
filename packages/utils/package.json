@@ -23,7 +23,7 @@
         "lint": "eslint \"**/*.ts\""
     },
     "dependencies": {
-        "uuid": "^11.1.0"
+        "uuid": "^14.0.0"
     },
     "devDependencies": {
         "@cnbn/typescript-config": "workspace:*"

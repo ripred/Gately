@@ -56,15 +56,14 @@
         "test": "vitest"
     },
     "dependencies": {
-        "@cnbn/schema": "workspace:*",
+        "@cnbn/config": "workspace:*",
         "@cnbn/entities-runtime": "workspace:*",
-        "@cnbn/utils": "workspace:*",
         "@cnbn/helpers": "workspace:*",
-        "@cnbn/config": "workspace:*"
+        "@cnbn/schema": "workspace:*",
+        "@cnbn/utils": "workspace:*"
     },
     "devDependencies": {
         "@cnbn/typescript-config": "workspace:*",
-        "vite-tsconfig-paths": "^5.1.4",
-        "vitest": "^3.2.4"
+        "vitest": "^4.1.8"
     }
 }

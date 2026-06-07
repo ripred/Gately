@@ -55,7 +55,7 @@
     "dependencies": {
         "@cnbn/schema": "workspace:*",
         "@cnbn/utils": "workspace:*",
-        "picomatch": "^4.0.3"
+        "picomatch": "^4.0.4"
     },
     "devDependencies": {
         "@cnbn/typescript-config": "workspace:*",

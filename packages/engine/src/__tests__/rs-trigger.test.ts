@@ -21,9 +21,8 @@ describe.skip("Playground_2", () => {
         const nor_1 = itemsResult.items[1];
         const nor_2 = itemsResult.items[2];
 
-        // look at two NORs
-        console.log("NOR_1 ID:", nor_1.id);
-        console.log("NOR_2 ID:", nor_2.id);
+        const norIds = [nor_1.id, nor_2.id];
+        void norIds;
 
         // check the tab context
         const tabContext = Cinabono.deps.stores.tab.get(tabResult.tabId)?.ctx;
@@ -70,12 +69,10 @@ describe.skip("Playground_2", () => {
     });
 });
 
-function printEvents(events: RunnerResult) {
-    console.log("\n=== Simulation step ===");
-    for (const e of events.updatesPerTick) {
-        console.log(
+function printEvents(events: RunnerResult): string[] {
+    return events.updatesPerTick.map(
+        (e) =>
             `[${e.t}] ${e.kind.toUpperCase()}` +
-                `\titem: ${e.itemId}\tpin: ${e.pin}\tchanged value to: ${e.value}`
-        );
-    }
+            `\titem: ${e.itemId}\tpin: ${e.pin}\tchanged value to: ${e.value}`
+    );
 }

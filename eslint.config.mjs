@@ -20,8 +20,9 @@ export default tseslint.config(
         },
         rules: {
             "@typescript-eslint/no-empty-object-type": "off",
-            "no-console": "warn",
+            "no-console": ["error", { allow: ["warn", "error"] }],
             "no-debugger": "warn",
+            "no-unassigned-vars": "off",
             "@typescript-eslint/no-unused-vars": [
                 "error",
                 {

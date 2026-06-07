@@ -14,6 +14,8 @@ describe("DefaultStepSimulator", () => {
     let deps: WithDeepMocks<StepSimulatorDeps>;
 
     beforeEach(() => {
+        vi.restoreAllMocks();
+
         deps = {
             ctx: Mocks.mkMockCtx(),
             inHandler: Mocks.mkMockInHandler(),

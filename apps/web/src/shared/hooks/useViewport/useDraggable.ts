@@ -45,7 +45,6 @@ export const useDraggable = ({
     }
 
     function dragBy(offset: XYCoords): void {
-        console.log("hrer");
         const currentPos = untrack(position);
 
         const nextPos = addOffsetXY(currentPos, offset);

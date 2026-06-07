@@ -111,7 +111,11 @@
         pointer-events: none !important;
 
         &.x6-widget-selection-rubberband {
-            @apply border-2! opacity-100! bg-primary-9/10! border-primary-9! rounded!;
+            border-width: 2px !important;
+            border-color: var(--color-primary-9) !important;
+            border-radius: 0.25rem !important;
+            background-color: color-mix(in srgb, var(--color-primary-9) 10%, transparent) !important;
+            opacity: 1 !important;
         }
 
         .x6-widget-selection-box-node {
@@ -130,8 +134,15 @@
 
         > .x6-widget-selection-box {
             pointer-events: none !important;
-            @apply pr-4! pb-4! -ml-2.5! -mt-2.5! 
-                shadow-none! rounded! border-2! border-primary-9! border-dashed!;
+            margin-left: -0.625rem !important;
+            margin-top: -0.625rem !important;
+            padding-right: 1rem !important;
+            padding-bottom: 1rem !important;
+            border-width: 2px !important;
+            border-color: var(--color-primary-9) !important;
+            border-style: dashed !important;
+            border-radius: 0.25rem !important;
+            box-shadow: none !important;
         }
     }
 }
