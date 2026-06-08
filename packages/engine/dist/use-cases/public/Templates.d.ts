@@ -1,4 +1,4 @@
-import { Id, TemplateOfKind } from "@cnbn/schema";
+import { CustomComponentRuntimeMeta, Id, TemplateOfKind } from "@cnbn/schema";
 export type ApiTemplateSummary = {
     hash: string;
     name: string;
@@ -8,6 +8,7 @@ export type ApiTemplateSummary = {
     outputCount: number;
     label?: string;
     createdAt?: number;
+    runtime?: CustomComponentRuntimeMeta;
     updatedAt?: number;
 };
 export type ApiCreateTemplateFromSelectionPayload = {

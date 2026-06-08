@@ -8,5 +8,6 @@ export declare class DefaultComputeEngine implements Computable {
     computeOuts(item: ComputableItem): LogicValue[];
     private _computeLogic;
     private _computeBaked;
+    private _readBakedRow;
 }
 //# sourceMappingURL=engine.d.ts.map

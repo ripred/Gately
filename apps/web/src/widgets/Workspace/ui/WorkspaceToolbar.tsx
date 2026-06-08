@@ -7,6 +7,7 @@ import { useAddLogicNode } from "@gately/features/nodes/useAddBaseLogic";
 import { useUIEngine } from "@gately/shared/infrastructure";
 import type { WorkspaceSimulationMode } from "@gately/shared/types";
 import { Pusher } from "@gately/shared/ui";
+import type { CustomComponentRuntimeMeta } from "@cnbn/schema";
 import type { WorkspaceController } from "../lib/types";
 import { Component, For, Show, createSignal } from "solid-js";
 import { SIMULATION_MODE_OPTIONS } from "./settingsSchema";
@@ -32,6 +33,18 @@ const toolbarButton =
     "inline-flex h-7 items-center justify-center rounded border border-gray-5 bg-gray-2 px-2 text-xs leading-none text-gray-12 hover:bg-gray-3 data-disabled:text-gray-8 data-disabled:hover:bg-gray-2";
 
 const toolbarGroup = "flex flex-wrap items-center gap-1 border-r border-gray-4 pr-2";
+
+const customRuntimeStatus = (runtime?: CustomComponentRuntimeMeta): string => {
+    switch (runtime?.mode) {
+        case "baked-combinational":
+            return "baked";
+        case "expanded-stateful":
+            return "stateful";
+        case "expanded-unsupported":
+        default:
+            return "expanded";
+    }
+};
 
 export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
     const uiEngine = useUIEngine();
@@ -286,7 +299,8 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                                 {(component) => (
                                     <option value={component.hash}>
                                         {component.name} ({component.inputCount} in,{" "}
-                                        {component.outputCount} out)
+                                        {component.outputCount} out,{" "}
+                                        {customRuntimeStatus(component.runtime)})
                                     </option>
                                 )}
                             </For>

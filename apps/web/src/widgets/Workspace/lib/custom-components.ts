@@ -29,6 +29,7 @@ const toVisualInput = (component: ApiTemplateSummary) => ({
     label: component.label,
     inputCount: component.inputCount,
     outputCount: component.outputCount,
+    runtime: component.runtime,
 });
 
 const isNodeCell = (cell: unknown): cell is { id: string; isNode: () => boolean } => {

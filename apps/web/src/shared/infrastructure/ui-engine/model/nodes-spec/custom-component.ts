@@ -1,4 +1,5 @@
 import { createVisualBinding } from "../visual";
+import type { CustomComponentRuntimeMeta } from "@cnbn/schema";
 
 export type CustomComponentVisualInput = {
     hash: string;
@@ -6,6 +7,7 @@ export type CustomComponentVisualInput = {
     label?: string;
     inputCount?: number;
     outputCount?: number;
+    runtime?: CustomComponentRuntimeMeta;
 };
 
 const sanitizeNodeName = (hash: string): string =>
@@ -50,4 +52,3 @@ export const createCustomComponentVisualBinding = (input: CustomComponentVisualI
         },
     });
 };
-

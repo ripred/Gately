@@ -3,6 +3,7 @@ import { E } from "../../errors/index.js";
 import { buildLinkId } from "@cnbn/helpers";
 import { hasItemInputPins, hasItemOutputPins, isDisplayItem, isGeneratorItem, } from "@cnbn/schema";
 import { uniqueId } from "@cnbn/utils";
+import { recomputeCustomTemplateRuntimes } from "./templateRuntime.js";
 const pinKey = (itemId, pin) => `${itemId}:${pin}`;
 const isCustomTemplate = (template) => template.kind === "circuit:logic" && Boolean(template.meta?.custom);
 const isRecord = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -20,8 +21,15 @@ const summarizeTemplate = (template) => {
         outputCount,
         label: template.kind === "circuit:logic" ? template.meta?.label : undefined,
         createdAt: template.kind === "circuit:logic" ? template.meta?.createdAt : undefined,
+        runtime: template.kind === "circuit:logic" ? template.meta?.runtime : undefined,
         updatedAt: template.kind === "circuit:logic" ? template.meta?.updatedAt : undefined,
     };
+};
+const refreshTemplateRuntimes = (ctx) => {
+    recomputeCustomTemplateRuntimes({
+        bakeStore: ctx.deps.services.itemCompute.bakeStore,
+        templateStore: ctx.deps.stores.template,
+    });
 };
 const buildLinkBuckets = (links) => {
     const byInputItemPin = new Map();
@@ -305,7 +313,8 @@ export const saveTemplateUC = ApiFactories.config((tokens) => ({
         const saveTemplate = ((payload) => {
             const template = validateCustomTemplate(payload.template);
             ctx.tools.global.saveTemplate(template);
-            return summarizeTemplate(template);
+            refreshTemplateRuntimes(ctx);
+            return summarizeTemplate(ctx.tools.global.getTemplate(template.hash));
         });
         return saveTemplate;
     },
@@ -329,7 +338,8 @@ export const updateTemplateUC = ApiFactories.config((tokens) => ({
                 },
             };
             ctx.tools.global.saveTemplate(updated);
-            return summarizeTemplate(updated);
+            refreshTemplateRuntimes(ctx);
+            return summarizeTemplate(ctx.tools.global.getTemplate(updated.hash));
         });
         return updateTemplate;
     },
@@ -348,6 +358,8 @@ export const removeTemplateUC = ApiFactories.config((tokens) => ({
                 throw new Error(`Custom component "${existing.name}" is still used by ${usages.length} item(s): ${usages.join(", ")}.`);
             }
             ctx.tools.global.removeTemplate(payload.hash);
+            ctx.deps.services.itemCompute.bakeStore.remove(payload.hash);
+            refreshTemplateRuntimes(ctx);
             return { removed: true, template: summarizeTemplate(existing) };
         });
         return removeTemplate;
@@ -372,9 +384,11 @@ export const createTemplateFromSelectionUC = ApiFactories.config((tokens) => ({
                 throw new Error(`Template "${template.hash}" already exists.`);
             }
             ctx.tools.global.saveTemplate(template);
+            refreshTemplateRuntimes(ctx);
+            const compiled = validateCustomTemplate(ctx.tools.global.getTemplate(template.hash));
             return {
-                template,
-                summary: summarizeTemplate(template),
+                template: compiled,
+                summary: summarizeTemplate(compiled),
             };
         });
         return createTemplateFromSelection;

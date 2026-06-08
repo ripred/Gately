@@ -1,7 +1,16 @@
 import { ApiFactories } from "@engine/api";
 import type { TabContract } from "@engine/tab-factory";
-import type { Entries, Id, ItemLink, ItemOfKind, Scope, ScopeChildItem, TemplateOfKind } from "@cnbn/schema";
+import type {
+    Entries,
+    Id,
+    ItemLink,
+    ItemOfKind,
+    Scope,
+    ScopeChildItem,
+    TemplateOfKind,
+} from "@cnbn/schema";
 import { validateCustomTemplate } from "./Templates";
+import { recomputeCustomTemplateRuntimes } from "./templateRuntime";
 
 export const ENGINE_SESSION_VERSION = 1;
 
@@ -111,12 +120,19 @@ export const importSessionUC = ApiFactories.config((tokens) => ({
             });
 
             ctx.deps.stores.template.export().forEach(([hash, template]) => {
-                if (isCustomTemplate(template)) ctx.deps.stores.template.remove(hash);
+                if (!isCustomTemplate(template)) return;
+                ctx.deps.stores.template.remove(hash);
+                ctx.deps.services.itemCompute.bakeStore.remove(hash);
             });
 
             snapshot.templates.forEach(([hash, template]) => {
                 if (!isCustomTemplate(template)) return;
                 ctx.deps.stores.template.insert(hash, template);
+            });
+
+            recomputeCustomTemplateRuntimes({
+                bakeStore: ctx.deps.services.itemCompute.bakeStore,
+                templateStore: ctx.deps.stores.template,
             });
 
             snapshot.tabs.forEach((tabSnapshot) => {

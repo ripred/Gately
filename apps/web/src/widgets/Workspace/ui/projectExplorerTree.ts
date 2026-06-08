@@ -2,6 +2,7 @@ import type {
     UIEngineScope,
     UIEngineTab,
 } from "@gately/shared/infrastructure/ui-engine/model/types";
+import type { CustomComponentRuntimeMeta } from "@cnbn/schema";
 
 export type ProjectExplorerNodeKind =
     | "folder"
@@ -14,6 +15,7 @@ export type ProjectExplorerComponent = {
     inputCount?: number;
     name: string;
     outputCount?: number;
+    runtime?: CustomComponentRuntimeMeta;
 };
 
 export type ProjectExplorerNode = {
@@ -39,6 +41,18 @@ const emptyStatusNode = (id: string, label: string): ProjectExplorerNode => ({
     kind: "status",
     label,
 });
+
+export const customComponentRuntimeStatus = (runtime?: CustomComponentRuntimeMeta): string => {
+    switch (runtime?.mode) {
+        case "baked-combinational":
+            return "baked";
+        case "expanded-stateful":
+            return "stateful";
+        case "expanded-unsupported":
+        default:
+            return "expanded";
+    }
+};
 
 const buildScopeNode = (
     scope: UIEngineScope,
@@ -76,7 +90,7 @@ export const buildProjectExplorerTree = ({
         detail:
             component.inputCount === undefined || component.outputCount === undefined
                 ? undefined
-                : `${component.inputCount} in, ${component.outputCount} out`,
+                : `${component.inputCount} in, ${component.outputCount} out, ${customComponentRuntimeStatus(component.runtime)}`,
         hash: component.hash,
         id: `component:${component.hash}`,
         kind: "component",

@@ -1,8 +1,10 @@
 import { ApiFactories } from "@engine/api";
 import { E } from "@engine/errors";
 import { buildLinkId } from "@cnbn/helpers";
+import type { BakeStoreContract, TemplateLibraryContract } from "@cnbn/modules-runtime";
 import {
     CircuitPins,
+    CustomComponentRuntimeMeta,
     hasItemInputPins,
     hasItemOutputPins,
     Id,
@@ -19,6 +21,7 @@ import {
     TemplateOfKind,
 } from "@cnbn/schema";
 import { uniqueId } from "@cnbn/utils";
+import { recomputeCustomTemplateRuntimes } from "./templateRuntime";
 
 export type ApiTemplateSummary = {
     hash: string;
@@ -29,6 +32,7 @@ export type ApiTemplateSummary = {
     outputCount: number;
     label?: string;
     createdAt?: number;
+    runtime?: CustomComponentRuntimeMeta;
     updatedAt?: number;
 };
 
@@ -129,8 +133,23 @@ const summarizeTemplate = (template: TemplateOfKind): ApiTemplateSummary => {
         outputCount,
         label: template.kind === "circuit:logic" ? template.meta?.label : undefined,
         createdAt: template.kind === "circuit:logic" ? template.meta?.createdAt : undefined,
+        runtime: template.kind === "circuit:logic" ? template.meta?.runtime : undefined,
         updatedAt: template.kind === "circuit:logic" ? template.meta?.updatedAt : undefined,
     };
+};
+
+const refreshTemplateRuntimes = (ctx: {
+    deps: {
+        services: {
+            itemCompute: { bakeStore: BakeStoreContract };
+        };
+        stores: { template: TemplateLibraryContract };
+    };
+}): void => {
+    recomputeCustomTemplateRuntimes({
+        bakeStore: ctx.deps.services.itemCompute.bakeStore,
+        templateStore: ctx.deps.stores.template,
+    });
 };
 
 const buildLinkBuckets = (links: ItemLink[]): LinkBuckets => {
@@ -492,7 +511,8 @@ export const saveTemplateUC = ApiFactories.config((tokens) => ({
         const saveTemplate = ((payload) => {
             const template = validateCustomTemplate(payload.template);
             ctx.tools.global.saveTemplate(template);
-            return summarizeTemplate(template);
+            refreshTemplateRuntimes(ctx);
+            return summarizeTemplate(ctx.tools.global.getTemplate(template.hash));
         }) as ApiSaveTemplate_Fn;
 
         return saveTemplate;
@@ -519,7 +539,8 @@ export const updateTemplateUC = ApiFactories.config((tokens) => ({
             };
 
             ctx.tools.global.saveTemplate(updated);
-            return summarizeTemplate(updated);
+            refreshTemplateRuntimes(ctx);
+            return summarizeTemplate(ctx.tools.global.getTemplate(updated.hash));
         }) as ApiUpdateTemplate_Fn;
 
         return updateTemplate;
@@ -549,6 +570,8 @@ export const removeTemplateUC = ApiFactories.config((tokens) => ({
             }
 
             ctx.tools.global.removeTemplate(payload.hash);
+            ctx.deps.services.itemCompute.bakeStore.remove(payload.hash);
+            refreshTemplateRuntimes(ctx);
             return { removed: true, template: summarizeTemplate(existing) };
         }) as ApiRemoveTemplate_Fn;
 
@@ -579,10 +602,12 @@ export const createTemplateFromSelectionUC = ApiFactories.config((tokens) => ({
             }
 
             ctx.tools.global.saveTemplate(template);
+            refreshTemplateRuntimes(ctx);
+            const compiled = validateCustomTemplate(ctx.tools.global.getTemplate(template.hash));
 
             return {
-                template,
-                summary: summarizeTemplate(template),
+                template: compiled,
+                summary: summarizeTemplate(compiled),
             };
         }) as ApiCreateTemplateFromSelection_Fn;
 

@@ -36,6 +36,9 @@ export class StructureBuilder {
     _buildCircuit(args) {
         const circuit = this._mkItem(args);
         this._builtItems.set(circuit.id, circuit);
+        if (args.options?.baked === true) {
+            return new ResultAccumulator().add({ items: [circuit] }).get();
+        }
         const childRemap = this._remap.createRemap();
         const scope = this._mkScope({
             id: circuit.id,
@@ -77,6 +80,8 @@ export class StructureBuilder {
             if (!tpl)
                 throw E.template.NotFound(item.hash);
             const { inputPins, outputPins, items } = tpl;
+            const meta = { ...(item.meta ?? {}), ...(tpl.meta ?? {}) };
+            const options = { ...(item.options ?? {}), ...(tpl.options ?? {}) };
             return {
                 ...item,
                 id: newId,
@@ -84,6 +89,8 @@ export class StructureBuilder {
                 inputPins,
                 outputPins,
                 items,
+                meta: Object.keys(meta).length ? meta : undefined,
+                options: Object.keys(options).length ? options : undefined,
             };
         }
         else {

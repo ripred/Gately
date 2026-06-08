@@ -24,6 +24,8 @@ export class DefaultItemBuilder {
         processMany(result.items, (item) => {
             if (!isCircuitItem(item))
                 return;
+            if (item.options?.baked === true)
+                return;
             const remap = result.circuitRemaps.get(item.id);
             if (!remap)
                 throw new Error(`Missing remap state for circuit item "${item.id}".`);

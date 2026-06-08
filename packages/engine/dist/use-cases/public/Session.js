@@ -1,5 +1,6 @@
 import { ApiFactories } from "../../api/index.js";
 import { validateCustomTemplate } from "./Templates.js";
+import { recomputeCustomTemplateRuntimes } from "./templateRuntime.js";
 export const ENGINE_SESSION_VERSION = 1;
 const isCustomTemplate = (template) => template.kind === "circuit:logic" && Boolean(template.meta?.custom);
 const validateSessionSnapshot = (payload) => {
@@ -69,13 +70,19 @@ export const importSessionUC = ApiFactories.config((tokens) => ({
                 ctx.deps.stores.tab.remove(tabId);
             });
             ctx.deps.stores.template.export().forEach(([hash, template]) => {
-                if (isCustomTemplate(template))
-                    ctx.deps.stores.template.remove(hash);
+                if (!isCustomTemplate(template))
+                    return;
+                ctx.deps.stores.template.remove(hash);
+                ctx.deps.services.itemCompute.bakeStore.remove(hash);
             });
             snapshot.templates.forEach(([hash, template]) => {
                 if (!isCustomTemplate(template))
                     return;
                 ctx.deps.stores.template.insert(hash, template);
+            });
+            recomputeCustomTemplateRuntimes({
+                bakeStore: ctx.deps.services.itemCompute.bakeStore,
+                templateStore: ctx.deps.stores.template,
             });
             snapshot.tabs.forEach((tabSnapshot) => {
                 const tab = ctx.deps.factories.tab(tabSnapshot.id);

@@ -53,6 +53,11 @@ export class StructureBuilder {
     private _buildCircuit(args: Schema.ItemArgsOfKind<"circuit:logic">): StructureBuilderResult {
         const circuit = this._mkItem<"circuit:logic">(args);
         this._builtItems.set(circuit.id, circuit);
+
+        if (args.options?.baked === true) {
+            return new ResultAccumulator().add({ items: [circuit] }).get();
+        }
+
         const childRemap = this._remap.createRemap();
 
         const scope = this._mkScope<"circuit">({
@@ -109,6 +114,8 @@ export class StructureBuilder {
             if (!tpl) throw E.template.NotFound(item.hash);
 
             const { inputPins, outputPins, items } = tpl as Schema.TemplateOfKind<"circuit:logic">;
+            const meta = { ...(item.meta ?? {}), ...(tpl.meta ?? {}) };
+            const options = { ...(item.options ?? {}), ...(tpl.options ?? {}) };
 
             return {
                 ...item,
@@ -117,6 +124,8 @@ export class StructureBuilder {
                 inputPins,
                 outputPins,
                 items,
+                meta: Object.keys(meta).length ? meta : undefined,
+                options: Object.keys(options).length ? options : undefined,
             } as Schema.ItemArgsOfKind<"circuit:logic">;
         } else {
             return { ...item, id: newId, path };

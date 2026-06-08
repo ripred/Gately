@@ -69,7 +69,7 @@ describe("buildProjectExplorerTree", () => {
         });
 
         expect(tree.children?.[1].children?.[0]).toMatchObject({
-            detail: "2 in, 2 out",
+            detail: "2 in, 2 out, expanded",
             hash: "custom-hash",
             kind: "component",
             label: "Half Adder",

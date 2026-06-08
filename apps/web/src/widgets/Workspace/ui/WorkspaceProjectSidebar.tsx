@@ -9,6 +9,7 @@ import { contextMenuStyles } from "@gately/shared/ui/ContextMenu/styles";
 import type { WorkspaceController } from "../lib/types";
 import {
     buildProjectExplorerTree,
+    customComponentRuntimeStatus,
     type ProjectExplorerNode,
     type ProjectExplorerNodeKind,
 } from "./projectExplorerTree";
@@ -960,7 +961,8 @@ export const WorkspaceProjectSidebar: Component<WorkspaceProjectSidebarProps> = 
                                                 >
                                                     <span class="shrink-0 text-[10px] text-gray-8">
                                                         {component.inputCount} in,{" "}
-                                                        {component.outputCount} out
+                                                        {component.outputCount} out,{" "}
+                                                        {customComponentRuntimeStatus(component.runtime)}
                                                     </span>
                                                 </Show>
                                             </div>

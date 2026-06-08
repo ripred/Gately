@@ -276,12 +276,42 @@ describe("template public use cases", () => {
         const snapshot = engine.api.session.export();
         expect(snapshot.templates.map(([hash]) => hash)).toEqual(["CUSTOM_BUFFER"]);
         expect(snapshot.tabs).toHaveLength(1);
+        snapshot.templates = snapshot.templates.map(([hash, template]) => [
+            hash,
+            {
+                ...template,
+                meta: {
+                    ...template.meta,
+                    runtime: {
+                        inputCount: 99,
+                        mode: "expanded-stateful",
+                        outputCount: 99,
+                        reason: "stale-imported-metadata",
+                        signature: "stale",
+                        updatedAt: 1,
+                    },
+                },
+                options: undefined,
+            },
+        ]);
 
         engine.api.session.import(snapshot);
 
         expect(
             engine.api.template.list().find((template) => template.hash === "CUSTOM_BUFFER"),
-        ).toMatchObject({ custom: true, inputCount: 1, outputCount: 1 });
+        ).toMatchObject({
+            custom: true,
+            inputCount: 1,
+            outputCount: 1,
+            runtime: {
+                mode: "baked-combinational",
+                rowCount: 2,
+            },
+        });
+        expect(engine.deps.services.itemCompute.bakeStore.get("CUSTOM_BUFFER")).toEqual([
+            "0",
+            "1",
+        ]);
         expect(engine.api.session.export().tabs[0].items.map(([id]) => id).sort()).toEqual([
             "A",
             "BUFFER_0",
@@ -599,7 +629,7 @@ describe("template public use cases", () => {
         });
     });
 
-    it("loads nested custom components into another saved custom component and reuses the reloaded hierarchy", async () => {
+    it("loads nested baked custom components into another saved custom component and reuses the reloaded opaque node", async () => {
         const baseNotHash = "CUSTOM_NESTED_BASE_NOT";
         const bufferHash = "CUSTOM_NESTED_DOUBLE_NOT_BUFFER";
         const mcuHash = "CUSTOM_NESTED_MCU_WRAPPER";
@@ -678,6 +708,10 @@ describe("template public use cases", () => {
             custom: true,
             inputCount: 1,
             outputCount: 1,
+            runtime: {
+                mode: "baked-combinational",
+                rowCount: 2,
+            },
         });
         expect(
             Object.values(bufferTemplateResult.template.items).filter(
@@ -713,6 +747,13 @@ describe("template public use cases", () => {
             hash: mcuHash,
             name: "Nested MCU Wrapper",
             selectedItemIds: ["MCU_IN", "MCU_BUFFER", "MCU_OUT"],
+        });
+        expect(mcuTemplateResult.summary).toMatchObject({
+            hash: mcuHash,
+            runtime: {
+                mode: "baked-combinational",
+                rowCount: 2,
+            },
         });
         expect(
             Object.values(mcuTemplateResult.template.items).filter(
@@ -770,17 +811,17 @@ describe("template public use cases", () => {
                 return counts;
             }, {});
 
-            expect(items).toHaveLength(8);
-            expect(tabContext!.scopeStore.export()).toHaveLength(5);
-            expect(tabContext!.linkStore.export()).toHaveLength(3);
+            expect(items).toHaveLength(3);
+            expect(tabContext!.scopeStore.export()).toHaveLength(1);
+            expect(tabContext!.linkStore.export()).toHaveLength(2);
             expect(hashCounts).toMatchObject({
                 [mcuHash]: 1,
-                [bufferHash]: 1,
-                [baseNotHash]: 2,
-                NOT: 2,
                 TOGGLE: 1,
                 LAMP: 1,
             });
+            expect(hashCounts[bufferHash]).toBeUndefined();
+            expect(hashCounts[baseNotHash]).toBeUndefined();
+            expect(hashCounts.NOT).toBeUndefined();
         };
 
         const verifyFinalTruthTable = (engine: Engine): void => {
@@ -823,9 +864,45 @@ describe("template public use cases", () => {
         };
 
         expect(compositionEngine.api.template.list().filter((template) => template.custom)).toEqual([
-            expect.objectContaining({ hash: baseNotHash, inputCount: 1, outputCount: 1 }),
-            expect.objectContaining({ hash: bufferHash, inputCount: 1, outputCount: 1 }),
-            expect.objectContaining({ hash: mcuHash, inputCount: 1, outputCount: 1 }),
+            expect.objectContaining({
+                hash: baseNotHash,
+                inputCount: 1,
+                outputCount: 1,
+                runtime: expect.objectContaining({
+                    mode: "baked-combinational",
+                    rowCount: 2,
+                }),
+            }),
+            expect.objectContaining({
+                hash: bufferHash,
+                inputCount: 1,
+                outputCount: 1,
+                runtime: expect.objectContaining({
+                    mode: "baked-combinational",
+                    rowCount: 2,
+                }),
+            }),
+            expect.objectContaining({
+                hash: mcuHash,
+                inputCount: 1,
+                outputCount: 1,
+                runtime: expect.objectContaining({
+                    mode: "baked-combinational",
+                    rowCount: 2,
+                }),
+            }),
+        ]);
+        expect(compositionEngine.deps.services.itemCompute.bakeStore.get(baseNotHash)).toEqual([
+            "1",
+            "0",
+        ]);
+        expect(compositionEngine.deps.services.itemCompute.bakeStore.get(bufferHash)).toEqual([
+            "0",
+            "1",
+        ]);
+        expect(compositionEngine.deps.services.itemCompute.bakeStore.get(mcuHash)).toEqual([
+            "0",
+            "1",
         ]);
 
         expectEfficientFinalHierarchy(compositionEngine);
@@ -836,6 +913,182 @@ describe("template public use cases", () => {
 
         expectEfficientFinalHierarchy(reloadedEngine);
         verifyFinalTruthTable(reloadedEngine);
+    });
+
+    it("keeps stateful custom components supported and expanded across save, simulate, and import", async () => {
+        const customShiftHash = "CUSTOM_SHIFT_REGISTER";
+        const engine = await new CinabonoBuilder().build();
+
+        const summary = engine.api.template.save({
+            template: {
+                hash: customShiftHash,
+                kind: "circuit:logic",
+                name: "Custom Shift Register",
+                meta: { custom: true },
+                items: {
+                    SHIFT: {
+                        hash: "SHIFT_REGISTER_8",
+                        kind: "base:logic",
+                        meta: { numOfInputs: 3, numOfOutputs: 9 },
+                        name: "SHIFT_REGISTER_8",
+                    },
+                },
+                inputPins: {
+                    "0": { inputItems: [{ itemId: "SHIFT", pin: "0" }] },
+                    "1": { inputItems: [{ itemId: "SHIFT", pin: "1" }] },
+                    "2": { inputItems: [{ itemId: "SHIFT", pin: "2" }] },
+                },
+                outputPins: Object.fromEntries(
+                    Array.from({ length: 9 }, (_, index) => [
+                        String(index),
+                        { outputItem: { itemId: "SHIFT", pin: String(index) } },
+                    ]),
+                ),
+            },
+        });
+
+        expect(summary).toMatchObject({
+            hash: customShiftHash,
+            runtime: {
+                mode: "expanded-stateful",
+                reason: "stateful-logic",
+            },
+        });
+        expect(engine.deps.services.itemCompute.bakeStore.get(customShiftHash)).toBeUndefined();
+
+        const { tabId } = engine.api.tab.create({ id: "stateful" });
+        engine.api.item.create({
+            id: "SHIFT_NODE",
+            kind: "circuit:logic",
+            hash: customShiftHash,
+            path: [tabId],
+        });
+
+        const readShiftOutput = (targetEngine: Engine): LogicValue => {
+            const tabContext = targetEngine.deps.stores.tab.get(tabId)?.ctx;
+            expect(tabContext).toBeDefined();
+            const custom = tabContext!.itemStore.get("SHIFT_NODE");
+            expect(custom && hasItemInputPins(custom) && hasItemOutputPins(custom)).toBe(true);
+            return custom!.outputPins["0"].value;
+        };
+        const countHashes = (targetEngine: Engine): Record<string, number> => {
+            const tabContext = targetEngine.deps.stores.tab.get(tabId)?.ctx;
+            expect(tabContext).toBeDefined();
+            return tabContext!.itemStore.export().reduce<Record<string, number>>((counts, [, item]) => {
+                counts[item.hash] = (counts[item.hash] ?? 0) + 1;
+                return counts;
+            }, {});
+        };
+        const setInput = (pin: string, value: LogicValue): void => {
+            engine.api.item.updateInput({ tabId, itemId: "SHIFT_NODE", pin, value });
+        };
+        const simulate = (targetEngine = engine): void => {
+            targetEngine.api.simulation.simulate({ tabId, runCfg: { maxBatchTicks: 128 } });
+        };
+
+        expect(countHashes(engine)).toMatchObject({
+            [customShiftHash]: 1,
+            SHIFT_REGISTER_8: 1,
+        });
+
+        setInput("0", "1");
+        setInput("1", "0");
+        setInput("2", "0");
+        simulate();
+        setInput("1", "1");
+        simulate();
+        setInput("1", "0");
+        simulate();
+        setInput("2", "1");
+        simulate();
+
+        expect(readShiftOutput(engine)).toBe("1");
+
+        const importedEngine = await new CinabonoBuilder().build();
+        importedEngine.api.session.import(engine.api.session.export());
+
+        expect(
+            importedEngine.api.template.list().find((template) => template.hash === customShiftHash),
+        ).toMatchObject({
+            runtime: {
+                mode: "expanded-stateful",
+                reason: "stateful-logic",
+            },
+        });
+        expect(importedEngine.deps.services.itemCompute.bakeStore.get(customShiftHash)).toBeUndefined();
+        expect(countHashes(importedEngine)).toMatchObject({
+            [customShiftHash]: 1,
+            SHIFT_REGISTER_8: 1,
+        });
+        expect(readShiftOutput(importedEngine)).toBe("1");
+    });
+
+    it("marks feedback loops as supported expanded stateful custom components", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const summary = engine.api.template.save({
+            template: {
+                hash: "CUSTOM_FEEDBACK",
+                kind: "circuit:logic",
+                name: "Feedback",
+                meta: { custom: true },
+                items: {
+                    LOOP: {
+                        hash: "NOT",
+                        inputLinks: { "0": "LOOP:0:LOOP:0" },
+                        kind: "base:logic",
+                        name: "NOT",
+                        outputLinks: { "0": ["LOOP:0:LOOP:0"] },
+                    },
+                },
+                inputPins: {},
+                outputPins: {
+                    "0": { outputItem: { itemId: "LOOP", pin: "0" } },
+                },
+            },
+        });
+
+        expect(summary).toMatchObject({
+            hash: "CUSTOM_FEEDBACK",
+            runtime: {
+                mode: "expanded-stateful",
+                reason: "feedback-loop",
+            },
+        });
+        expect(engine.deps.services.itemCompute.bakeStore.get("CUSTOM_FEEDBACK")).toBeUndefined();
+    });
+
+    it("marks unresolved combinational templates as expanded unsupported without baking them", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const summary = engine.api.template.save({
+            template: {
+                hash: "CUSTOM_FLOATING_AND",
+                kind: "circuit:logic",
+                name: "Floating AND",
+                meta: { custom: true },
+                items: {
+                    AND_0: {
+                        hash: "AND",
+                        kind: "base:logic",
+                        name: "AND",
+                    },
+                },
+                inputPins: {
+                    "0": { inputItems: [{ itemId: "AND_0", pin: "0" }] },
+                },
+                outputPins: {
+                    "0": { outputItem: { itemId: "AND_0", pin: "0" } },
+                },
+            },
+        });
+
+        expect(summary).toMatchObject({
+            hash: "CUSTOM_FLOATING_AND",
+            runtime: {
+                mode: "expanded-unsupported",
+                reason: "unresolved-output",
+            },
+        });
+        expect(engine.deps.services.itemCompute.bakeStore.get("CUSTOM_FLOATING_AND")).toBeUndefined();
     });
 
     it("removes unused custom templates", async () => {
@@ -864,11 +1117,16 @@ describe("template public use cases", () => {
             name: "Unused Custom",
             selectedItemIds: ["BUFFER_0"],
         });
+        expect(engine.deps.services.itemCompute.bakeStore.get("CUSTOM_UNUSED")).toEqual([
+            "0",
+            "1",
+        ]);
 
         expect(engine.api.template.remove({ hash: "CUSTOM_UNUSED" })).toMatchObject({
             removed: true,
             template: { hash: "CUSTOM_UNUSED", custom: true },
         });
+        expect(engine.deps.services.itemCompute.bakeStore.get("CUSTOM_UNUSED")).toBeUndefined();
         expect(engine.api.template.list().some((template) => template.hash === "CUSTOM_UNUSED")).toBe(
             false,
         );
