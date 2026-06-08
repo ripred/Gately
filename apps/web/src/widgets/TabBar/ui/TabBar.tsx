@@ -1,4 +1,3 @@
-import { LogoButton } from "./LogoButton";
 import { Component, For, onMount } from "solid-js";
 import { TabAdder } from "./TabAdder";
 import { useUIEngine } from "@gately/shared/infrastructure";
@@ -30,8 +29,6 @@ export const TabBar: Component = () => {
                 class="bg-gray-12 flex flex-row h-10 w-full overflow-hidden"
                 value={uiEngine.state.activeTabId()}
             >
-                <LogoButton class="shrink-0" />
-
                 <Tabs.List class="flex-1 flex items-center overflow-x-hidden h-full">
                     <ListScroller.List class="flex items-center h-full overflow-x-auto scrollbar-hide">
                         <For each={uiEngine.state.tabs()}>{(tab) => <Tab tab={tab} />}</For>
