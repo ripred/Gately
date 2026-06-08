@@ -1,15 +1,19 @@
-import { routerPresets, Connecting } from "@antv/x6";
+import { Graph, routerPresets, Connecting } from "@antv/x6";
 import type { EdgeRouterMode } from "@gately/shared/infrastructure/ui-engine/model/types";
 import {
+    edgeClearanceConnector,
     mkEdge,
     isPortMagnet,
     isValidConnectionEndpoints,
 } from "@gately/shared/infrastructure/ui-engine/lib";
 import { pickLogicValueClass } from "../../lib/logic-values";
 import { setValueClassToEdge } from "../../lib/logic-values/set-value";
+import { GRID_SIZE } from "../../model";
+
+Graph.registerConnector("gately-edge-clearance", edgeClearanceConnector, true);
 
 export const createConnectingConfig = (
-    routerMode: EdgeRouterMode = "manhattan",
+    routerMode: EdgeRouterMode = "normal",
 ): Partial<Connecting> => ({
     allowBlank: true,
     allowNode: false,
@@ -18,9 +22,9 @@ export const createConnectingConfig = (
     allowLoop: true,
     router: {
         args: {
-            padding: 2,
+            padding: GRID_SIZE,
             perpendicular: true,
-            step: 2,
+            step: GRID_SIZE,
             maxDirectionChange: 90,
             startDirections: ["right", "left", "top", "bottom"],
             endDirections: ["right", "left", "top", "bottom"],
@@ -29,11 +33,11 @@ export const createConnectingConfig = (
         name: routerMode,
     },
     connector: {
-        name: "jumpover",
-        args: { size: 6, type: "gap", radius: 4 },
+        name: "gately-edge-clearance",
+        args: { clearance: GRID_SIZE },
     },
-    targetConnectionPoint: { name: "boundary", args: { offset: -8 } },
-    connectionPoint: { name: "boundary", args: { offset: -8 } },
+    targetConnectionPoint: { name: "anchor" },
+    connectionPoint: { name: "anchor" },
     snap: { anchor: "center", radius: 16 },
     highlight: true,
 

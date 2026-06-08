@@ -9,7 +9,7 @@ export type WorkspaceCustomComponentsController = {
     setSelectedHash: (hash?: string) => void;
     selectedNodeCount: () => number;
     refresh: () => Promise<void>;
-    createFromSelection: () => Promise<void>;
+    createFromSelection: (name?: string) => Promise<void>;
     renameSelected: () => Promise<void>;
     removeSelected: () => Promise<void>;
     addComponent: (hash: string) => Promise<void>;
@@ -79,7 +79,7 @@ export const createWorkspaceCustomComponents = (
 
     const selectedNodeCount = (): number => selectedNodeIds().length;
 
-    const createFromSelection = async () => {
+    const createFromSelection = async (providedName?: string) => {
         const tabId = deps.getActiveTabId();
         const scopeId = deps.getActiveScopeId();
         const selectedItemIds = selectedNodeIds();
@@ -89,7 +89,7 @@ export const createWorkspaceCustomComponents = (
             return;
         }
 
-        const name = window.prompt("Custom component name");
+        const name = providedName ?? window.prompt("Custom component name");
         if (!name?.trim()) return;
 
         setBusy(true);

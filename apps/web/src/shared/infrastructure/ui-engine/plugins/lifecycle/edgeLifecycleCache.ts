@@ -27,7 +27,9 @@ export const edgeLifecycleCachePlugin: UIEnginePlugin = {
             });
             edgeMap.save(edge, domPath);
             portMap.updateEdge(edgeData.to.node, edgeData.to.portId, edge);
-            edgeMap.updateValue(edge, getSignalValueClassFromEdgeData(edgeData));
+            const valueClass = getSignalValueClassFromEdgeData(edgeData);
+            edgeMap.updateValue(edge, valueClass);
+            portMap.updateValue(edgeData.to.node, edgeData.to.portId, valueClass);
 
             return true;
         };

@@ -38,6 +38,31 @@ export const useEdgeService = (graph: Graph, ctx: UIEngineContext) => {
         if (!portState || !portState.edge) return;
 
         edgeMap.updateValue(portState.edge, valueClass);
+
+        const edgeData = resolveEdgeEndpoints(portState.edge);
+        if (edgeData?.from) {
+            portMap.updateValue(edgeData.from.node, edgeData.from.portId, valueClass);
+        }
+    };
+
+    const setOutgoingPortValueClass = (
+        nodeId: string,
+        fromPortId: string,
+        valueClass: LogicValueClass,
+    ): void => {
+        const node = ctx.getService("nodes").getNode(nodeId);
+        if (!node) return;
+
+        portMap.updateValue(node, fromPortId, valueClass);
+
+        graph.getEdges().forEach((edge) => {
+            const edgeData = resolveEdgeEndpoints(edge);
+            if (!edgeData?.to) return;
+            if (edgeData.from.node.id !== nodeId || edgeData.from.portId !== fromPortId) return;
+
+            edgeMap.updateValue(edge, valueClass);
+            portMap.updateValue(edgeData.to.node, edgeData.to.portId, valueClass);
+        });
     };
 
     const setEdgeRouterMode = (mode: EdgeRouterMode) => {
@@ -59,6 +84,7 @@ export const useEdgeService = (graph: Graph, ctx: UIEngineContext) => {
     return {
         setEdgeRouterMode,
         setIncomingPortValueClass,
+        setOutgoingPortValueClass,
         syncEdgeValueClasses,
     };
 };

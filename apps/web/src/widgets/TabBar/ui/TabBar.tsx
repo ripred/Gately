@@ -7,6 +7,7 @@ import { Tab } from "./TabButton";
 import { TabScroller } from "./TabScroller";
 import { ListScroller } from "@gately/shared/ui/ListScroller/ListScroller";
 import { useOpenNewTab } from "@gately/features/tabs/useOpenTab";
+import { APP_VERSION } from "@gately/shared/config";
 
 export const TabBar: Component = () => {
     const uiEngine = useUIEngine();
@@ -38,6 +39,12 @@ export const TabBar: Component = () => {
                     <TabAdder class="shrink-0" />
                 </Tabs.List>
                 <TabScroller class="shrink-0 h-full" />
+                <div
+                    aria-label={`Gately version ${APP_VERSION}`}
+                    class="flex h-full w-16 shrink-0 select-none items-start justify-end px-2 pt-1 font-mono text-[9px] leading-none text-white/80"
+                >
+                    v{APP_VERSION}
+                </div>
             </Tabs>
         </ListScroller>
     );

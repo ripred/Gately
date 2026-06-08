@@ -870,6 +870,48 @@ describe("optimized circuit layout", () => {
         ).toBeLessThanOrEqual(4);
     }, 30000);
 
+    it("routes aligned multi-output source pins directly to matching display inputs", () => {
+        const netlist: RoutableCircuitNetlist = {
+            nodes: [
+                {
+                    id: "driver",
+                    kind: "BUFFER",
+                    label: "7-Seg Display Driver",
+                    inputCount: 4,
+                    outputCount: 7,
+                },
+                {
+                    id: "display",
+                    kind: "7_SEG_DISPLAY",
+                    label: "7-SEG",
+                    inputCount: 8,
+                    outputCount: 0,
+                },
+            ],
+            links: Array.from({ length: 7 }, (_, index) => ({
+                from: "driver",
+                to: "display",
+                fromPin: String(index),
+                targetPin: String(index),
+            })),
+        };
+        const linkPlans = buildRoutableCircuitLinkPlans(netlist.links);
+        const rectsBySynthId = new Map<string, OptimizedCircuitRect>([
+            ["driver", { id: "driver", x: 352, y: 252, width: 194, height: 126 }],
+            ["display", { id: "display", x: 704, y: 252, width: 98, height: 142 }],
+        ]);
+
+        const routesByLinkIndex = buildOptimizedEdgeRoutes({
+            linkPlans,
+            netlist,
+            rectsBySynthId,
+        });
+
+        linkPlans.forEach((linkPlan) => {
+            expect(routesByLinkIndex.get(linkPlan.index)).toEqual([]);
+        });
+    });
+
     it("detects route sets that cross non-endpoint component geometry", () => {
         const rectsBySynthId = buildRoutableRects(mixedGateSourceNetlist, {
             input_a: { x: 120, y: 120 },

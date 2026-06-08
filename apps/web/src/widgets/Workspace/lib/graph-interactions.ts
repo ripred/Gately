@@ -124,7 +124,6 @@ export const attachWorkspaceGraphInteractions = (
     graph.on("cell:unselected", bumpSelection);
     graph.on("edge:selected", onEdgeSelected);
     graph.on("edge:unselected", onEdgeUnselected);
-    graph.on("edge:connected", scheduleReroute);
     graph.on("edge:change:vertices", scheduleReroute);
     graph.on("node:moved", scheduleReroute);
     graph.on("node:change:position", scheduleReroute);
@@ -138,7 +137,6 @@ export const attachWorkspaceGraphInteractions = (
         graph.off("cell:unselected", bumpSelection);
         graph.off("edge:selected", onEdgeSelected);
         graph.off("edge:unselected", onEdgeUnselected);
-        graph.off("edge:connected", scheduleReroute);
         graph.off("edge:change:vertices", scheduleReroute);
         graph.off("node:moved", scheduleReroute);
         graph.off("node:change:position", scheduleReroute);

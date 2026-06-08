@@ -24,12 +24,22 @@ export const simulationNodeVisualPlugin: UIEnginePlugin = {
 
                     ports.setPortValue(update.elementId, update.pinRef, update.value);
 
-                    if (update.pinRef.side !== "input") return;
+                    const portId = pinRefToPortId(update.pinRef);
+                    const valueClass = logicValueToClass(update.value);
 
-                    edges.setIncomingPortValueClass(
+                    if (update.pinRef.side === "input") {
+                        edges.setIncomingPortValueClass(
+                            update.elementId,
+                            portId,
+                            valueClass,
+                        );
+                        return;
+                    }
+
+                    edges.setOutgoingPortValueClass(
                         update.elementId,
-                        pinRefToPortId(update.pinRef),
-                        logicValueToClass(update.value),
+                        portId,
+                        valueClass,
                     );
                 });
 

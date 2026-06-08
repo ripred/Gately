@@ -2,6 +2,82 @@ import { describe, expect, it, vi } from "vitest";
 import { edgeLifecycleCachePlugin } from "./edgeLifecycleCache";
 
 describe("edgeLifecycleCachePlugin", () => {
+    it("caches a connected edge without mutating its route", () => {
+        const handlers = new Map<string, (payload: unknown) => void>();
+        const edgeMap = {
+            remove: vi.fn(),
+            save: vi.fn(),
+            updateValue: vi.fn(),
+        };
+        const portMap = {
+            get: vi.fn(),
+            removeLinkedEdge: vi.fn(),
+            removeNodePorts: vi.fn(),
+            removePort: vi.fn(),
+            save: vi.fn(),
+            updateEdge: vi.fn(),
+            updateValue: vi.fn(),
+        };
+        const graph = {
+            findViewByCell: vi.fn(),
+            on: vi.fn((name: string, handler: (payload: unknown) => void) => {
+                handlers.set(name, handler);
+            }),
+            off: vi.fn(),
+        };
+        const ctx = {
+            getService: vi.fn(() => ({
+                edges: edgeMap,
+                ports: portMap,
+            })),
+        };
+        const sourceNode = {
+            id: "node-out",
+            getBBox: () => ({ x: 320, y: 315 }),
+            getPort: vi.fn(() => ({ group: "right" })),
+            getPortProp: vi.fn(() => "port port-output value-false"),
+            getPortsPosition: vi.fn(() => ({
+                "R:out": { position: { x: 66, y: 17 } },
+            })),
+            isNode: () => true,
+        };
+        const targetNode = {
+            id: "node-in",
+            getBBox: () => ({ x: 530, y: 345 }),
+            getPort: vi.fn(() => ({ group: "bottom" })),
+            getPortsPosition: vi.fn(() => ({
+                "L:in": { position: { x: 17, y: 18 } },
+            })),
+            isNode: () => true,
+        };
+        const edge = {
+            getData: () => ({ linkId: "link-1" }),
+            getSourceCell: () => sourceNode,
+            getSourcePortId: () => "R:out",
+            getTargetCell: () => targetNode,
+            getTargetPortId: () => "L:in",
+            setConnector: vi.fn(),
+            setData: vi.fn(),
+            setRouter: vi.fn(),
+            setVertices: vi.fn(),
+        };
+        const domPath = { className: "connection" };
+        const view = {
+            container: {
+                querySelector: vi.fn(() => domPath),
+            },
+        };
+
+        edgeLifecycleCachePlugin.apply(graph as never, ctx as never);
+        handlers.get("edge:connected")?.({ edge, view });
+
+        expect(edge.setRouter).not.toHaveBeenCalled();
+        expect(edge.setConnector).not.toHaveBeenCalled();
+        expect(edge.setVertices).not.toHaveBeenCalled();
+        expect(edgeMap.save).toHaveBeenCalledWith(edge, domPath);
+        expect(portMap.updateValue).toHaveBeenCalledWith(targetNode, "L:in", "value-false");
+    });
+
     it("caches programmatically added rendered edges and applies the source signal class", () => {
         const handlers = new Map<string, (payload: unknown) => void>();
         const edgeMap = {
@@ -76,6 +152,7 @@ describe("edgeLifecycleCachePlugin", () => {
         expect(edgeMap.save).toHaveBeenCalledWith(edge, domPath);
         expect(portMap.updateEdge).toHaveBeenCalledWith(targetNode, "L:in", edge);
         expect(edgeMap.updateValue).toHaveBeenCalledWith(edge, "value-false");
+        expect(portMap.updateValue).toHaveBeenCalledWith(targetNode, "L:in", "value-false");
     });
 
     it("falls back to the target port signal when the source has no driven value", () => {
@@ -136,6 +213,7 @@ describe("edgeLifecycleCachePlugin", () => {
         handlers.get("edge:added")?.({ edge, view });
 
         expect(edgeMap.updateValue).toHaveBeenCalledWith(edge, "value-true");
+        expect(portMap.updateValue).toHaveBeenCalledWith(targetNode, "L:in", "value-true");
     });
 
     it("resets incoming port to high-Z when edge is removed", () => {

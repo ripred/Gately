@@ -3,6 +3,7 @@ import {
     GRID_SIZE,
     NODE_INSET,
 } from "@gately/shared/infrastructure/ui-engine/model";
+import { getDefaultClearedEdgeVertices } from "@gately/shared/infrastructure/ui-engine/lib/connecting/default-edge-clearance";
 import {
     buildOptimizedEdgeRoutes,
     buildRouteSetJunctionDots,
@@ -262,7 +263,10 @@ const applyEdgeRoutes = (
     edgeLinks.forEach(({ edge }, index) => {
         edge.setRouter("normal");
         edge.setConnector("normal");
-        edge.setVertices(routeSet.routesByLinkIndex.get(index) ?? ([] as OptimizedCircuitPoint[]));
+        const routeVertices = routeSet.routesByLinkIndex.get(index) ?? ([] as OptimizedCircuitPoint[]);
+        edge.setVertices(
+            getDefaultClearedEdgeVertices(edge, GRID_SIZE, routeVertices) ?? routeVertices,
+        );
         setRouteJunctionDotLabels(edge, junctionDotsByLinkIndex.get(index));
     });
 };

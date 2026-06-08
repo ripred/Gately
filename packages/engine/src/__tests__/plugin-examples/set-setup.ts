@@ -5,6 +5,6 @@ export const SimpleEventLoggerPlugin = definePlugin("SimpleEventLoggerPlugin", {
     setup: ({ deps }) => {
         const bus = deps.core.bus;
 
-        bus.on(EngineEvents.any.event, () => {});
+        bus.on(EngineEvents.anyType.anyPhase, () => {});
     },
 });

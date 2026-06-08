@@ -1,78 +1,86 @@
-import { RunnerResult } from "@cnbn/simulation";
+import { LogicValue, hasItemInputPins, hasItemOutputPins } from "@cnbn/schema";
 import { CinabonoBuilder } from "@engine/engine/builder";
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-describe.skip("Playground_2", () => {
-    it("test anything you want", async () => {
-        // building the engine
-        const Cinabono = await new CinabonoBuilder().build();
+describe("RS-TRIGGER built-in", () => {
+    it("builds the NOR latch structure and preserves state through simulation", async () => {
+        const engine = await new CinabonoBuilder().build();
 
-        // create tab
-        const tabResult = Cinabono.api.tab.create();
+        const tabResult = engine.api.tab.create({ id: "tab" });
 
-        // create RS-TRIGGER circuit with two NOR inside
-        const itemsResult = Cinabono.api.item.create({
+        const itemsResult = engine.api.item.create({
+            id: "RS",
             kind: "circuit:logic",
             path: [tabResult.tabId],
             hash: "RS-TRIGGER",
         });
+        const tabContext = engine.deps.stores.tab.get(tabResult.tabId)?.ctx;
+        expect(tabContext).toBeDefined();
 
-        // items is [circuit, nor_1, nor_2]
-        const nor_1 = itemsResult.items[1];
-        const nor_2 = itemsResult.items[2];
+        const circuit = itemsResult.builtItem;
+        const innerItems = itemsResult.items.filter((item) => item.id !== circuit.id);
+        const firstNor = innerItems[0]!;
+        const secondNor = innerItems[1]!;
+        expect(circuit.id).toBe("RS");
+        expect(innerItems.map((item) => item.hash).sort()).toEqual(["NOR", "NOR"]);
+        expect(Object.keys(circuit.inputPins)).toEqual(["0", "1"]);
+        expect(Object.keys(circuit.outputPins)).toEqual(["0", "1"]);
+        expect(itemsResult.linkIds.sort()).toEqual([
+            `${firstNor.id}:0:${secondNor.id}:0`,
+            `${secondNor.id}:0:${firstNor.id}:1`,
+        ].sort());
 
-        const norIds = [nor_1.id, nor_2.id];
-        void norIds;
+        const readCircuit = (): [LogicValue, LogicValue] => {
+            const item = tabContext!.itemStore.get("RS");
+            expect(item && hasItemOutputPins(item)).toBe(true);
+            return [item.outputPins["0"].value, item.outputPins["1"].value];
+        };
+        const setInput = (pin: string, value: LogicValue): void => {
+            engine.api.item.updateInput({ tabId: "tab", itemId: "RS", pin, value });
+        };
+        const simulate = (): Array<{ itemId: string; pin: string; value: LogicValue }> =>
+            engine.api.simulation
+                .simulate({ tabId: "tab", runCfg: { maxBatchTicks: 20 } })
+                .tickEvents.filter((event) => event.kind === "output")
+                .map((event) => ({
+                    itemId: event.itemId,
+                    pin: event.pin,
+                    value: event.value,
+                }));
 
-        // check the tab context
-        const tabContext = Cinabono.deps.stores.tab.get(tabResult.tabId)?.ctx;
+        const initialEvents = simulate();
+        expect(readCircuit()).toEqual(["X", "X"]);
+        expect(initialEvents).toEqual([]);
 
-        // simulate at start
-        printEvents(tabContext!.simulation.simulate());
+        setInput("1", "0");
+        setInput("0", "1");
+        const setEvents = simulate();
+        expect(readCircuit()).toEqual(["0", "1"]);
+        expect(setEvents).toEqual(
+            expect.arrayContaining([
+                { itemId: firstNor.id, pin: "0", value: "0" },
+                { itemId: secondNor.id, pin: "0", value: "1" },
+            ]),
+        );
 
-        // set R=0
-        tabContext?.simulation.updateInput({
-            itemId: itemsResult.builtItem.id,
-            pin: "1",
-            value: "0",
-        });
+        setInput("0", "0");
+        expect(simulate()).toEqual([]);
+        expect(readCircuit()).toEqual(["0", "1"]);
 
-        // set S=1
-        tabContext?.simulation.updateInput({
-            itemId: itemsResult.builtItem.id,
-            pin: "0",
-            value: "1",
-        });
+        setInput("1", "1");
+        const resetEvents = simulate();
+        expect(readCircuit()).toEqual(["1", "0"]);
+        expect(resetEvents).toEqual(
+            expect.arrayContaining([
+                { itemId: firstNor.id, pin: "0", value: "1" },
+                { itemId: secondNor.id, pin: "0", value: "0" },
+            ]),
+        );
 
-        // simulation should set Q=1
-        printEvents(tabContext!.simulation.simulate());
-
-        // set S=0, it should store Q=1
-        tabContext?.simulation.updateInput({
-            itemId: itemsResult.builtItem.id,
-            pin: "0",
-            value: "0",
-        });
-
-        // no output changes expected
-        printEvents(tabContext!.simulation.simulate());
-
-        // set S=1, should not change anything (Q=1)
-        tabContext?.simulation.updateInput({
-            itemId: itemsResult.builtItem.id,
-            pin: "0",
-            value: "1",
-        });
-
-        // no output changes expected
-        printEvents(tabContext!.simulation.simulate());
+        const storedCircuit = tabContext!.itemStore.get("RS");
+        expect(storedCircuit && hasItemInputPins(storedCircuit)).toBe(true);
+        expect(storedCircuit && hasItemOutputPins(storedCircuit)).toBe(true);
+        expect(storedCircuit!.inputPins["0"].value).toBe("0");
+        expect(storedCircuit!.inputPins["1"].value).toBe("1");
     });
 });
-
-function printEvents(events: RunnerResult): string[] {
-    return events.updatesPerTick.map(
-        (e) =>
-            `[${e.t}] ${e.kind.toUpperCase()}` +
-            `\titem: ${e.itemId}\tpin: ${e.pin}\tchanged value to: ${e.value}`
-    );
-}

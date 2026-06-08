@@ -386,7 +386,13 @@ const inputRowTop = (baseY: number, index: number): number => baseY + index * SO
 const fallbackSourceRowTop = (baseY: number, inputCount: number, index: number): number =>
     inputRowTop(baseY, inputCount + index);
 
-const sourcePortY = (rect: OptimizedCircuitRect): number => rect.y + PORT_OFFSET_Y;
+const pinOffset = (pin?: string): number => {
+    const parsed = Number(pin ?? "0");
+    return Number.isFinite(parsed) ? parsed * PIN_GAP : 0;
+};
+
+const sourcePortY = (rect: OptimizedCircuitRect, sourcePin?: string): number =>
+    rect.y + PORT_OFFSET_Y + pinOffset(sourcePin);
 
 const targetPortY = (
     node: RoutableCircuitNode,
@@ -400,9 +406,10 @@ const targetPortY = (
 const sourcePortPoint = (
     _node: RoutableCircuitNode,
     rect: OptimizedCircuitRect,
+    sourcePin?: string,
 ): OptimizedCircuitPoint => ({
     x: rectRight(rect) - NODE_INSET,
-    y: sourcePortY(rect),
+    y: sourcePortY(rect, sourcePin),
 });
 
 const targetPortPoint = (
@@ -2161,7 +2168,9 @@ const buildZeroCrossingEdgeVertices = (
 
     if (!sourceNode || !targetNode || !sourceRect || !targetRect) return [];
 
-    const sourcePoint = roundPoint(sourcePortPoint(sourceNode, sourceRect));
+    const sourcePoint = roundPoint(
+        sourcePortPoint(sourceNode, sourceRect, options.linkPlan.link.fromPin),
+    );
     const targetPoint = roundPoint(
         targetPortPoint(targetNode, targetRect, options.linkPlan.targetPin),
     );
@@ -2284,7 +2293,9 @@ export const buildOptimizedEdgeVertices = (
 
     if (!sourceNode || !targetNode || !sourceRect || !targetRect) return [];
 
-    const sourcePoint = roundPoint(sourcePortPoint(sourceNode, sourceRect));
+    const sourcePoint = roundPoint(
+        sourcePortPoint(sourceNode, sourceRect, options.linkPlan.link.fromPin),
+    );
     const targetPoint = roundPoint(
         targetPortPoint(targetNode, targetRect, options.linkPlan.targetPin),
     );
@@ -2437,9 +2448,9 @@ export const buildOptimizedEdgeRoutes = (
         if (!aSourceNode || !aTargetNode || !aSourceRect || !aTargetRect) return 1;
         if (!bSourceNode || !bTargetNode || !bSourceRect || !bTargetRect) return -1;
 
-        const aSourcePoint = sourcePortPoint(aSourceNode, aSourceRect);
+        const aSourcePoint = sourcePortPoint(aSourceNode, aSourceRect, a.link.fromPin);
         const aTargetPoint = targetPortPoint(aTargetNode, aTargetRect, a.targetPin);
-        const bSourcePoint = sourcePortPoint(bSourceNode, bSourceRect);
+        const bSourcePoint = sourcePortPoint(bSourceNode, bSourceRect, b.link.fromPin);
         const bTargetPoint = targetPortPoint(bTargetNode, bTargetRect, b.targetPin);
         const aChannelRight = Math.max(aSourcePoint.x, aTargetPoint.x);
         const bChannelRight = Math.max(bSourcePoint.x, bTargetPoint.x);
@@ -2487,7 +2498,7 @@ export const buildOptimizedEdgeRoutes = (
         routesByLinkIndex.set(linkPlan.index, vertices);
         routedSegments.push(
             ...routeSegments(
-                roundPoint(sourcePortPoint(sourceNode, sourceRect)),
+                roundPoint(sourcePortPoint(sourceNode, sourceRect, linkPlan.link.fromPin)),
                 vertices,
                 roundPoint(targetPortPoint(targetNode, targetRect, linkPlan.targetPin)),
                 linkPlan.index,
@@ -2510,7 +2521,7 @@ export const buildOptimizedEdgeRoutes = (
 
             segments.push(
                 ...routeSegments(
-                    roundPoint(sourcePortPoint(sourceNode, sourceRect)),
+                    roundPoint(sourcePortPoint(sourceNode, sourceRect, linkPlan.link.fromPin)),
                     routesByLinkIndex.get(linkPlan.index) ?? [],
                     roundPoint(targetPortPoint(targetNode, targetRect, linkPlan.targetPin)),
                     linkPlan.index,
@@ -2560,7 +2571,9 @@ export const buildOptimizedEdgeRoutes = (
             if (!sourceNode || !targetNode || !sourceRect || !targetRect) continue;
 
             const currentVertices = routesByLinkIndex.get(linkIndex) ?? [];
-            const sourcePoint = roundPoint(sourcePortPoint(sourceNode, sourceRect));
+            const sourcePoint = roundPoint(
+                sourcePortPoint(sourceNode, sourceRect, linkPlan.link.fromPin),
+            );
             const targetPoint = roundPoint(
                 targetPortPoint(targetNode, targetRect, linkPlan.targetPin),
             );
@@ -2644,7 +2657,7 @@ export const findRouteSetWireCrossings = (options: {
 
         segments.push(
             ...routeSegments(
-                roundPoint(sourcePortPoint(sourceNode, sourceRect)),
+                roundPoint(sourcePortPoint(sourceNode, sourceRect, linkPlan.link.fromPin)),
                 options.routesByLinkIndex.get(linkPlan.index) ?? [],
                 roundPoint(targetPortPoint(targetNode, targetRect, linkPlan.targetPin)),
                 linkPlan.index,
@@ -2686,7 +2699,7 @@ export const findRouteSetWireClearanceViolations = (options: {
 
         segments.push(
             ...routeSegments(
-                roundPoint(sourcePortPoint(sourceNode, sourceRect)),
+                roundPoint(sourcePortPoint(sourceNode, sourceRect, linkPlan.link.fromPin)),
                 options.routesByLinkIndex.get(linkPlan.index) ?? [],
                 roundPoint(targetPortPoint(targetNode, targetRect, linkPlan.targetPin)),
                 linkPlan.index,
@@ -2721,7 +2734,9 @@ export const buildRouteSetJunctionDots = (options: {
         const targetRect = options.rectsBySynthId.get(linkPlan.link.to);
         if (!sourceNode || !targetNode || !sourceRect || !targetRect) return [];
 
-        const sourcePoint = roundPoint(sourcePortPoint(sourceNode, sourceRect));
+        const sourcePoint = roundPoint(
+            sourcePortPoint(sourceNode, sourceRect, linkPlan.link.fromPin),
+        );
         const targetPoint = roundPoint(targetPortPoint(targetNode, targetRect, linkPlan.targetPin));
         const vertices = options.routesByLinkIndex.get(linkPlan.index) ?? [];
 
@@ -2799,7 +2814,7 @@ export const findRouteSetComponentCrossings = (options: {
         const crossedComponents = findUnsafeRouteComponentCrossings({
             sourceSynthId: sourceNode.id,
             targetSynthId: targetNode.id,
-            sourcePoint: roundPoint(sourcePortPoint(sourceNode, sourceRect)),
+            sourcePoint: roundPoint(sourcePortPoint(sourceNode, sourceRect, linkPlan.link.fromPin)),
             targetPoint: roundPoint(targetPortPoint(targetNode, targetRect, linkPlan.targetPin)),
             vertices: options.routesByLinkIndex.get(linkPlan.index) ?? [],
             rectsBySynthId: options.rectsBySynthId,
@@ -2831,7 +2846,7 @@ export const findRouteSetNonOrthogonalSegments = (options: {
         if (!sourceNode || !targetNode || !sourceRect || !targetRect) return;
 
         const segments = routeSegments(
-            roundPoint(sourcePortPoint(sourceNode, sourceRect)),
+            roundPoint(sourcePortPoint(sourceNode, sourceRect, linkPlan.link.fromPin)),
             options.routesByLinkIndex.get(linkPlan.index) ?? [],
             roundPoint(targetPortPoint(targetNode, targetRect, linkPlan.targetPin)),
             linkPlan.index,
@@ -2869,7 +2884,7 @@ export const findRouteSetTargetApproachViolations = (options: {
 
         const targetViolations = routeTargetApproachViolationsForVertices({
             targetNode,
-            sourcePoint: roundPoint(sourcePortPoint(sourceNode, sourceRect)),
+            sourcePoint: roundPoint(sourcePortPoint(sourceNode, sourceRect, linkPlan.link.fromPin)),
             targetPoint: roundPoint(targetPortPoint(targetNode, targetRect, linkPlan.targetPin)),
             vertices: options.routesByLinkIndex.get(linkPlan.index) ?? [],
             rectsBySynthId: options.rectsBySynthId,
@@ -2909,7 +2924,7 @@ export const findUnnecessaryRouteWireCrossings = (options: {
 
             segments.push(
                 ...routeSegments(
-                    roundPoint(sourcePortPoint(sourceNode, sourceRect)),
+                    roundPoint(sourcePortPoint(sourceNode, sourceRect, linkPlan.link.fromPin)),
                     options.routesByLinkIndex.get(linkPlan.index) ?? [],
                     roundPoint(targetPortPoint(targetNode, targetRect, linkPlan.targetPin)),
                     linkPlan.index,
@@ -2948,7 +2963,9 @@ export const findUnnecessaryRouteWireCrossings = (options: {
                 });
                 if (alternateVertices === undefined) return;
 
-                const sourcePoint = roundPoint(sourcePortPoint(sourceNode, sourceRect));
+                const sourcePoint = roundPoint(
+                    sourcePortPoint(sourceNode, sourceRect, linkPlan.link.fromPin),
+                );
                 const targetPoint = roundPoint(
                     targetPortPoint(targetNode, targetRect, linkPlan.targetPin),
                 );

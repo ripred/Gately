@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import solidPlugin from "vite-plugin-solid";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import packageJson from "./package.json";
 
 const configuredBasePath = process.env.GATELY_BASE_PATH?.trim();
 const basePath =
@@ -13,6 +14,9 @@ const basePath =
 
 export default defineConfig({
     base: basePath,
+    define: {
+        __GATELY_APP_VERSION__: JSON.stringify(packageJson.version),
+    },
     plugins: [solidPlugin(), tailwindcss()],
     server: {
         port: 3000,

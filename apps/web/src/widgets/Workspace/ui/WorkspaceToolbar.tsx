@@ -8,7 +8,7 @@ import { useUIEngine } from "@gately/shared/infrastructure";
 import type { WorkspaceSimulationMode } from "@gately/shared/types";
 import { Pusher } from "@gately/shared/ui";
 import type { WorkspaceController } from "../lib/types";
-import { Component, For, Show } from "solid-js";
+import { Component, For, Show, createSignal } from "solid-js";
 import { SIMULATION_MODE_OPTIONS } from "./settingsSchema";
 import type { SettingsCategoryId } from "./WorkspaceSettingsPanel";
 
@@ -61,6 +61,30 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
     const toolbarGroupVisible = (group: WorkbenchToolbarGroupKey) =>
         props.configuration.workbenchConfig().visibleToolbarGroups[group];
     const selectedCustomHash = () => props.customComponents.selectedHash();
+    const [customPartDialogOpen, setCustomPartDialogOpen] = createSignal(false);
+    const [customPartName, setCustomPartName] = createSignal("");
+    const canSaveCustomPart = () =>
+        !disabled() &&
+        !commandDisabled() &&
+        props.customComponents.selectedNodeCount() > 0;
+    const openCustomPartDialog = () => {
+        if (!canSaveCustomPart()) return;
+        setCustomPartName("");
+        setCustomPartDialogOpen(true);
+    };
+    const closeCustomPartDialog = () => {
+        setCustomPartDialogOpen(false);
+        setCustomPartName("");
+    };
+    const submitCustomPartDialog = (event: Event) => {
+        event.preventDefault();
+        const name = customPartName().trim();
+        if (!name || props.customComponents.isBusy) return;
+
+        void props.customComponents.createFromSelection(name).then(() => {
+            closeCustomPartDialog();
+        });
+    };
     const builtInButtons = [
         { label: "TOGGLE", action: addToggle },
         { label: "CLOCK", action: addClock },
@@ -239,11 +263,9 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                 <div class="flex flex-wrap items-center gap-1">
                     <Pusher
                         class={toolbarButton}
-                        onClick={props.customComponents.createFromSelection}
+                        onClick={openCustomPartDialog}
                         disabled={
-                            disabled() ||
-                            commandDisabled() ||
-                            props.customComponents.selectedNodeCount() === 0
+                            !canSaveCustomPart()
                         }
                     >
                         Save Part
@@ -271,6 +293,20 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                         </select>
                         <Pusher
                             class={toolbarButton}
+                            onClick={() => {
+                                const hash = selectedCustomHash();
+                                if (hash) void props.customComponents.addComponent(hash);
+                            }}
+                            disabled={
+                                disabled() ||
+                                commandDisabled() ||
+                                !selectedCustomHash()
+                            }
+                        >
+                            Insert
+                        </Pusher>
+                        <Pusher
+                            class={toolbarButton}
                             onClick={props.customComponents.renameSelected}
                             disabled={!selectedCustomHash() || props.customComponents.isBusy}
                         >
@@ -284,6 +320,50 @@ export const WorkspaceToolbar: Component<WorkspaceToolbarProps> = (props) => {
                             Delete
                         </Pusher>
                     </Show>
+                </div>
+            </Show>
+            <Show when={customPartDialogOpen()}>
+                <div
+                    aria-modal="true"
+                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4"
+                    role="dialog"
+                    onClick={closeCustomPartDialog}
+                >
+                    <form
+                        class="w-full max-w-xs rounded border border-gray-5 bg-gray-1 p-3 shadow-xl"
+                        onClick={(event) => event.stopPropagation()}
+                        onSubmit={submitCustomPartDialog}
+                    >
+                        <label
+                            class="mb-2 block text-xs font-semibold text-gray-11"
+                            for="custom-part-name"
+                        >
+                            Custom component name
+                        </label>
+                        <input
+                            autofocus
+                            class="mb-3 h-8 w-full rounded border border-gray-5 bg-gray-2 px-2 text-sm text-gray-12 outline-none ring-primary-7 focus:ring-2"
+                            id="custom-part-name"
+                            onInput={(event) => setCustomPartName(event.currentTarget.value)}
+                            value={customPartName()}
+                        />
+                        <div class="flex justify-end gap-2">
+                            <button
+                                class={toolbarButton}
+                                onClick={closeCustomPartDialog}
+                                type="button"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                class={toolbarButton}
+                                disabled={!customPartName().trim() || props.customComponents.isBusy}
+                                type="submit"
+                            >
+                                Save Part
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </Show>
         </div>

@@ -33,7 +33,6 @@ type FileSystemWritableFileStream = {
 
 type FileSystemFileHandle = {
     createWritable: () => Promise<FileSystemWritableFileStream>;
-    getFile: () => Promise<File>;
     name: string;
 };
 
@@ -44,11 +43,6 @@ type FilePickerAcceptType = {
 
 declare global {
     interface Window {
-        showOpenFilePicker?: (options?: {
-            excludeAcceptAllOption?: boolean;
-            multiple?: boolean;
-            types?: FilePickerAcceptType[];
-        }) => Promise<FileSystemFileHandle[]>;
         showSaveFilePicker?: (options?: {
             suggestedName?: string;
             types?: FilePickerAcceptType[];
@@ -262,18 +256,8 @@ const hydrateLoadedSignalState = async (
     deps.uiEngine.commands.syncSignalPathValues();
 };
 
-const chooseProjectFile = async (): Promise<ProjectFileSelection | undefined> => {
-    if (window.showOpenFilePicker) {
-        const [handle] = await window.showOpenFilePicker({
-            excludeAcceptAllOption: false,
-            multiple: false,
-            types: projectFilePickerTypes(),
-        });
-        const file = await handle?.getFile();
-        return file ? { file, handle } : undefined;
-    }
-
-    return new Promise<ProjectFileSelection | undefined>((resolve) => {
+const chooseProjectFileWithInput = (): Promise<ProjectFileSelection | undefined> =>
+    new Promise<ProjectFileSelection | undefined>((resolve) => {
         const input = document.createElement("input");
         input.type = "file";
         input.accept = `${PROJECT_FILE_EXTENSION},.json`;
@@ -298,6 +282,9 @@ const chooseProjectFile = async (): Promise<ProjectFileSelection | undefined> =>
         document.body.append(input);
         input.click();
     });
+
+const chooseProjectFile = async (): Promise<ProjectFileSelection | undefined> => {
+    return chooseProjectFileWithInput();
 };
 
 const writeProjectFile = async (

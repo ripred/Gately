@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { CinabonoBuilder } from "@engine/engine/builder";
-import type { InnerItemInputLinks, InnerItemOutputLinks } from "@cnbn/schema";
+import {
+    hasItemInputPins,
+    hasItemOutputPins,
+    type InnerItemInputLinks,
+    type InnerItemOutputLinks,
+} from "@cnbn/schema";
 
 type InnerItemWithLinks = {
     inputLinks?: InnerItemInputLinks;
@@ -129,6 +134,89 @@ describe("template public use cases", () => {
             itemId: "BUFFER_0",
             pin: "0",
         });
+    });
+
+    it("simulates a saved custom component instance and fans out to external receivers", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const { tabId } = engine.api.tab.create({ id: "tab" });
+
+        engine.api.item.create([
+            { id: "A", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "B", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "AND_0", kind: "base:logic", hash: "AND", path: [tabId] },
+            { id: "OR_0", kind: "base:logic", hash: "OR", path: [tabId] },
+            { id: "OUT", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "A", fromPin: "0", toItemId: "AND_0", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "B", fromPin: "0", toItemId: "AND_0", toPin: "1" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "AND_0", fromPin: "0", toItemId: "OR_0", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "B", fromPin: "0", toItemId: "OR_0", toPin: "1" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "OR_0", fromPin: "0", toItemId: "OUT", toPin: "0" },
+            },
+        ]);
+
+        engine.api.template.createFromSelection({
+            tabId,
+            hash: "CUSTOM_RUNTIME",
+            name: "Runtime Custom",
+            selectedItemIds: ["AND_0", "OR_0"],
+        });
+        engine.api.item.create([
+            {
+                id: "CUSTOM_NODE",
+                kind: "circuit:logic",
+                hash: "CUSTOM_RUNTIME",
+                path: [tabId],
+            },
+            { id: "CUSTOM_OUT", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+        engine.api.item.link({
+            tabId,
+            link: { fromItemId: "CUSTOM_NODE", fromPin: "0", toItemId: "CUSTOM_OUT", toPin: "0" },
+        });
+
+        const tabContext = engine.deps.stores.tab.get(tabId)?.ctx;
+        expect(tabContext).toBeDefined();
+
+        const readCustomOutput = () => {
+            const item = tabContext!.itemStore.get("CUSTOM_NODE");
+            expect(item && hasItemOutputPins(item)).toBe(true);
+            return item!.outputPins["0"].value;
+        };
+        const readLampInput = () => {
+            const item = tabContext!.itemStore.get("CUSTOM_OUT");
+            expect(item && hasItemInputPins(item)).toBe(true);
+            return item!.inputPins["0"].value;
+        };
+        const simulate = () =>
+            engine.api.simulation.simulate({ tabId, runCfg: { maxBatchTicks: 20 } });
+
+        engine.api.item.updateInput({ tabId, itemId: "CUSTOM_NODE", pin: "0", value: "1" });
+        engine.api.item.updateInput({ tabId, itemId: "CUSTOM_NODE", pin: "1", value: "0" });
+        simulate();
+        expect(readCustomOutput()).toBe("0");
+        expect(readLampInput()).toBe("0");
+
+        engine.api.item.updateInput({ tabId, itemId: "CUSTOM_NODE", pin: "1", value: "1" });
+        simulate();
+        expect(readCustomOutput()).toBe("1");
+        expect(readLampInput()).toBe("1");
     });
 
     it("round-trips custom templates and tab stores through engine session snapshots", async () => {
