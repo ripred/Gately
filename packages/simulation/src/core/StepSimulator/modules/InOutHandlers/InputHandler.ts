@@ -33,7 +33,10 @@ export class DefaultInputHandler implements InputHandlerContract {
 
         const oldValue = inputOps.get(ev.pin);
         const isUpdated = oldValue !== ev.value;
-        if (!isUpdated) return false;
+        if (!isUpdated) {
+            const pin = item.inputPins?.[ev.pin];
+            return Boolean(pin?.circuitPins?.length);
+        }
 
         inputOps.set(ev.pin, ev.value);
 

@@ -4,6 +4,7 @@ import {
     LogicValue,
     hasItemInputPins,
     hasItemOutputPins,
+    isGeneratorItem,
     type InnerItemInputLinks,
     type InnerItemOutputLinks,
 } from "@cnbn/schema";
@@ -377,6 +378,235 @@ describe("template public use cases", () => {
             customInput: ["1", "0"],
             customOutput: "0",
             displayInput: "0",
+        });
+    });
+
+    it("settles imported custom component NOT outputs from default-false external inputs", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const { tabId } = engine.api.tab.create({ id: "tab" });
+
+        engine.api.item.create([
+            { id: "SRC", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "SRC_NOT", kind: "base:logic", hash: "NOT", path: [tabId] },
+            { id: "SRC_OUT", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "SRC", fromPin: "0", toItemId: "SRC_NOT", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "SRC_NOT", fromPin: "0", toItemId: "SRC_OUT", toPin: "0" },
+            },
+        ]);
+
+        engine.api.template.createFromSelection({
+            tabId,
+            hash: "CUSTOM_NOT_FROM_UI",
+            name: "NOT From UI",
+            selectedItemIds: ["SRC", "SRC_NOT", "SRC_OUT"],
+        });
+
+        engine.api.item.create([
+            { id: "A", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            {
+                id: "CUSTOM_NOT",
+                kind: "circuit:logic",
+                hash: "CUSTOM_NOT_FROM_UI",
+                path: [tabId],
+            },
+            { id: "DISPLAY", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "A", fromPin: "0", toItemId: "CUSTOM_NOT", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "CUSTOM_NOT", fromPin: "0", toItemId: "DISPLAY", toPin: "0" },
+            },
+        ]);
+
+        const importedEngine = await new CinabonoBuilder().build();
+        const snapshot = engine.api.session.export();
+        importedEngine.api.session.import(snapshot);
+
+        const readValues = (): { customInput: LogicValue; customOutput: LogicValue; displayInput: LogicValue } => {
+            const tabContext = importedEngine.deps.stores.tab.get(tabId)?.ctx;
+            expect(tabContext).toBeDefined();
+
+            const custom = tabContext!.itemStore.get("CUSTOM_NOT");
+            const display = tabContext!.itemStore.get("DISPLAY");
+            expect(custom && hasItemInputPins(custom) && hasItemOutputPins(custom)).toBe(true);
+            expect(display && hasItemInputPins(display)).toBe(true);
+
+            return {
+                customInput: custom!.inputPins["0"].value,
+                customOutput: custom!.outputPins["0"].value,
+                displayInput: display!.inputPins["0"].value,
+            };
+        };
+
+        const importedSnapshot = importedEngine.api.session.export();
+        const importedTab = importedSnapshot.tabs.find((tab) => tab.id === tabId);
+        expect(importedTab).toBeDefined();
+        const itemsById = new Map(importedTab!.items);
+
+        for (const [, link] of importedTab!.links) {
+            const from = itemsById.get(link.fromItemId);
+            if (!from || !isGeneratorItem(from) || !hasItemOutputPins(from)) continue;
+            const value = from.outputPins[link.fromPin].value;
+
+            importedEngine.api.item.updateInput({
+                tabId,
+                itemId: link.toItemId,
+                pin: link.toPin,
+                t: 0,
+                value,
+            });
+        }
+
+        importedEngine.api.simulation.simulate({ tabId, runCfg: { maxBatchTicks: 128 } });
+
+        expect(readValues()).toEqual({
+            customInput: "0",
+            customOutput: "1",
+            displayInput: "1",
+        });
+    });
+
+    it("settles imported custom component OR chains fed by default-false inverted inputs", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const { tabId } = engine.api.tab.create({ id: "tab" });
+
+        engine.api.item.create([
+            { id: "SRC_B", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "SRC_C", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "SRC_D", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "NOT_C", kind: "base:logic", hash: "NOT", path: [tabId] },
+            { id: "OR_B_NOT_C", kind: "base:logic", hash: "OR", path: [tabId] },
+            { id: "OR_SEG_C", kind: "base:logic", hash: "OR", path: [tabId] },
+            { id: "SRC_OUT", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "SRC_B", fromPin: "0", toItemId: "OR_B_NOT_C", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "SRC_C", fromPin: "0", toItemId: "NOT_C", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "NOT_C", fromPin: "0", toItemId: "OR_B_NOT_C", toPin: "1" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "OR_B_NOT_C", fromPin: "0", toItemId: "OR_SEG_C", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "SRC_D", fromPin: "0", toItemId: "OR_SEG_C", toPin: "1" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "OR_SEG_C", fromPin: "0", toItemId: "SRC_OUT", toPin: "0" },
+            },
+        ]);
+
+        engine.api.template.createFromSelection({
+            tabId,
+            hash: "CUSTOM_SEG_C_PATH",
+            name: "Segment C Path",
+            selectedItemIds: [
+                "SRC_B",
+                "SRC_C",
+                "SRC_D",
+                "NOT_C",
+                "OR_B_NOT_C",
+                "OR_SEG_C",
+                "SRC_OUT",
+            ],
+        });
+
+        engine.api.item.create([
+            { id: "B", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "C", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "D", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            {
+                id: "CUSTOM_SEG_C",
+                kind: "circuit:logic",
+                hash: "CUSTOM_SEG_C_PATH",
+                path: [tabId],
+            },
+            { id: "DISPLAY", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "B", fromPin: "0", toItemId: "CUSTOM_SEG_C", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "C", fromPin: "0", toItemId: "CUSTOM_SEG_C", toPin: "1" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "D", fromPin: "0", toItemId: "CUSTOM_SEG_C", toPin: "2" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "CUSTOM_SEG_C", fromPin: "0", toItemId: "DISPLAY", toPin: "0" },
+            },
+        ]);
+
+        const importedEngine = await new CinabonoBuilder().build();
+        const snapshot = engine.api.session.export();
+        importedEngine.api.session.import(snapshot);
+
+        const importedSnapshot = importedEngine.api.session.export();
+        const importedTab = importedSnapshot.tabs.find((tab) => tab.id === tabId);
+        expect(importedTab).toBeDefined();
+        const itemsById = new Map(importedTab!.items);
+
+        for (const [, link] of importedTab!.links) {
+            const from = itemsById.get(link.fromItemId);
+            if (!from || !isGeneratorItem(from) || !hasItemOutputPins(from)) continue;
+            const value = from.outputPins[link.fromPin].value;
+
+            importedEngine.api.item.updateInput({
+                tabId,
+                itemId: link.toItemId,
+                pin: link.toPin,
+                t: 0,
+                value,
+            });
+        }
+
+        importedEngine.api.simulation.simulate({ tabId, runCfg: { maxBatchTicks: 128 } });
+
+        const tabContext = importedEngine.deps.stores.tab.get(tabId)?.ctx;
+        expect(tabContext).toBeDefined();
+        const custom = tabContext!.itemStore.get("CUSTOM_SEG_C");
+        const display = tabContext!.itemStore.get("DISPLAY");
+        expect(custom && hasItemInputPins(custom) && hasItemOutputPins(custom)).toBe(true);
+        expect(display && hasItemInputPins(display)).toBe(true);
+
+        expect({
+            customInputs: [
+                custom!.inputPins["0"].value,
+                custom!.inputPins["1"].value,
+                custom!.inputPins["2"].value,
+            ],
+            customOutput: custom!.outputPins["0"].value,
+            displayInput: display!.inputPins["0"].value,
+        }).toEqual({
+            customInputs: ["0", "0", "0"],
+            customOutput: "1",
+            displayInput: "1",
         });
     });
 

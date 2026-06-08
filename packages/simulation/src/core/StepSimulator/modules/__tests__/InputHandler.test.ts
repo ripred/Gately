@@ -76,6 +76,25 @@ describe("InputHandler", () => {
         expect(pinOps).toHaveBeenCalled();
     });
 
+    it("returns true for unchanged inputs that seed a circuit pin", () => {
+        mockGenTracker.same.mockReturnValue(true);
+        mockCtx.getItem.mockReturnValue({
+            id: "itemId",
+            inputPins: {
+                "0": {
+                    value: "1",
+                    circuitPins: [{ circuitId: "circuit", circuitPin: "0" }],
+                },
+            },
+        });
+
+        const ev = mkSimInputEvent({ itemId: "itemId", pin: "0", value: "1" });
+
+        const res = handler.handle(ev);
+        expect(res).toBeTruthy();
+        expect(pinOps).toHaveBeenCalled();
+    });
+
     it("updates input and returns true if value changed", () => {
         mockGenTracker.same.mockReturnValue(true);
         mockCtx.getItem.mockReturnValue({ id: "itemId" });

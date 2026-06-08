@@ -1,6 +1,7 @@
 import { createSignal } from "solid-js";
 import type { EngineSessionSnapshot } from "@cnbn/engine";
 import type { CinabonoClient } from "@cnbn/engine-worker";
+import { isGeneratorItem } from "@cnbn/schema";
 import type { LogicValue } from "@cnbn/schema";
 import type {
     AppConfigurationController,
@@ -143,19 +144,6 @@ const getOutputPinValue = (
     return item.outputPins?.[pin]?.value;
 };
 
-const differentLogicValue = (value: LogicValue): LogicValue => {
-    switch (value) {
-        case "0":
-            return "1";
-        case "1":
-            return "0";
-        case "Z":
-            return "X";
-        default:
-            return "Z";
-    }
-};
-
 const collectPinPatches = (tab: EngineTabSnapshot | undefined): PinUpdate[] => {
     if (!tab) return [];
 
@@ -187,14 +175,17 @@ const collectPinPatches = (tab: EngineTabSnapshot | undefined): PinUpdate[] => {
     return patches;
 };
 
-const seedLinkedInputValues = async (
+export const seedLinkedInputValues = async (
     deps: WorkspacePersistenceDeps,
     tab: EngineTabSnapshot,
 ): Promise<void> => {
     const itemsById = new Map(tab.items);
 
     for (const [, link] of tab.links) {
-        const value = getOutputPinValue(itemsById.get(link.fromItemId), link.fromPin);
+        const source = itemsById.get(link.fromItemId);
+        if (!source || !isGeneratorItem(source)) continue;
+
+        const value = getOutputPinValue(source, link.fromPin);
         if (value === undefined) continue;
 
         await deps.logicEngine.call("/item/updateInput", {
@@ -202,13 +193,6 @@ const seedLinkedInputValues = async (
             itemId: link.toItemId,
             pin: link.toPin,
             t: 0,
-            value: differentLogicValue(value),
-        });
-        await deps.logicEngine.call("/item/updateInput", {
-            tabId: tab.id,
-            itemId: link.toItemId,
-            pin: link.toPin,
-            t: 1,
             value,
         });
     }
