@@ -73,7 +73,10 @@ export class DefaultStepSimulator {
     _handleInput(ev) {
         const { inHandler, pinUpdateStore, ctx } = this._deps;
         if (inHandler.handle(ev)) {
-            SimHelpers.syncCircuitPinValues(ctx.getItem, ev.itemId);
+            SimHelpers.syncCircuitPinValues(ctx.getItem, ev.itemId, {
+                type: "input",
+                pin: ev.pin,
+            });
             pinUpdateStore.saveInput(ev);
             this._planOutputs(ev.itemId);
         }
@@ -103,7 +106,10 @@ export class DefaultStepSimulator {
     _handleOutput(ev) {
         const { outHandler, pinUpdateStore, ctx } = this._deps;
         if (outHandler.handle(ev)) {
-            SimHelpers.syncCircuitPinValues(ctx.getItem, ev.itemId);
+            SimHelpers.syncCircuitPinValues(ctx.getItem, ev.itemId, {
+                type: "output",
+                pin: ev.pin,
+            });
             pinUpdateStore.saveOutput(ev);
             this._fanoutFromDriver(ev);
         }

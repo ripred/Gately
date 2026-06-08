@@ -4,7 +4,6 @@ import {
     BuiltItemsMap,
     InnerItemsBuilderCtx,
     ItemBuilderDeps,
-    RemapState,
 } from "../types/ItemBuilder";
 import { RemapService } from "./RemapService";
 import { E } from "@engine/errors";
@@ -31,13 +30,13 @@ export class StructureBuilder {
         return this._builtItems;
     }
 
-    public build<K extends Schema.KindKey>(
-        args: Schema.ItemArgsOfKind<K>,
-        remap?: RemapState
-    ): StructureBuilderResult {
+    public clearBuiltItems(): void {
+        this._builtItems.clear();
+    }
+
+    public build<K extends Schema.KindKey>(args: Schema.ItemArgsOfKind<K>): StructureBuilderResult {
         if (Schema.isBaseArgs(args)) return this._buildBase(args);
-        else if (Schema.isCircuitArgs(args))
-            return this._buildCircuit(args, remap ?? this._remap.createRemap());
+        else if (Schema.isCircuitArgs(args)) return this._buildCircuit(args);
 
         throw E.item.UnknownArgsKind(args);
     }
@@ -51,12 +50,10 @@ export class StructureBuilder {
         return new ResultAccumulator().add({ items: [item] }).get();
     }
 
-    private _buildCircuit(
-        args: Schema.ItemArgsOfKind<"circuit:logic">,
-        remap: RemapState
-    ): StructureBuilderResult {
+    private _buildCircuit(args: Schema.ItemArgsOfKind<"circuit:logic">): StructureBuilderResult {
         const circuit = this._mkItem<"circuit:logic">(args);
         this._builtItems.set(circuit.id, circuit);
+        const childRemap = this._remap.createRemap();
 
         const scope = this._mkScope<"circuit">({
             id: circuit.id,
@@ -68,15 +65,16 @@ export class StructureBuilder {
             innerItems: args.items,
             circuitScope: scope,
             path: [...circuit.path, circuit.id],
-            remap,
+            remap: childRemap,
         });
 
         return new ResultAccumulator()
             .add({
-                items: [circuit, ...childrenResult.items],
-                scopes: [scope, ...childrenResult.scopes],
-                linkIds: childrenResult.linkIds,
+                items: [circuit],
+                scopes: [scope],
+                circuitRemaps: new Map([[circuit.id, childRemap]]),
             })
+            .add(childrenResult)
             .get();
     }
 
@@ -89,17 +87,13 @@ export class StructureBuilder {
             const newId = this._remap.remapItemId(oldId, remap);
 
             const args = this._getItemArgsOfInnerItem(innerItem, newId, path);
-            const built = this.build(args, remap);
+            const built = this.build(args);
 
             const remappedLinks = this._remap.remapLinks(innerItem, remap);
 
             saveChildToScope(circuitScope, { id: newId, kind: getBuiltItem(built).kind });
 
-            acc.add({
-                items: built.items,
-                scopes: built.scopes,
-                linkIds: remappedLinks,
-            });
+            acc.add(built).add({ linkIds: remappedLinks });
         }
 
         return acc.get();

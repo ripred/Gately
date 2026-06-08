@@ -1,6 +1,7 @@
 import { StructureBuilderResult } from "@engine/item-builder/types/StructureBuilder";
 import { ItemFactory, ScopeFactory } from "@cnbn/modules-runtime";
 import * as Schema from "@cnbn/schema";
+import type { RemapState } from "./RemapState";
 
 export interface InnerItemsBuilderCtx {
     innerItems: Schema.InnerItemsMap;
@@ -11,7 +12,7 @@ export interface InnerItemsBuilderCtx {
 
 export type ItemBuilderResult<K extends Schema.KindKey = Schema.KindKey> = Omit<
     StructureBuilderResult,
-    "linkIds"
+    "linkIds" | "circuitRemaps"
 > & {
     linkIds: Schema.Id[];
     builtItem: Schema.ItemOfKind<K>;
@@ -23,9 +24,6 @@ export interface ItemBuilderDeps {
     scopeFactory: ScopeFactory;
 }
 
-export interface RemapState {
-    itemIdMap: Map<Schema.Id, Schema.Id>;
-    linkIdMap: Map<Schema.Id, Schema.Id>;
-}
+export type { RemapState };
 
 export type BuiltItemsMap = Map<Schema.Id, Schema.ItemOfKind>;

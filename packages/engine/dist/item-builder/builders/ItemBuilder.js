@@ -12,18 +12,21 @@ export class DefaultItemBuilder {
         this._structureBuilder = new StructureBuilder(deps, this._remapService);
     }
     build(itemArgs) {
-        const remap = this._remapService.createRemap();
-        const result = this._structureBuilder.build(itemArgs, remap);
+        this._structureBuilder.clearBuiltItems();
+        const result = this._structureBuilder.build(itemArgs);
         if (isCircuitArgs(itemArgs))
-            this._remapForCircuit(result, remap);
+            this._remapForCircuit(result);
         return exportBuilderResult(result);
     }
-    _remapForCircuit(result, remap) {
+    _remapForCircuit(result) {
         const builtItems = this._structureBuilder.getBuiltItems();
         const binder = new CircuitIOBinder(builtItems);
         processMany(result.items, (item) => {
             if (!isCircuitItem(item))
                 return;
+            const remap = result.circuitRemaps.get(item.id);
+            if (!remap)
+                throw new Error(`Missing remap state for circuit item "${item.id}".`);
             this._remapService.remapCircuitInOutPins(item, remap);
             binder.bind(item);
         });

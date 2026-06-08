@@ -18,11 +18,14 @@ export class StructureBuilder {
     getBuiltItems() {
         return this._builtItems;
     }
-    build(args, remap) {
+    clearBuiltItems() {
+        this._builtItems.clear();
+    }
+    build(args) {
         if (Schema.isBaseArgs(args))
             return this._buildBase(args);
         else if (Schema.isCircuitArgs(args))
-            return this._buildCircuit(args, remap ?? this._remap.createRemap());
+            return this._buildCircuit(args);
         throw E.item.UnknownArgsKind(args);
     }
     _buildBase(args) {
@@ -30,9 +33,10 @@ export class StructureBuilder {
         this._builtItems.set(item.id, item);
         return new ResultAccumulator().add({ items: [item] }).get();
     }
-    _buildCircuit(args, remap) {
+    _buildCircuit(args) {
         const circuit = this._mkItem(args);
         this._builtItems.set(circuit.id, circuit);
+        const childRemap = this._remap.createRemap();
         const scope = this._mkScope({
             id: circuit.id,
             path: circuit.path,
@@ -42,14 +46,15 @@ export class StructureBuilder {
             innerItems: args.items,
             circuitScope: scope,
             path: [...circuit.path, circuit.id],
-            remap,
+            remap: childRemap,
         });
         return new ResultAccumulator()
             .add({
-            items: [circuit, ...childrenResult.items],
-            scopes: [scope, ...childrenResult.scopes],
-            linkIds: childrenResult.linkIds,
+            items: [circuit],
+            scopes: [scope],
+            circuitRemaps: new Map([[circuit.id, childRemap]]),
         })
+            .add(childrenResult)
             .get();
     }
     _buildChildren(ctx) {
@@ -59,14 +64,10 @@ export class StructureBuilder {
             const innerItem = innerItems[oldId];
             const newId = this._remap.remapItemId(oldId, remap);
             const args = this._getItemArgsOfInnerItem(innerItem, newId, path);
-            const built = this.build(args, remap);
+            const built = this.build(args);
             const remappedLinks = this._remap.remapLinks(innerItem, remap);
             saveChildToScope(circuitScope, { id: newId, kind: getBuiltItem(built).kind });
-            acc.add({
-                items: built.items,
-                scopes: built.scopes,
-                linkIds: remappedLinks,
-            });
+            acc.add(built).add({ linkIds: remappedLinks });
         }
         return acc.get();
     }

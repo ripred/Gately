@@ -89,7 +89,10 @@ export class DefaultStepSimulator implements StepSimulatorContract {
         const { inHandler, pinUpdateStore, ctx } = this._deps;
 
         if (inHandler.handle(ev)) {
-            SimHelpers.syncCircuitPinValues(ctx.getItem, ev.itemId);
+            SimHelpers.syncCircuitPinValues(ctx.getItem, ev.itemId, {
+                type: "input",
+                pin: ev.pin,
+            });
 
             pinUpdateStore.saveInput(ev);
             this._planOutputs(ev.itemId);
@@ -126,7 +129,10 @@ export class DefaultStepSimulator implements StepSimulatorContract {
         const { outHandler, pinUpdateStore, ctx } = this._deps;
 
         if (outHandler.handle(ev)) {
-            SimHelpers.syncCircuitPinValues(ctx.getItem, ev.itemId);
+            SimHelpers.syncCircuitPinValues(ctx.getItem, ev.itemId, {
+                type: "output",
+                pin: ev.pin,
+            });
 
             pinUpdateStore.saveOutput(ev);
             this._fanoutFromDriver(ev);

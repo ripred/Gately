@@ -1,0 +1,1 @@
+{"version":3,"file":"RemapState.d.ts","sourceRoot":"","sources":["../../../src/item-builder/types/RemapState.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,MAAM,MAAM,cAAc,CAAC;AAEvC,MAAM,WAAW,UAAU;IACvB,SAAS,EAAE,GAAG,CAAC,MAAM,CAAC,EAAE,EAAE,MAAM,CAAC,EAAE,CAAC,CAAC;IACrC,SAAS,EAAE,GAAG,CAAC,MAAM,CAAC,EAAE,EAAE,MAAM,CAAC,EAAE,CAAC,CAAC;CACxC"}

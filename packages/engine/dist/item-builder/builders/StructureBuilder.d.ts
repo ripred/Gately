@@ -1,5 +1,5 @@
 import * as Schema from "@cnbn/schema";
-import { BuiltItemsMap, ItemBuilderDeps, RemapState } from "../types/ItemBuilder.js";
+import { BuiltItemsMap, ItemBuilderDeps } from "../types/ItemBuilder.js";
 import { RemapService } from "./RemapService.js";
 import { StructureBuilderResult } from "../types/StructureBuilder.js";
 export declare class StructureBuilder {
@@ -10,7 +10,8 @@ export declare class StructureBuilder {
     private readonly _builtItems;
     constructor(deps: ItemBuilderDeps, remapService: RemapService);
     getBuiltItems(): BuiltItemsMap;
-    build<K extends Schema.KindKey>(args: Schema.ItemArgsOfKind<K>, remap?: RemapState): StructureBuilderResult;
+    clearBuiltItems(): void;
+    build<K extends Schema.KindKey>(args: Schema.ItemArgsOfKind<K>): StructureBuilderResult;
     private _buildBase;
     private _buildCircuit;
     private _buildChildren;

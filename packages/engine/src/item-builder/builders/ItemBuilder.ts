@@ -1,7 +1,7 @@
 import { StructureBuilder } from "./StructureBuilder";
 import { CircuitIOBinder } from "./CircuitIOBuilder";
 import { RemapService } from "./RemapService";
-import { ItemBuilderDeps, ItemBuilderResult, RemapState } from "../types/ItemBuilder";
+import { ItemBuilderDeps, ItemBuilderResult } from "../types/ItemBuilder";
 import { processMany } from "@cnbn/utils";
 import { KindKey, ItemArgsOfKind, isCircuitArgs, isCircuitItem } from "@cnbn/schema";
 import { exportBuilderResult } from "../helpers";
@@ -21,20 +21,23 @@ export class DefaultItemBuilder implements ItemBuilderContract {
     }
 
     public build<K extends KindKey>(itemArgs: ItemArgsOfKind<K>): ItemBuilderResult {
-        const remap = this._remapService.createRemap();
-        const result = this._structureBuilder.build(itemArgs, remap);
+        this._structureBuilder.clearBuiltItems();
+        const result = this._structureBuilder.build(itemArgs);
 
-        if (isCircuitArgs(itemArgs)) this._remapForCircuit(result, remap);
+        if (isCircuitArgs(itemArgs)) this._remapForCircuit(result);
 
         return exportBuilderResult(result);
     }
 
-    private _remapForCircuit(result: StructureBuilderResult, remap: RemapState) {
+    private _remapForCircuit(result: StructureBuilderResult) {
         const builtItems = this._structureBuilder.getBuiltItems();
         const binder = new CircuitIOBinder(builtItems);
 
         processMany(result.items, (item) => {
             if (!isCircuitItem(item)) return;
+            const remap = result.circuitRemaps.get(item.id);
+            if (!remap) throw new Error(`Missing remap state for circuit item "${item.id}".`);
+
             this._remapService.remapCircuitInOutPins(item, remap);
             binder.bind(item);
         });

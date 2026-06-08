@@ -22,7 +22,11 @@ const resolveInternalReceivers = (ctx, { itemId, pin }) => {
     const links = collectLinks(ctx, linkIds);
     return mapLinksToReceivers(links);
 };
-const resolveExternalReceivers = (ctx, { itemId: innerDriverId, pin }) => {
+const resolveExternalReceivers = (ctx, { itemId: innerDriverId, pin }, visited = new Set()) => {
+    const key = `${innerDriverId}:${pin}`;
+    if (visited.has(key))
+        return [];
+    visited.add(key);
     // get output item connected to circuit output pin
     const inner = ctx.getItem(innerDriverId);
     if (!inner || !hasItemOutputPins(inner))
@@ -43,6 +47,7 @@ const resolveExternalReceivers = (ctx, { itemId: innerDriverId, pin }) => {
         const linkIds = scopeLinks(outerScope).listOutputsBy(circuitId, circuitPin).flat;
         const links = collectLinks(ctx, linkIds);
         out.push(...mapLinksToReceivers(links));
+        out.push(...resolveExternalReceivers(ctx, { itemId: circuitId, pin: circuitPin }, visited));
     }
     return out;
 };

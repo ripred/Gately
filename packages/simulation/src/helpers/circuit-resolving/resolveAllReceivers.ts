@@ -36,8 +36,13 @@ const resolveInternalReceivers = (
 
 const resolveExternalReceivers = (
     ctx: StoresCtx,
-    { itemId: innerDriverId, pin }: TargetParams
+    { itemId: innerDriverId, pin }: TargetParams,
+    visited = new Set<string>()
 ): FanoutReceiver[] => {
+    const key = `${innerDriverId}:${pin}`;
+    if (visited.has(key)) return [];
+    visited.add(key);
+
     // get output item connected to circuit output pin
     const inner = ctx.getItem(innerDriverId);
     if (!inner || !hasItemOutputPins(inner)) return [];
@@ -58,6 +63,7 @@ const resolveExternalReceivers = (
         const linkIds = scopeLinks(outerScope).listOutputsBy(circuitId, circuitPin).flat;
         const links = collectLinks(ctx, linkIds);
         out.push(...mapLinksToReceivers(links));
+        out.push(...resolveExternalReceivers(ctx, { itemId: circuitId, pin: circuitPin }, visited));
     }
 
     return out;

@@ -14,6 +14,31 @@ type InnerItemWithLinks = {
     outputLinks?: InnerItemOutputLinks;
 };
 
+type Engine = Awaited<ReturnType<CinabonoBuilder["build"]>>;
+
+const seedGeneratorLinks = (engine: Engine, tabId: string): void => {
+    const snapshot = engine.api.session.export();
+    const tab = snapshot.tabs.find((item) => item.id === tabId);
+    expect(tab).toBeDefined();
+
+    const itemsById = new Map(tab!.items);
+    for (const [, link] of tab!.links) {
+        const from = itemsById.get(link.fromItemId);
+        if (!from || !isGeneratorItem(from) || !hasItemOutputPins(from)) continue;
+
+        const value = from.outputPins[link.fromPin]?.value;
+        if (value === undefined) continue;
+
+        engine.api.item.updateInput({
+            tabId,
+            itemId: link.toItemId,
+            pin: link.toPin,
+            t: 0,
+            value,
+        });
+    }
+};
+
 describe("template public use cases", () => {
     it("creates a custom component from an arbitrary selected subgraph boundary", async () => {
         const engine = await new CinabonoBuilder().build();
@@ -449,25 +474,7 @@ describe("template public use cases", () => {
             };
         };
 
-        const importedSnapshot = importedEngine.api.session.export();
-        const importedTab = importedSnapshot.tabs.find((tab) => tab.id === tabId);
-        expect(importedTab).toBeDefined();
-        const itemsById = new Map(importedTab!.items);
-
-        for (const [, link] of importedTab!.links) {
-            const from = itemsById.get(link.fromItemId);
-            if (!from || !isGeneratorItem(from) || !hasItemOutputPins(from)) continue;
-            const value = from.outputPins[link.fromPin].value;
-
-            importedEngine.api.item.updateInput({
-                tabId,
-                itemId: link.toItemId,
-                pin: link.toPin,
-                t: 0,
-                value,
-            });
-        }
-
+        seedGeneratorLinks(importedEngine, tabId);
         importedEngine.api.simulation.simulate({ tabId, runCfg: { maxBatchTicks: 128 } });
 
         expect(readValues()).toEqual({
@@ -567,25 +574,7 @@ describe("template public use cases", () => {
         const snapshot = engine.api.session.export();
         importedEngine.api.session.import(snapshot);
 
-        const importedSnapshot = importedEngine.api.session.export();
-        const importedTab = importedSnapshot.tabs.find((tab) => tab.id === tabId);
-        expect(importedTab).toBeDefined();
-        const itemsById = new Map(importedTab!.items);
-
-        for (const [, link] of importedTab!.links) {
-            const from = itemsById.get(link.fromItemId);
-            if (!from || !isGeneratorItem(from) || !hasItemOutputPins(from)) continue;
-            const value = from.outputPins[link.fromPin].value;
-
-            importedEngine.api.item.updateInput({
-                tabId,
-                itemId: link.toItemId,
-                pin: link.toPin,
-                t: 0,
-                value,
-            });
-        }
-
+        seedGeneratorLinks(importedEngine, tabId);
         importedEngine.api.simulation.simulate({ tabId, runCfg: { maxBatchTicks: 128 } });
 
         const tabContext = importedEngine.deps.stores.tab.get(tabId)?.ctx;
@@ -608,6 +597,245 @@ describe("template public use cases", () => {
             customOutput: "1",
             displayInput: "1",
         });
+    });
+
+    it("loads nested custom components into another saved custom component and reuses the reloaded hierarchy", async () => {
+        const baseNotHash = "CUSTOM_NESTED_BASE_NOT";
+        const bufferHash = "CUSTOM_NESTED_DOUBLE_NOT_BUFFER";
+        const mcuHash = "CUSTOM_NESTED_MCU_WRAPPER";
+
+        const authoringEngine = await new CinabonoBuilder().build();
+        const { tabId: libraryTabId } = authoringEngine.api.tab.create({ id: "library" });
+
+        authoringEngine.api.item.create([
+            { id: "BASE_IN", kind: "base:generator", hash: "TOGGLE", path: [libraryTabId] },
+            { id: "BASE_NOT", kind: "base:logic", hash: "NOT", path: [libraryTabId] },
+            { id: "BASE_OUT", kind: "base:display", hash: "LAMP", path: [libraryTabId] },
+        ]);
+        authoringEngine.api.item.link([
+            {
+                tabId: libraryTabId,
+                link: { fromItemId: "BASE_IN", fromPin: "0", toItemId: "BASE_NOT", toPin: "0" },
+            },
+            {
+                tabId: libraryTabId,
+                link: { fromItemId: "BASE_NOT", fromPin: "0", toItemId: "BASE_OUT", toPin: "0" },
+            },
+        ]);
+
+        authoringEngine.api.template.createFromSelection({
+            tabId: libraryTabId,
+            hash: baseNotHash,
+            name: "Nested Base NOT",
+            selectedItemIds: ["BASE_IN", "BASE_NOT", "BASE_OUT"],
+        });
+
+        authoringEngine.api.item.create([
+            { id: "BUFFER_IN", kind: "base:generator", hash: "TOGGLE", path: [libraryTabId] },
+            { id: "BUFFER_NOT_A", kind: "circuit:logic", hash: baseNotHash, path: [libraryTabId] },
+            { id: "BUFFER_NOT_B", kind: "circuit:logic", hash: baseNotHash, path: [libraryTabId] },
+            { id: "BUFFER_OUT", kind: "base:display", hash: "LAMP", path: [libraryTabId] },
+        ]);
+        authoringEngine.api.item.link([
+            {
+                tabId: libraryTabId,
+                link: {
+                    fromItemId: "BUFFER_IN",
+                    fromPin: "0",
+                    toItemId: "BUFFER_NOT_A",
+                    toPin: "0",
+                },
+            },
+            {
+                tabId: libraryTabId,
+                link: {
+                    fromItemId: "BUFFER_NOT_A",
+                    fromPin: "0",
+                    toItemId: "BUFFER_NOT_B",
+                    toPin: "0",
+                },
+            },
+            {
+                tabId: libraryTabId,
+                link: {
+                    fromItemId: "BUFFER_NOT_B",
+                    fromPin: "0",
+                    toItemId: "BUFFER_OUT",
+                    toPin: "0",
+                },
+            },
+        ]);
+
+        const bufferTemplateResult = authoringEngine.api.template.createFromSelection({
+            tabId: libraryTabId,
+            hash: bufferHash,
+            name: "Nested Double NOT Buffer",
+            selectedItemIds: ["BUFFER_IN", "BUFFER_NOT_A", "BUFFER_NOT_B", "BUFFER_OUT"],
+        });
+
+        expect(bufferTemplateResult.summary).toMatchObject({
+            hash: bufferHash,
+            custom: true,
+            inputCount: 1,
+            outputCount: 1,
+        });
+        expect(
+            Object.values(bufferTemplateResult.template.items).filter(
+                (item) => item.kind === "circuit:logic" && item.hash === baseNotHash,
+            ),
+        ).toHaveLength(2);
+
+        authoringEngine.api.tab.remove({ tabId: libraryTabId });
+        expect(authoringEngine.api.session.export().tabs).toHaveLength(0);
+
+        const compositionEngine = await new CinabonoBuilder().build();
+        compositionEngine.api.session.import(authoringEngine.api.session.export());
+
+        const { tabId: compositionTabId } = compositionEngine.api.tab.create({ id: "composition" });
+        compositionEngine.api.item.create([
+            { id: "MCU_IN", kind: "base:generator", hash: "TOGGLE", path: [compositionTabId] },
+            { id: "MCU_BUFFER", kind: "circuit:logic", hash: bufferHash, path: [compositionTabId] },
+            { id: "MCU_OUT", kind: "base:display", hash: "LAMP", path: [compositionTabId] },
+        ]);
+        compositionEngine.api.item.link([
+            {
+                tabId: compositionTabId,
+                link: { fromItemId: "MCU_IN", fromPin: "0", toItemId: "MCU_BUFFER", toPin: "0" },
+            },
+            {
+                tabId: compositionTabId,
+                link: { fromItemId: "MCU_BUFFER", fromPin: "0", toItemId: "MCU_OUT", toPin: "0" },
+            },
+        ]);
+
+        const mcuTemplateResult = compositionEngine.api.template.createFromSelection({
+            tabId: compositionTabId,
+            hash: mcuHash,
+            name: "Nested MCU Wrapper",
+            selectedItemIds: ["MCU_IN", "MCU_BUFFER", "MCU_OUT"],
+        });
+        expect(
+            Object.values(mcuTemplateResult.template.items).filter(
+                (item) => item.kind === "circuit:logic" && item.hash === bufferHash,
+            ),
+        ).toHaveLength(1);
+
+        compositionEngine.api.tab.remove({ tabId: compositionTabId });
+
+        const { tabId: finalTabId } = compositionEngine.api.tab.create({ id: "final" });
+        compositionEngine.api.item.create([
+            { id: "FINAL_IN", kind: "base:generator", hash: "TOGGLE", path: [finalTabId] },
+            { id: "MCU_NODE", kind: "circuit:logic", hash: mcuHash, path: [finalTabId] },
+            { id: "FINAL_OUT", kind: "base:display", hash: "LAMP", path: [finalTabId] },
+        ]);
+        compositionEngine.api.item.link([
+            {
+                tabId: finalTabId,
+                link: { fromItemId: "FINAL_IN", fromPin: "0", toItemId: "MCU_NODE", toPin: "0" },
+            },
+            {
+                tabId: finalTabId,
+                link: { fromItemId: "MCU_NODE", fromPin: "0", toItemId: "FINAL_OUT", toPin: "0" },
+            },
+        ]);
+
+        const readFinalValues = (
+            engine: Engine,
+        ): { sourceOutput: LogicValue; moduleInput: LogicValue; moduleOutput: LogicValue; displayInput: LogicValue } => {
+            const tabContext = engine.deps.stores.tab.get(finalTabId)?.ctx;
+            expect(tabContext).toBeDefined();
+
+            const source = tabContext!.itemStore.get("FINAL_IN");
+            const module = tabContext!.itemStore.get("MCU_NODE");
+            const display = tabContext!.itemStore.get("FINAL_OUT");
+            expect(source && hasItemOutputPins(source)).toBe(true);
+            expect(module && hasItemInputPins(module) && hasItemOutputPins(module)).toBe(true);
+            expect(display && hasItemInputPins(display)).toBe(true);
+
+            return {
+                sourceOutput: source!.outputPins["0"].value,
+                moduleInput: module!.inputPins["0"].value,
+                moduleOutput: module!.outputPins["0"].value,
+                displayInput: display!.inputPins["0"].value,
+            };
+        };
+
+        const expectEfficientFinalHierarchy = (engine: Engine): void => {
+            const tabContext = engine.deps.stores.tab.get(finalTabId)?.ctx;
+            expect(tabContext).toBeDefined();
+
+            const items = tabContext!.itemStore.export().map(([, item]) => item);
+            const hashCounts = items.reduce<Record<string, number>>((counts, item) => {
+                counts[item.hash] = (counts[item.hash] ?? 0) + 1;
+                return counts;
+            }, {});
+
+            expect(items).toHaveLength(8);
+            expect(tabContext!.scopeStore.export()).toHaveLength(5);
+            expect(tabContext!.linkStore.export()).toHaveLength(3);
+            expect(hashCounts).toMatchObject({
+                [mcuHash]: 1,
+                [bufferHash]: 1,
+                [baseNotHash]: 2,
+                NOT: 2,
+                TOGGLE: 1,
+                LAMP: 1,
+            });
+        };
+
+        const verifyFinalTruthTable = (engine: Engine): void => {
+            seedGeneratorLinks(engine, finalTabId);
+            engine.api.simulation.simulate({ tabId: finalTabId, runCfg: { maxBatchTicks: 128 } });
+            expect(readFinalValues(engine)).toEqual({
+                sourceOutput: "0",
+                moduleInput: "0",
+                moduleOutput: "0",
+                displayInput: "0",
+            });
+
+            engine.api.item.updateOutput({
+                tabId: finalTabId,
+                itemId: "FINAL_IN",
+                pin: "0",
+                value: "1",
+            });
+            engine.api.simulation.simulate({ tabId: finalTabId, runCfg: { maxBatchTicks: 128 } });
+            expect(readFinalValues(engine)).toEqual({
+                sourceOutput: "1",
+                moduleInput: "1",
+                moduleOutput: "1",
+                displayInput: "1",
+            });
+
+            engine.api.item.updateOutput({
+                tabId: finalTabId,
+                itemId: "FINAL_IN",
+                pin: "0",
+                value: "0",
+            });
+            engine.api.simulation.simulate({ tabId: finalTabId, runCfg: { maxBatchTicks: 128 } });
+            expect(readFinalValues(engine)).toEqual({
+                sourceOutput: "0",
+                moduleInput: "0",
+                moduleOutput: "0",
+                displayInput: "0",
+            });
+        };
+
+        expect(compositionEngine.api.template.list().filter((template) => template.custom)).toEqual([
+            expect.objectContaining({ hash: baseNotHash, inputCount: 1, outputCount: 1 }),
+            expect.objectContaining({ hash: bufferHash, inputCount: 1, outputCount: 1 }),
+            expect.objectContaining({ hash: mcuHash, inputCount: 1, outputCount: 1 }),
+        ]);
+
+        expectEfficientFinalHierarchy(compositionEngine);
+        verifyFinalTruthTable(compositionEngine);
+
+        const reloadedEngine = await new CinabonoBuilder().build();
+        reloadedEngine.api.session.import(compositionEngine.api.session.export());
+
+        expectEfficientFinalHierarchy(reloadedEngine);
+        verifyFinalTruthTable(reloadedEngine);
     });
 
     it("removes unused custom templates", async () => {
