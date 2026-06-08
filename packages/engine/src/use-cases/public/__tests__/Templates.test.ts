@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CinabonoBuilder } from "@engine/engine/builder";
 import {
+    LogicValue,
     hasItemInputPins,
     hasItemOutputPins,
     type InnerItemInputLinks,
@@ -260,6 +261,123 @@ describe("template public use cases", () => {
             "BUFFER_0",
             "OUT",
         ]);
+    });
+
+    it("round-trips a live custom component instance with external toggles and display output", async () => {
+        const engine = await new CinabonoBuilder().build();
+        const { tabId } = engine.api.tab.create({ id: "tab" });
+
+        engine.api.item.create([
+            { id: "SRC_A", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "SRC_B", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "SRC_AND", kind: "base:logic", hash: "AND", path: [tabId] },
+            { id: "SRC_OUT", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "SRC_A", fromPin: "0", toItemId: "SRC_AND", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "SRC_B", fromPin: "0", toItemId: "SRC_AND", toPin: "1" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "SRC_AND", fromPin: "0", toItemId: "SRC_OUT", toPin: "0" },
+            },
+        ]);
+
+        engine.api.template.createFromSelection({
+            tabId,
+            hash: "CUSTOM_AND_FROM_UI",
+            name: "AND From UI",
+            selectedItemIds: ["SRC_A", "SRC_B", "SRC_AND", "SRC_OUT"],
+        });
+
+        engine.api.item.create([
+            { id: "A", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            { id: "B", kind: "base:generator", hash: "TOGGLE", path: [tabId] },
+            {
+                id: "CUSTOM_NODE",
+                kind: "circuit:logic",
+                hash: "CUSTOM_AND_FROM_UI",
+                path: [tabId],
+            },
+            { id: "CUSTOM_OUT", kind: "base:display", hash: "LAMP", path: [tabId] },
+        ]);
+        engine.api.item.link([
+            {
+                tabId,
+                link: { fromItemId: "A", fromPin: "0", toItemId: "CUSTOM_NODE", toPin: "0" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "B", fromPin: "0", toItemId: "CUSTOM_NODE", toPin: "1" },
+            },
+            {
+                tabId,
+                link: { fromItemId: "CUSTOM_NODE", fromPin: "0", toItemId: "CUSTOM_OUT", toPin: "0" },
+            },
+        ]);
+
+        const readValues = (
+            targetEngine: typeof engine,
+        ): { customInput: LogicValue[]; customOutput: LogicValue; displayInput: LogicValue } => {
+            const tabContext = targetEngine.deps.stores.tab.get(tabId)?.ctx;
+            expect(tabContext).toBeDefined();
+
+            const custom = tabContext!.itemStore.get("CUSTOM_NODE");
+            const display = tabContext!.itemStore.get("CUSTOM_OUT");
+            expect(custom && hasItemInputPins(custom) && hasItemOutputPins(custom)).toBe(true);
+            expect(display && hasItemInputPins(display)).toBe(true);
+
+            return {
+                customInput: [custom!.inputPins["0"].value, custom!.inputPins["1"].value],
+                customOutput: custom!.outputPins["0"].value,
+                displayInput: display!.inputPins["0"].value,
+            };
+        };
+        const setToggle = (id: string, value: LogicValue): void => {
+            engine.api.item.updateOutput({ tabId, itemId: id, pin: "0", value });
+        };
+        const simulate = (targetEngine = engine): void => {
+            targetEngine.api.simulation.simulate({ tabId, runCfg: { maxBatchTicks: 20 } });
+        };
+
+        simulate();
+        expect(readValues(engine)).toEqual({
+            customInput: ["0", "0"],
+            customOutput: "0",
+            displayInput: "0",
+        });
+
+        setToggle("A", "1");
+        setToggle("B", "1");
+        simulate();
+        expect(readValues(engine)).toEqual({
+            customInput: ["1", "1"],
+            customOutput: "1",
+            displayInput: "1",
+        });
+
+        const snapshot = engine.api.session.export();
+        const importedEngine = await new CinabonoBuilder().build();
+        importedEngine.api.session.import(snapshot);
+
+        expect(readValues(importedEngine)).toEqual({
+            customInput: ["1", "1"],
+            customOutput: "1",
+            displayInput: "1",
+        });
+
+        importedEngine.api.item.updateOutput({ tabId, itemId: "B", pin: "0", value: "0" });
+        simulate(importedEngine);
+        expect(readValues(importedEngine)).toEqual({
+            customInput: ["1", "0"],
+            customOutput: "0",
+            displayInput: "0",
+        });
     });
 
     it("removes unused custom templates", async () => {

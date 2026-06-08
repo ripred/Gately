@@ -2,6 +2,13 @@ import { getGlobalCfg } from "@cnbn/config";
 import { mkDefaultPins } from "@cnbn/helpers";
 import { LogicValueBase, WithCircuitPins, BasePin } from "@cnbn/schema";
 
+type CircuitTemplatePin =
+    | WithCircuitPins<"template">["inputPins"][string]
+    | WithCircuitPins<"template">["outputPins"][string];
+type CircuitItemPin =
+    | WithCircuitPins<"item">["inputPins"][string]
+    | WithCircuitPins<"item">["outputPins"][string];
+
 export const getDefaultSettings = () => {
     return {
         displayValue: () => getGlobalCfg().pins.initialDisplayValue,
@@ -31,11 +38,31 @@ export const normalizeCircuitPins = <T extends keyof WithCircuitPins<"template">
     defaultValue: LogicValueBase,
     type: T
 ): WithCircuitPins<"item">[T] => {
-    const clone = { ...pins[type] };
+    const cloneCircuitPin = (pin: CircuitTemplatePin): CircuitItemPin => {
+        const clone: CircuitItemPin = {
+            ...pin,
+            value: pin.value ?? defaultValue,
+        };
 
-    for (const key in clone) {
-        const pin = clone[key];
-        if (pin.value == null) pin.value = defaultValue;
-    }
-    return clone;
+        if ("inputItems" in pin && pin.inputItems) {
+            (clone as WithCircuitPins<"item">["inputPins"][string]).inputItems =
+                pin.inputItems.map((input) => ({ ...input }));
+        }
+
+        if ("outputItem" in pin && pin.outputItem) {
+            (clone as WithCircuitPins<"item">["outputPins"][string]).outputItem = {
+                ...pin.outputItem,
+            };
+        }
+
+        if ("circuitPins" in pin && Array.isArray(pin.circuitPins)) {
+            clone.circuitPins = pin.circuitPins.map((circuitPin) => ({ ...circuitPin }));
+        }
+
+        return clone;
+    };
+
+    return Object.fromEntries(
+        Object.entries(pins[type]).map(([key, pin]) => [key, cloneCircuitPin(pin)]),
+    ) as WithCircuitPins<"item">[T];
 };

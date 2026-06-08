@@ -7,6 +7,7 @@ describe("DefaultStepSimulator", () => {
     let sim;
     let deps;
     beforeEach(() => {
+        vi.restoreAllMocks();
         deps = {
             ctx: Mocks.mkMockCtx(),
             inHandler: Mocks.mkMockInHandler(),

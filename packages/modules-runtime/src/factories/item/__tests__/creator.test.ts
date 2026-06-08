@@ -91,6 +91,41 @@ describe("DefaultItemCreator", () => {
         expect(item.outputPins[0].outputItem).toBeDefined();
     });
 
+    it("should clone circuit:logic pin references from template args", () => {
+        const inputPins = {
+            0: {
+                value: "Z",
+                inputItems: [{ itemId: "inner-a", pin: "0" }],
+            },
+        } as const;
+        const outputPins = {
+            0: {
+                value: "X",
+                outputItem: { itemId: "inner-b", pin: "0" },
+            },
+        } as const;
+
+        const item = creator.create<"circuit:logic">({
+            ...testItemArgs("circuit:logic"),
+            inputPins,
+            outputPins,
+        });
+
+        item.inputPins[0].value = "1";
+        item.inputPins[0].inputItems![0].itemId = "runtime-inner-a";
+        item.outputPins[0].value = "0";
+        item.outputPins[0].outputItem!.itemId = "runtime-inner-b";
+
+        expect(inputPins[0]).toEqual({
+            value: "Z",
+            inputItems: [{ itemId: "inner-a", pin: "0" }],
+        });
+        expect(outputPins[0]).toEqual({
+            value: "X",
+            outputItem: { itemId: "inner-b", pin: "0" },
+        });
+    });
+
     it("should create circuit:logic with empty pins", () => {
         const item = creator.create<"circuit:logic">({
             ...testItemArgs("circuit:logic"),

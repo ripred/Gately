@@ -19,11 +19,24 @@ export const normalizeBasePin = (count, defaultValue, override) => {
     }));
 };
 export const normalizeCircuitPins = (pins, defaultValue, type) => {
-    const clone = { ...pins[type] };
-    for (const key in clone) {
-        const pin = clone[key];
-        if (pin.value == null)
-            pin.value = defaultValue;
-    }
-    return clone;
+    const cloneCircuitPin = (pin) => {
+        const clone = {
+            ...pin,
+            value: pin.value ?? defaultValue,
+        };
+        if ("inputItems" in pin && pin.inputItems) {
+            clone.inputItems =
+                pin.inputItems.map((input) => ({ ...input }));
+        }
+        if ("outputItem" in pin && pin.outputItem) {
+            clone.outputItem = {
+                ...pin.outputItem,
+            };
+        }
+        if ("circuitPins" in pin && Array.isArray(pin.circuitPins)) {
+            clone.circuitPins = pin.circuitPins.map((circuitPin) => ({ ...circuitPin }));
+        }
+        return clone;
+    };
+    return Object.fromEntries(Object.entries(pins[type]).map(([key, pin]) => [key, cloneCircuitPin(pin)]));
 };

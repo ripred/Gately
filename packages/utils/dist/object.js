@@ -24,6 +24,8 @@ export const processMany = (items, fn) => {
 };
 export const deepMerge = (target, source) => {
     for (const key of Object.keys(source)) {
+        if (key === "__proto__" || key === "prototype" || key === "constructor")
+            continue;
         const tVal = target[key];
         const sVal = source[key];
         if (isPlainObject(tVal) && isPlainObject(sVal)) {
@@ -33,6 +35,7 @@ export const deepMerge = (target, source) => {
             target[key] = sVal;
         }
     }
+    return target;
 };
 export const isPlainObject = (v) => {
     return v !== null && typeof v === "object" && !Array.isArray(v);
