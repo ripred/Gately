@@ -167,12 +167,16 @@ export const createWorkspaceCustomComponents = (
         if (!graph) return;
 
         const bumpSelection = () => setSelectionVersion((version) => version + 1);
+        graph.on("node:selected", bumpSelection);
+        graph.on("node:unselected", bumpSelection);
         graph.on("cell:selected", bumpSelection);
         graph.on("cell:unselected", bumpSelection);
         graph.on("selection:changed", bumpSelection);
         bumpSelection();
 
         onCleanup(() => {
+            graph.off("node:selected", bumpSelection);
+            graph.off("node:unselected", bumpSelection);
             graph.off("cell:selected", bumpSelection);
             graph.off("cell:unselected", bumpSelection);
             graph.off("selection:changed", bumpSelection);
